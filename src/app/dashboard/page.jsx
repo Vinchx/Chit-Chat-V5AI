@@ -46,7 +46,7 @@ export default function Dashboard() {
       // Kalau belum login, redirect ke halaman auth
       window.location.href = "/auth";
       return;
-    }
+    } 
 
     // Set data user dari localStorage
     setUser(JSON.parse(userData));
@@ -56,8 +56,9 @@ export default function Dashboard() {
     loadFriends(token);
     loadFriendRequests(token);
 
-    // Setup Socket.io connection
-    const newSocket = io("http://localhost:3000");
+    // Setup Socket.io connection - gunakan env variable atau fallback ke window.location
+    const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL || `${window.location.protocol}//${window.location.hostname}:${window.location.port}`;
+    const newSocket = io(serverUrl);
     setSocket(newSocket);
 
     newSocket.on("connect", () => {

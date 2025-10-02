@@ -1,8 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function AuthPage() {
+    const router = useRouter();
+
+    // Cek apakah user sudah login saat component mount
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            // Kalau sudah login, redirect ke dashboard
+            router.push('/dashboard');
+        }
+    }, [router]);
+
     // State untuk switch antara sign in dan sign up
     const [isSignUp, setIsSignUp] = useState(false);
 

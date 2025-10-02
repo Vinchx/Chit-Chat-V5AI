@@ -13,7 +13,8 @@ app.prepare().then(() => {
 
     const io = new Server(server, {
         cors: {
-            origin: dev ? "http://localhost:3000" : "https://Chit-Chat-V5AI"
+            origin: dev ? ["http://localhost:3000", "http://192.168.10.16:3000"] : "https://Chit-Chat-V5AI",
+            credentials: true
         }
     });
 
@@ -58,7 +59,9 @@ app.prepare().then(() => {
     });
 
     const PORT = process.env.PORT || 3000;
-    server.listen(PORT, () => {
-        console.log(`🚀 Server jalan di http://localhost:${PORT}`);
+    server.listen(PORT, '0.0.0.0', () => {
+        console.log(`🚀 Server jalan di:`);
+        console.log(`   - Local:   http://localhost:${PORT}`);
+        console.log(`   - Network: http://192.168.10.16:${PORT}`);
     });
 });
