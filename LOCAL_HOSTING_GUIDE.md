@@ -15,12 +15,15 @@ Panduan lengkap untuk host ChitChat di jaringan lokal (WiFi) agar bisa diakses d
 ## 🔍 Step 1: Cari IP Address Lokal
 
 ### Windows:
+
 ```bash
 ipconfig
 ```
+
 Cari bagian `IPv4 Address`, contoh: `192.168.10.16`
 
 ### Mac/Linux:
+
 ```bash
 ifconfig
 # atau
@@ -36,12 +39,14 @@ ip addr show
 ### File yang sudah diupdate:
 
 #### 1. `server.js` - Socket.io & Server Config
+
 ```javascript
 // CORS untuk Socket.io
 const io = new Server(server, {
     cors: {
         origin: dev ? [
             "http://localhost:3000",
+            "http://192.168.1.16:3000"  // ✅ IP lokal kamu
             "http://192.168.10.16:3000"  // ✅ IP lokal kamu
         ] : "https://Chit-Chat-V5AI",
         credentials: true
@@ -53,10 +58,12 @@ server.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server jalan di:`);
     console.log(`   - Local:   http://localhost:${PORT}`);
     console.log(`   - Network: http://192.168.10.16:${PORT}`);  // ✅ IP lokal
+    console.log(`   - Network: http://192.168.1.16:${PORT}`);  // ✅ IP lokal
 });
 ```
 
 #### 2. `.env.local` - Environment Variable
+
 ```bash
 MONGODB_URI=mongodb+srv://...
 
@@ -65,10 +72,12 @@ NEXT_PUBLIC_SERVER_URL=http://192.168.10.16:3000
 ```
 
 #### 3. `src/app/dashboard/page.jsx` - Socket.io Client
+
 ```javascript
 // Dynamic connection berdasarkan env atau window.location
-const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL ||
-                  `${window.location.protocol}//${window.location.hostname}:${window.location.port}`;
+const serverUrl =
+  process.env.NEXT_PUBLIC_SERVER_URL ||
+  `${window.location.protocol}//${window.location.hostname}:${window.location.port}`;
 const newSocket = io(serverUrl);
 ```
 
@@ -77,17 +86,20 @@ const newSocket = io(serverUrl);
 ## 🚀 Step 3: Start Server
 
 ### Option 1: Development Mode (Recommended)
+
 ```bash
 npm run dev
 ```
 
 ### Option 2: Production Mode
+
 ```bash
 npm run build
 npm start
 ```
 
 **Output yang benar:**
+
 ```
 🚀 Server jalan di:
    - Local:   http://localhost:3000
@@ -99,6 +111,7 @@ npm start
 ## 🔥 Step 4: Setup Firewall (Windows)
 
 ### Method 1: Windows Firewall GUI
+
 1. Buka **Windows Defender Firewall**
 2. Klik **Advanced Settings**
 3. Klik **Inbound Rules** → **New Rule**
@@ -109,6 +122,7 @@ npm start
 8. Name: `ChitChat Port 3000` → Finish
 
 ### Method 2: Command Line (Admin PowerShell)
+
 ```powershell
 # Allow port 3000 inbound
 netsh advfirewall firewall add rule name="ChitChat Port 3000" dir=in action=allow protocol=TCP localport=3000
@@ -118,6 +132,7 @@ netsh advfirewall firewall show rule name="ChitChat Port 3000"
 ```
 
 ### Method 3: Temporary Disable (Not Recommended)
+
 ```powershell
 # Turn off firewall (temporary - for testing only!)
 netsh advfirewall set allprofiles state off
@@ -145,12 +160,14 @@ netsh advfirewall set allprofiles state on
 ## 🧪 Testing Checklist
 
 ### Test 1: Akses dari Komputer Host
+
 - [ ] Buka `http://localhost:3000` ✅
 - [ ] Buka `http://192.168.10.16:3000` ✅
 - [ ] Login berhasil ✅
 - [ ] Dashboard tampil ✅
 
 ### Test 2: Akses dari HP (WiFi sama)
+
 - [ ] HP connect ke WiFi yang sama ✅
 - [ ] Buka `http://192.168.10.16:3000` ✅
 - [ ] Halaman auth muncul ✅
@@ -159,6 +176,7 @@ netsh advfirewall set allprofiles state on
 - [ ] Dashboard tampil ✅
 
 ### Test 3: Socket.io Real-time
+
 - [ ] Login dari 2 device berbeda ✅
 - [ ] Berteman (add friend) ✅
 - [ ] Buat private room ✅
@@ -167,6 +185,7 @@ netsh advfirewall set allprofiles state on
 - [ ] Typing indicator muncul ✅
 
 ### Test 4: Multi-user Scenario
+
 - [ ] 3+ device online bersamaan ✅
 - [ ] Group chat berfungsi ✅
 - [ ] Pesan broadcast ke semua member ✅
@@ -176,12 +195,15 @@ netsh advfirewall set allprofiles state on
 ## 🛠️ Troubleshooting
 
 ### Problem 1: "Site can't be reached" dari device lain
+
 **Kemungkinan penyebab:**
+
 - Firewall block port 3000
 - WiFi berbeda
 - IP address salah
 
 **Solution:**
+
 ```bash
 # 1. Cek IP address lagi
 ipconfig
@@ -199,11 +221,14 @@ netsh advfirewall set allprofiles state off
 ---
 
 ### Problem 2: Halaman loading tapi Socket.io tidak connect
+
 **Kemungkinan penyebab:**
+
 - CORS settings salah
 - Socket.io URL tidak update
 
 **Solution:**
+
 1. Cek browser console (F12)
 2. Lihat error Socket.io
 3. Pastikan `NEXT_PUBLIC_SERVER_URL` benar di `.env.local`
@@ -216,11 +241,14 @@ netsh advfirewall set allprofiles state off
 ---
 
 ### Problem 3: Bisa akses tapi tidak bisa login/register
+
 **Kemungkinan penyebab:**
+
 - Database tidak connect
 - API endpoint tidak jalan
 
 **Solution:**
+
 ```bash
 # Cek MongoDB connection
 # Lihat terminal server, harusnya ada log connection success
@@ -232,7 +260,9 @@ curl http://192.168.10.16:3000/api/test-db
 ---
 
 ### Problem 4: IP Address berubah setelah restart
+
 **Kemungkinan penyebab:**
+
 - DHCP assign IP baru
 
 **Solution:**
@@ -240,6 +270,7 @@ curl http://192.168.10.16:3000/api/test-db
 #### Set Static IP (Recommended untuk development)
 
 **Windows:**
+
 1. Control Panel → Network and Sharing Center
 2. Change adapter settings
 3. Right-click WiFi → Properties
@@ -252,6 +283,7 @@ curl http://192.168.10.16:3000/api/test-db
 7. OK → OK
 
 **Atau update .env.local dengan IP baru** setiap kali berubah:
+
 ```bash
 NEXT_PUBLIC_SERVER_URL=http://192.168.10.XX:3000  # Update XX
 ```
@@ -284,6 +316,7 @@ NEXT_PUBLIC_SERVER_URL=http://192.168.10.XX:3000  # Update XX
 Kalau mau akses dari luar jaringan WiFi (internet), butuh:
 
 ### Option 1: Ngrok (Simple, Free)
+
 ```bash
 # Install ngrok
 npm install -g ngrok
@@ -296,11 +329,13 @@ ngrok http 3000
 ```
 
 Update `.env.local`:
+
 ```bash
 NEXT_PUBLIC_SERVER_URL=https://xxxx-xx-xx-xx.ngrok.io
 ```
 
 ### Option 2: Port Forwarding (Router)
+
 1. Login ke router (biasanya `192.168.10.1`)
 2. Cari menu **Port Forwarding** / **Virtual Server**
 3. Add rule:
@@ -346,6 +381,7 @@ kill -9 [PID]                         # Linux/Mac
 ## 🎯 Production Deployment
 
 Untuk deploy ke production (bukan localhost), lihat:
+
 - [Vercel](https://vercel.com) - Recommended untuk Next.js
 - [Railway](https://railway.app)
 - [Render](https://render.com)
@@ -356,6 +392,7 @@ Untuk deploy ke production (bukan localhost), lihat:
 ## ✅ Summary
 
 **Your Local Network URLs:**
+
 ```
 Komputer:      http://localhost:3000
                http://192.168.10.16:3000
@@ -365,11 +402,13 @@ Device Lain:   http://192.168.10.16:3000
 ```
 
 **Files Modified:**
+
 - ✅ `server.js` - CORS & listen on 0.0.0.0
 - ✅ `.env.local` - NEXT_PUBLIC_SERVER_URL
 - ✅ `src/app/dashboard/page.jsx` - Dynamic Socket.io URL
 
 **Next Steps:**
+
 1. Start server: `npm run dev`
 2. Allow firewall
 3. Test dari HP/device lain

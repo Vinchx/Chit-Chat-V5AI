@@ -39,6 +39,13 @@ export default function AuthPage() {
         setMessage({ text: '', type: '' });
     };
 
+    // Fungsi untuk handle Enter key
+    const handleKeyDown = (e, action) => {
+        if (e.key === 'Enter' && !isLoading) {
+            action();
+        }
+    };
+
     // Fungsi register - kirim ke API beneran
     const handleRegister = async () => {
         if (!formData.username || !formData.email || !formData.password || !formData.displayName) {
@@ -189,6 +196,7 @@ export default function AuthPage() {
                                 placeholder="Password"
                                 value={formData.password}
                                 onChange={handleInputChange}
+                                onKeyDown={(e) => handleKeyDown(e, handleRegister)}
                                 className="w-full px-3 py-2.5 bg-white/30 backdrop-blur-sm border border-white/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 text-gray-800 placeholder-gray-600 text-sm"
                                 disabled={isLoading}
                                 suppressHydrationWarning={true}
@@ -246,6 +254,7 @@ export default function AuthPage() {
                                 placeholder="Password"
                                 value={formData.password}
                                 onChange={handleInputChange}
+                                onKeyDown={(e) => handleKeyDown(e, handleLogin)}
                                 className="w-full px-4 py-3 bg-white/30 backdrop-blur-sm border border-white/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 text-gray-800 placeholder-gray-600"
                                 disabled={isLoading}
                                 suppressHydrationWarning={true}
