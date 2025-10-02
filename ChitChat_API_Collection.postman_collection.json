@@ -1,0 +1,436 @@
+{
+	"info": {
+		"_postman_id": "chitchat-v5-api",
+		"name": "ChitChat v5.1 API Collection",
+		"description": "Complete API endpoints for ChitChat real-time chat application",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000",
+			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Register",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"testuser\",\n  \"email\": \"testuser@example.com\",\n  \"password\": \"password123\",\n  \"displayName\": \"Test User\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/register",
+							"host": ["{{base_url}}"],
+							"path": ["api", "register"]
+						},
+						"description": "Register new user account. Returns userId on success."
+					},
+					"response": []
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Auto-save token to environment variable",
+									"const response = pm.response.json();",
+									"if (response.success && response.token) {",
+									"    pm.collectionVariables.set('token', response.token);",
+									"    console.log('Token saved:', response.token);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"login\": \"testuser\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/login",
+							"host": ["{{base_url}}"],
+							"path": ["api", "login"]
+						},
+						"description": "Login with username/email and password. Returns JWT token (valid 7 days). Login can be username or email."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Friends",
+			"item": [
+				{
+					"name": "Get Friends List",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/friends",
+							"host": ["{{base_url}}"],
+							"path": ["api", "friends"]
+						},
+						"description": "Get all friends and friend requests. Returns:\n- friends: accepted friendships\n- pendingReceived: requests you need to respond to\n- pendingSent: requests waiting for response"
+					},
+					"response": []
+				},
+				{
+					"name": "Add Friend",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"identifier\": \"username_or_email\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/friends/add",
+							"host": ["{{base_url}}"],
+							"path": ["api", "friends", "add"]
+						},
+						"description": "Send friend request. Identifier can be username or email."
+					},
+					"response": []
+				},
+				{
+					"name": "Accept Friend Request",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"friendshipId\": \"friend001\",\n  \"action\": \"accept\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/friends/respond",
+							"host": ["{{base_url}}"],
+							"path": ["api", "friends", "respond"]
+						},
+						"description": "Accept a friend request. Only the receiver can respond."
+					},
+					"response": []
+				},
+				{
+					"name": "Reject Friend Request",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"friendshipId\": \"friend001\",\n  \"action\": \"reject\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/friends/respond",
+							"host": ["{{base_url}}"],
+							"path": ["api", "friends", "respond"]
+						},
+						"description": "Reject a friend request. Only the receiver can respond."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Rooms",
+			"item": [
+				{
+					"name": "Get All Rooms",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/rooms",
+							"host": ["{{base_url}}"],
+							"path": ["api", "rooms"]
+						},
+						"description": "Get all rooms where user is a member. Returns rooms sorted by last activity with details for private/group/AI rooms."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Private Room",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"private\",\n  \"memberIds\": [\"user002\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/rooms/create",
+							"host": ["{{base_url}}"],
+							"path": ["api", "rooms", "create"]
+						},
+						"description": "Create private chat room with one friend. You must be friends first. Room name auto-generated."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Group Room",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"group\",\n  \"name\": \"Dev Team Chat\",\n  \"memberIds\": [\"user002\", \"user003\", \"user004\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/rooms/create",
+							"host": ["{{base_url}}"],
+							"path": ["api", "rooms", "create"]
+						},
+						"description": "Create group chat room. Requires name and at least 1 member (plus creator)."
+					},
+					"response": []
+				},
+				{
+					"name": "Create AI Room",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"ai\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/rooms/create",
+							"host": ["{{base_url}}"],
+							"path": ["api", "rooms", "create"]
+						},
+						"description": "Create AI chat room. Only you as member, name auto-generated."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Messages",
+			"item": [
+				{
+					"name": "Send Message",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"roomId\": \"room001\",\n  \"message\": \"Hello, this is a test message!\",\n  \"messageType\": \"text\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/messages",
+							"host": ["{{base_url}}"],
+							"path": ["api", "messages"]
+						},
+						"description": "Send message to a room. messageType defaults to 'text'. Updates room lastMessage and lastActivity."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Messages (Latest 30)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/messages/room001",
+							"host": ["{{base_url}}"],
+							"path": ["api", "messages", "room001"]
+						},
+						"description": "Get latest 30 messages from a room. Returns messages with sender details and 'isOwn' flag."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Messages with Limit",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/messages/room001?limit=50",
+							"host": ["{{base_url}}"],
+							"path": ["api", "messages", "room001"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "50"
+								}
+							]
+						},
+						"description": "Get messages with custom limit (WhatsApp style pagination)."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Older Messages (Pagination)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/messages/room001?limit=30&before=2024-10-01T10:00:00.000Z",
+							"host": ["{{base_url}}"],
+							"path": ["api", "messages", "room001"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "30"
+								},
+								{
+									"key": "before",
+									"value": "2024-10-01T10:00:00.000Z",
+									"description": "ISO timestamp - get messages before this time"
+								}
+							]
+						},
+						"description": "Load older messages (infinite scroll). Use 'oldestTimestamp' from previous response as 'before' parameter."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "Search Users",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/users/search?q=john",
+							"host": ["{{base_url}}"],
+							"path": ["api", "users", "search"],
+							"query": [
+								{
+									"key": "q",
+									"value": "john",
+									"description": "Search query (username or displayName)"
+								}
+							]
+						},
+						"description": "Search users by username or displayName. Returns max 10 results. Case-insensitive. Excludes yourself from results."
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}
