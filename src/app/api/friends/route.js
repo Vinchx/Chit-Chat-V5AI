@@ -1,20 +1,17 @@
 import connectToDatabase from "@/lib/mongodb";
 import mongoose from "mongoose";
-import jwt from "jsonwebtoken";
+import { getAuthSessionOrApiKey } from "@/lib/auth-helpers";
 
 export async function GET(request) {
     try {
-        // 1. Cek token kayak biasa
-        const token = request.headers.get("authorization")?.replace("Bearer ", "");
-        if (!token) {
-            return Response.json({
-                success: false,
-                message: "Login dulu untuk lihat daftar teman"
-            }, { status: 401 });
+        // 1. Cek authentication menggunakan NextAuth atau API key
+        const { session, userId, error } = await getAuthSessionOrApiKey(request);
+
+        if (error) {
+            return error;
         }
 
-        const decoded = jwt.verify(token, "secretbet");
-        const currentUserId = decoded.userId;
+        const currentUserId = userId;
 
         // 2. Sambung ke database
         await connectToDatabase();
@@ -43,6 +40,8 @@ export async function GET(request) {
 
             // Ambil data lengkap teman
             const friendData = await usersCollection.findOne({ _id: friendId });
+
+            if (!friendData) continue;
 
             const friendInfo = {
                 friendshipId: friendship._id,

@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { MongoClient } from "mongodb";
 
 // Ini kayak nomor telepon gudang data kita
 const MONGODB_URI = process.env.MONGODB_URI;
@@ -41,4 +42,15 @@ async function connectToDatabase() {
   return cached.conn;
 }
 
+// Client Promise untuk NextAuth MongoDB Adapter
+let client;
+let clientPromise;
+
+if (!global._mongoClientPromise) {
+  client = new MongoClient(MONGODB_URI);
+  global._mongoClientPromise = client.connect();
+}
+clientPromise = global._mongoClientPromise;
+
 export default connectToDatabase;
+export { clientPromise };

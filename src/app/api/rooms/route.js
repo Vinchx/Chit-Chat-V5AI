@@ -1,20 +1,17 @@
 import connectToDatabase from "@/lib/mongodb";
 import mongoose from "mongoose";
-import jwt from "jsonwebtoken";
+import { getAuthSessionOrApiKey } from "@/lib/auth-helpers";
 
 export async function GET(request) {
     try {
-        // 1. Cek siapa yang mau lihat daftar room
-        const token = request.headers.get("authorization")?.replace("Bearer ", "");
-        if (!token) {
-            return Response.json({
-                success: false,
-                message: "Login dulu untuk lihat daftar room"
-            }, { status: 401 });
+        // 1. Cek siapa yang mau lihat daftar room menggunakan NextAuth atau API key
+        const { session, userId, error } = await getAuthSessionOrApiKey(request);
+
+        if (error) {
+            return error;
         }
 
-        const decoded = jwt.verify(token, "secretbet");
-        const currentUserId = decoded.userId;
+        const currentUserId = userId;
 
         // 2. Sambung ke database
         await connectToDatabase();
@@ -38,7 +35,8 @@ export async function GET(request) {
                 memberCount: room.members.length,
                 lastMessage: room.lastMessage,
                 lastActivity: room.lastActivity,
-                createdAt: room.createdAt
+                createdAt: room.createdAt,
+                slug: null  // Will be set based on room type
             };
 
             // Untuk private room, ambil data teman
@@ -46,13 +44,17 @@ export async function GET(request) {
                 const friendId = room.members.find(memberId => memberId !== currentUserId);
                 const friendData = await usersCollection.findOne({ _id: friendId });
 
-                roomInfo.friend = {
-                    userId: friendData._id,
-                    username: friendData.username,
-                    displayName: friendData.displayName,
-                    avatar: friendData.avatar,
-                    isOnline: friendData.isOnline
-                };
+                if (friendData) {
+                    roomInfo.friend = {
+                        userId: friendData._id,
+                        username: friendData.username,
+                        displayName: friendData.displayName,
+                        avatar: friendData.avatar,
+                        isOnline: friendData.isOnline
+                    };
+                    // Slug untuk private = username teman
+                    roomInfo.slug = friendData.username;
+                }
             }
 
             // Untuk group room, ambil daftar member
@@ -68,6 +70,13 @@ export async function GET(request) {
                     avatar: member.avatar,
                     isOnline: member.isOnline
                 }));
+                // Slug untuk group = slugified group name
+                roomInfo.slug = room.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+            }
+
+            // Untuk AI room
+            if (room.type === "ai") {
+                roomInfo.slug = "ai-assistant";
             }
 
             roomsWithDetails.push(roomInfo);

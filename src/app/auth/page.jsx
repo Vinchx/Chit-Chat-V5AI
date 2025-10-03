@@ -2,18 +2,19 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { signIn, useSession } from 'next-auth/react';
 
 export default function AuthPage() {
     const router = useRouter();
+    const { data: session, status } = useSession();
 
     // Cek apakah user sudah login saat component mount
     useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (token) {
+        if (status === 'authenticated') {
             // Kalau sudah login, redirect ke dashboard
             router.push('/dashboard');
         }
-    }, [router]);
+    }, [status, router]);
 
     // State untuk switch antara sign in dan sign up
     const [isSignUp, setIsSignUp] = useState(false);
@@ -23,6 +24,7 @@ export default function AuthPage() {
         username: '',
         email: '',
         password: '',
+        confirmPassword: '',
         displayName: ''
     });
 
@@ -48,8 +50,21 @@ export default function AuthPage() {
 
     // Fungsi register - kirim ke API beneran
     const handleRegister = async () => {
-        if (!formData.username || !formData.email || !formData.password || !formData.displayName) {
+        // Validasi semua field harus diisi
+        if (!formData.username || !formData.email || !formData.password || !formData.confirmPassword || !formData.displayName) {
             setMessage({ text: 'Semua field harus diisi!', type: 'error' });
+            return;
+        }
+
+        // Validasi password minimal 8 karakter
+        if (formData.password.length < 8) {
+            setMessage({ text: 'Password minimal 8 karakter!', type: 'error' });
+            return;
+        }
+
+        // Validasi password dan confirm password harus sama
+        if (formData.password !== formData.confirmPassword) {
+            setMessage({ text: 'Password dan Confirm Password tidak sama!', type: 'error' });
             return;
         }
 
@@ -61,7 +76,10 @@ export default function AuthPage() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    ...formData
+                    username: formData.username,
+                    email: formData.email,
+                    password: formData.password,
+                    displayName: formData.displayName
                 })
             });
 
@@ -69,7 +87,7 @@ export default function AuthPage() {
 
             if (data.success) {
                 setMessage({ text: 'Akun berhasil dibuat! Silakan login.', type: 'success' });
-                setFormData({ username: '', email: '', password: '', displayName: '' });
+                setFormData({ username: '', email: '', password: '', confirmPassword: '', displayName: '' });
                 setTimeout(() => setIsSignUp(false), 2000);
             } else {
                 setMessage({ text: data.message, type: 'error' });
@@ -81,7 +99,7 @@ export default function AuthPage() {
         setIsLoading(false);
     };
 
-    // Fungsi login - kirim ke API beneran
+    // Fungsi login - gunakan NextAuth
     const handleLogin = async () => {
         if (!formData.email || !formData.password) {
             setMessage({ text: 'Username/email dan password harus diisi!', type: 'error' });
@@ -92,26 +110,19 @@ export default function AuthPage() {
         setMessage({ text: '', type: '' });
 
         try {
-            const response = await fetch('/api/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    login: formData.email,
-                    password: formData.password
-                })
+            const result = await signIn('credentials', {
+                login: formData.email,
+                password: formData.password,
+                redirect: false,
             });
 
-            const data = await response.json();
-
-            if (data.success) {
-                setMessage({ text: 'Login berhasil! Mengalihkan...', type: 'success' });
-                localStorage.setItem('token', data.token);
-                localStorage.setItem('user', JSON.stringify(data.user));
-                setTimeout(() => {
-                    window.location.href = '/dashboard';
-                }, 1000);
+            if (result?.error) {
+                setMessage({ text: result.error, type: 'error' });
             } else {
-                setMessage({ text: data.message, type: 'error' });
+                setMessage({ text: 'Login berhasil! Mengalihkan...', type: 'success' });
+                setTimeout(() => {
+                    router.push('/dashboard');
+                }, 1000);
             }
         } catch (error) {
             setMessage({ text: 'Terjadi kesalahan. Coba lagi nanti.', type: 'error' });
@@ -193,8 +204,19 @@ export default function AuthPage() {
                             <input
                                 type="password"
                                 name="password"
-                                placeholder="Password"
+                                placeholder="Password (min. 8 karakter)"
                                 value={formData.password}
+                                onChange={handleInputChange}
+                                className="w-full px-3 py-2.5 bg-white/30 backdrop-blur-sm border border-white/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 text-gray-800 placeholder-gray-600 text-sm"
+                                disabled={isLoading}
+                                suppressHydrationWarning={true}
+                            />
+
+                            <input
+                                type="password"
+                                name="confirmPassword"
+                                placeholder="Confirm Password"
+                                value={formData.confirmPassword}
                                 onChange={handleInputChange}
                                 onKeyDown={(e) => handleKeyDown(e, handleRegister)}
                                 className="w-full px-3 py-2.5 bg-white/30 backdrop-blur-sm border border-white/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 text-gray-800 placeholder-gray-600 text-sm"

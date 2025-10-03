@@ -1,20 +1,17 @@
 import connectToDatabase from "@/lib/mongodb";
 import mongoose from "mongoose";
-import jwt from "jsonwebtoken";
+import { getAuthSessionOrApiKey } from "@/lib/auth-helpers";
 
 export async function POST(request) {
     try {
-        // 1. Cek token kayak biasa
-        const token = request.headers.get("authorization")?.replace("Bearer ", "");
-        if (!token) {
-            return Response.json({
-                success: false,
-                message: "Login dulu ya sebelum jawab permintaan"
-            }, { status: 401 });
+        // 1. Check authentication
+        const { session, userId, error } = await getAuthSessionOrApiKey(request);
+
+        if (error) {
+            return error;
         }
 
-        const decoded = jwt.verify(token, "secretbet");
-        const currentUserId = decoded.userId;
+        const currentUserId = userId;
 
         // 2. Ambil data dari request
         const { friendshipId, action } = await request.json();
@@ -49,41 +46,41 @@ export async function POST(request) {
         if (!friendship) {
             return Response.json({
                 success: false,
-                message: "Permintaan pertemanan nggak ditemukan atau udah dijawab"
+                message: "Permintaan pertemanan tidak ditemukan atau sudah dijawab"
             }, { status: 404 });
         }
 
-        // 5. Update status berdasarkan action
-        const newStatus = action === "accept" ? "accepted" : "rejected";
+        // 5. Update status friendship
+        if (action === "accept") {
+            // Terima permintaan = ubah status jadi accepted
+            await friendsCollection.updateOne(
+                { _id: friendshipId },
+                { $set: { status: "accepted", acceptedAt: new Date() } }
+            );
 
-        await friendsCollection.updateOne(
-            { _id: friendshipId },
-            {
-                $set: {
-                    status: newStatus,
-                    respondedAt: new Date()
+            return Response.json({
+                success: true,
+                message: "Permintaan pertemanan diterima! 🎉",
+                friendship: {
+                    id: friendship._id,
+                    status: "accepted"
                 }
-            }
-        );
+            });
+        } else {
+            // Tolak permintaan = hapus friendship
+            await friendsCollection.deleteOne({ _id: friendshipId });
 
-        // 6. Kasih response yang sesuai
-        const message = action === "accept"
-            ? "Permintaan pertemanan diterima! Kalian sekarang berteman"
-            : "Permintaan pertemanan ditolak";
-
-        return Response.json({
-            success: true,
-            message: message,
-            friendship: {
-                id: friendshipId,
-                status: newStatus
-            }
-        });
+            return Response.json({
+                success: true,
+                message: "Permintaan pertemanan ditolak",
+                action: "rejected"
+            });
+        }
 
     } catch (error) {
         return Response.json({
             success: false,
-            message: "Ada error waktu proses permintaan",
+            message: "Ada error waktu jawab permintaan",
             error: error.message
         }, { status: 500 });
     }

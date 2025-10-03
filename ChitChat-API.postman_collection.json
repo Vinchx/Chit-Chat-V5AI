@@ -1,0 +1,488 @@
+{
+	"info": {
+		"_postman_id": "chitchat-v5-api",
+		"name": "ChitChat v5.1 API",
+		"description": "API Collection untuk ChitChat v5.1 dengan NextAuth\n\n**CARA PAKAI:**\n1. Import collection ini ke Postman\n2. Jalankan request **Register** untuk buat user baru (tidak perlu auth)\n3. Copy **userId** dari response register (contoh: user001, user002, dst)\n4. Paste userId tersebut ke header `x-user-id` di semua request lainnya\n5. Semua request (kecuali Register) perlu 2 headers:\n   - `x-api-key`: dev-test-key-12345\n   - `x-user-id`: <userId dari step 3>\n\n**NOTE:** \n- API Key hanya untuk development testing\n- Di production, authentication menggunakan NextAuth session cookie\n- Tidak ada endpoint /login karena sudah pakai NextAuth",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Register (No Auth Required)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"testuser\",\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\",\n  \"displayName\": \"Test User\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:1630/api/register",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "1630",
+							"path": [
+								"api",
+								"register"
+							]
+						},
+						"description": "**STEP 1: Jalankan ini dulu!**\n\nRegister akun baru untuk testing.\n- Password minimal 8 karakter\n- Username harus unik\n- Email harus unik\n\n**Response akan berisi userId** (contoh: user001, user002, dst)\n\n**PENTING:** Copy userId dari response dan paste ke header `x-user-id` di semua request lainnya!"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Rooms",
+			"item": [
+				{
+					"name": "Get All Rooms",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "dev-test-key-12345",
+								"type": "text"
+							},
+							{
+								"key": "x-user-id",
+								"value": "user001",
+								"type": "text",
+								"description": "ID user yang login"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:1630/api/rooms",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "1630",
+							"path": [
+								"api",
+								"rooms"
+							]
+						},
+						"description": "Ambil semua rooms yang user ikuti. Response include slug untuk URL routing."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Room by Slug",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "dev-test-key-12345",
+								"type": "text"
+							},
+							{
+								"key": "x-user-id",
+								"value": "user001",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:1630/api/rooms/by-slug/:roomSlug",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "1630",
+							"path": [
+								"api",
+								"rooms",
+								"by-slug",
+								":roomSlug"
+							],
+							"variable": [
+								{
+									"key": "roomSlug",
+									"value": "john_doe",
+									"description": "Private: username, Group: slugified-name, AI: ai-assistant"
+								}
+							]
+						},
+						"description": "Get room by slug untuk URL routing.\n\nSlug examples:\n- Private: `john_doe`\n- Group: `grup-keluarga`\n- AI: `ai-assistant`"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Friends",
+			"item": [
+				{
+					"name": "Get Friends List",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "dev-test-key-12345",
+								"type": "text"
+							},
+							{
+								"key": "x-user-id",
+								"value": "user001",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:1630/api/friends",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "1630",
+							"path": [
+								"api",
+								"friends"
+							]
+						},
+						"description": "Get list friends, pending sent, dan pending received."
+					},
+					"response": []
+				},
+				{
+					"name": "Add Friend",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "dev-test-key-12345",
+								"type": "text"
+							},
+							{
+								"key": "x-user-id",
+								"value": "user001",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"identifier\": \"john_doe\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:1630/api/friends/add",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "1630",
+							"path": [
+								"api",
+								"friends",
+								"add"
+							]
+						},
+						"description": "Kirim friend request. Identifier bisa username atau email."
+					},
+					"response": []
+				},
+				{
+					"name": "Accept Friend Request",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "dev-test-key-12345",
+								"type": "text"
+							},
+							{
+								"key": "x-user-id",
+								"value": "user001",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"friendshipId\": \"friend001\",\n  \"action\": \"accept\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:1630/api/friends/respond",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "1630",
+							"path": [
+								"api",
+								"friends",
+								"respond"
+							]
+						},
+						"description": "Accept friend request. Action bisa 'accept' atau 'reject'."
+					},
+					"response": []
+				},
+				{
+					"name": "Reject Friend Request",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "dev-test-key-12345",
+								"type": "text"
+							},
+							{
+								"key": "x-user-id",
+								"value": "user001",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"friendshipId\": \"friend001\",\n  \"action\": \"reject\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:1630/api/friends/respond",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "1630",
+							"path": [
+								"api",
+								"friends",
+								"respond"
+							]
+						},
+						"description": "Reject friend request."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Messages",
+			"item": [
+				{
+					"name": "Get Messages by Room ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "dev-test-key-12345",
+								"type": "text"
+							},
+							{
+								"key": "x-user-id",
+								"value": "user001",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:1630/api/messages/:roomId?limit=30",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "1630",
+							"path": [
+								"api",
+								"messages",
+								":roomId"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "30",
+									"description": "Jumlah messages (default 30)"
+								},
+								{
+									"key": "before",
+									"value": "",
+									"description": "Timestamp untuk load older messages",
+									"disabled": true
+								}
+							],
+							"variable": [
+								{
+									"key": "roomId",
+									"value": "room001",
+									"description": "Room ID"
+								}
+							]
+						},
+						"description": "Get messages dari room tertentu. Support pagination dengan parameter 'before'."
+					},
+					"response": []
+				},
+				{
+					"name": "Send Message",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "dev-test-key-12345",
+								"type": "text"
+							},
+							{
+								"key": "x-user-id",
+								"value": "user001",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"roomId\": \"room001\",\n  \"message\": \"Hello from Postman!\",\n  \"messageType\": \"text\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:1630/api/messages",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "1630",
+							"path": [
+								"api",
+								"messages"
+							]
+						},
+						"description": "Send message ke room. messageType: 'text', 'image', 'file'."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "Search Users",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "dev-test-key-12345",
+								"type": "text"
+							},
+							{
+								"key": "x-user-id",
+								"value": "user001",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:1630/api/users/search?q=john",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "1630",
+							"path": [
+								"api",
+								"users",
+								"search"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "john",
+									"description": "Search query (username atau displayName)"
+								}
+							]
+						},
+						"description": "Search users berdasarkan username atau displayName. Max 10 results."
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:1630",
+			"type": "string"
+		},
+		{
+			"key": "apiKey",
+			"value": "dev-test-key-12345",
+			"type": "string"
+		},
+		{
+			"key": "userId",
+			"value": "user001",
+			"type": "string"
+		}
+	]
+}

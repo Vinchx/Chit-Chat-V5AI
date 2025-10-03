@@ -13,6 +13,14 @@ export async function POST(request) {
       });
     }
 
+    // Validasi password minimal 8 karakter
+    if (password.length < 8) {
+      return Response.json({
+        success: false,
+        message: "Password minimal 8 karakter!",
+      });
+    }
+
     await connectToDatabase();
 
     const db = mongoose.connection.db;

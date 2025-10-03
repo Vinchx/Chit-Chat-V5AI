@@ -1,20 +1,17 @@
 import connectToDatabase from "@/lib/mongodb";
 import mongoose from "mongoose";
-import jwt from "jsonwebtoken";
+import { getAuthSessionOrApiKey } from "@/lib/auth-helpers";
 
 export async function GET(request) {
     try {
-        // 1. Cek token dulu
-        const token = request.headers.get("authorization")?.replace("Bearer ", "");
-        if (!token) {
-            return Response.json({
-                success: false,
-                message: "Login dulu ya buat liat permintaan"
-            }, { status: 401 });
+        // 1. Check authentication
+        const { session, userId, error } = await getAuthSessionOrApiKey(request);
+
+        if (error) {
+            return error;
         }
 
-        const decoded = jwt.verify(token, "secretbet");
-        const currentUserId = decoded.userId;
+        const currentUserId = userId;
 
         // 2. Sambung ke database
         await connectToDatabase();

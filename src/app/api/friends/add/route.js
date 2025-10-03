@@ -1,19 +1,17 @@
 import connectToDatabase from "@/lib/mongodb";
 import mongoose from "mongoose";
-import jwt from "jsonwebtoken";
+import { getAuthSessionOrApiKey } from "@/lib/auth-helpers";
 
 export async function POST(request) {
     try {
-        const token = request.headers.get("authorization")?.replace("Bearer ", ""); // Tambah spasi
-        if (!token) {
-            return Response.json({
-                success: false,
-                message: "token nggak ada, login dulu lee"
-            }, { status: 401 });
+        // Check authentication
+        const { session, userId, error } = await getAuthSessionOrApiKey(request);
+
+        if (error) {
+            return error;
         }
 
-        const decoded = jwt.verify(token, "secretbet");
-        const currentUserId = decoded.userId;
+        const currentUserId = userId;
         const { identifier } = await request.json();
 
         if (!identifier) {
@@ -29,7 +27,7 @@ export async function POST(request) {
         const friendsCollection = db.collection("friendships");
 
         const targetUser = await usersCollection.findOne({
-            $or: [{ username: identifier }, { email: identifier }] // Perbaiki typo "emai"
+            $or: [{ username: identifier }, { email: identifier }]
         });
 
         if (!targetUser) {
@@ -59,7 +57,7 @@ export async function POST(request) {
                     success: false,
                     message: "sama temen sendiri masa lupa"
                 }, { status: 400 });
-            } else if (existingFriendship.status === "pending") { // Perbaiki kondisi
+            } else if (existingFriendship.status === "pending") {
                 return Response.json({
                     success: false,
                     message: "Permintaan pertemanan masih pending, sabar ya!"
@@ -68,9 +66,9 @@ export async function POST(request) {
         }
 
         const friendshipCount = await friendsCollection.countDocuments();
-        const friendshipId = `friend${String(friendshipCount + 1).padStart(3, "0")}`; // Perbaiki nama variabel
+        const friendshipId = `friend${String(friendshipCount + 1).padStart(3, "0")}`;
 
-        const newFriendship = { // Perbaiki nama variabel
+        const newFriendship = {
             _id: friendshipId,
             senderId: currentUserId,
             receiverId: targetUser._id,
@@ -78,7 +76,7 @@ export async function POST(request) {
             createdAt: new Date()
         };
 
-        await friendsCollection.insertOne(newFriendship); // Perbaiki nama variabel
+        await friendsCollection.insertOne(newFriendship);
 
         return Response.json({
             success: true,

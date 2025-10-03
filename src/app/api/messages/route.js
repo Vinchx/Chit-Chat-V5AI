@@ -1,20 +1,17 @@
 import connectToDatabase from "@/lib/mongodb";
 import mongoose from "mongoose";
-import jwt from "jsonwebtoken";
+import { getAuthSessionOrApiKey } from "@/lib/auth-helpers";
 
 export async function POST(request) {
     try {
-        // 1. Cek siapa yang mau kirim pesan
-        const token = request.headers.get("authorization")?.replace("Bearer ", "");
-        if (!token) {
-            return Response.json({
-                success: false,
-                message: "Login dulu sebelum kirim pesan"
-            }, { status: 401 });
+        // 1. Check authentication
+        const { session, userId, error } = await getAuthSessionOrApiKey(request);
+
+        if (error) {
+            return error;
         }
 
-        const decoded = jwt.verify(token, "secretbet");
-        const currentUserId = decoded.userId;
+        const currentUserId = userId;
 
         // 2. Ambil data pesan yang mau dikirim
         const { roomId, message, messageType = "text" } = await request.json();
@@ -43,45 +40,38 @@ export async function POST(request) {
             }, { status: 404 });
         }
 
+        // Cek apakah user adalah member dari room ini
         if (!room.members.includes(currentUserId)) {
             return Response.json({
                 success: false,
-                message: "Kamu tidak punya akses ke room ini"
+                message: "Kamu bukan member room ini"
             }, { status: 403 });
         }
 
-        // 5. Bikin message baru dengan ID unik
+        // 5. Buat message ID
         const messageCount = await messagesCollection.countDocuments();
-        let messageId;
-        let attempts = 0;
+        const messageId = `msg${String(messageCount + 1).padStart(6, '0')}`;
 
-        // Cari ID yang belum dipakai
-        do {
-            const idNumber = messageCount + 1 + attempts;
-            messageId = `msg${String(idNumber).padStart(3, "0")}`;
-            const existingMessage = await messagesCollection.findOne({ _id: messageId });
-            if (!existingMessage) break;
-            attempts++;
-        } while (attempts < 1000); // Maksimal 1000 attempts
-
+        // 6. Simpan pesan ke database
         const newMessage = {
             _id: messageId,
             roomId: roomId,
             senderId: currentUserId,
             message: message,
             messageType: messageType,
-            isAI: false,
-            timestamp: new Date()
+            timestamp: new Date(),
+            isEdited: false,
+            isDeleted: false
         };
 
         await messagesCollection.insertOne(newMessage);
 
-        // 6. Update room dengan pesan terakhir
+        // 7. Update last activity dan last message di room
         await roomsCollection.updateOne(
             { _id: roomId },
             {
                 $set: {
-                    lastMessage: message,
+                    lastMessage: message.substring(0, 50), // Ambil 50 karakter pertama
                     lastActivity: new Date()
                 }
             }
@@ -92,19 +82,15 @@ export async function POST(request) {
             message: "Pesan berhasil dikirim!",
             data: {
                 messageId: messageId,
-                roomId: roomId,
-                message: message,
                 timestamp: newMessage.timestamp
             }
-        });
+        }, { status: 201 });
 
     } catch (error) {
-        console.log("❌ ERROR di API messages:", error);
-        console.log("Error message:", error.message);
-        console.log("Error stack:", error.stack);
+        console.error("❌ ERROR SAVE MESSAGE:", error);
         return Response.json({
             success: false,
-            message: "Error waktu kirim pesan",
+            message: "Error waktu simpan pesan",
             error: error.message
         }, { status: 500 });
     }

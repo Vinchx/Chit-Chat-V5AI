@@ -1,23 +1,20 @@
 import connectToDatabase from "@/lib/mongodb";
 import mongoose from "mongoose";
-import jwt from "jsonwebtoken";
+import { getAuthSessionOrApiKey } from "@/lib/auth-helpers";
 
 export async function GET(request, { params }) {
     try {
         // 1. Ambil roomId dari URL
         const { roomId } = await params;
 
-        // 2. Cek token user
-        const token = request.headers.get("authorization")?.replace("Bearer ", "");
-        if (!token) {
-            return Response.json({
-                success: false,
-                message: "Login dulu untuk baca pesan"
-            }, { status: 401 });
+        // 2. Check authentication
+        const { session, userId, error } = await getAuthSessionOrApiKey(request);
+
+        if (error) {
+            return error;
         }
 
-        const decoded = jwt.verify(token, "secretbet");
-        const currentUserId = decoded.userId;
+        const currentUserId = userId;
 
         // 3. Ambil parameter query - sistem WhatsApp style
         const url = new URL(request.url);
@@ -48,68 +45,65 @@ export async function GET(request, { params }) {
             }, { status: 403 });
         }
 
-        // 6. Setup query - sistem WhatsApp
-        let query = { roomId: roomId };
+        // 6. Build query untuk messages
+        let messageQuery = {
+            roomId: roomId,
+            isDeleted: false
+        };
 
-        // Kalau ada parameter 'before', ambil pesan sebelum timestamp tersebut
+        // Kalau ada parameter 'before', ambil pesan yang lebih lama
         if (before) {
-            query.timestamp = { $lt: new Date(before) };
+            messageQuery.timestamp = { $lt: new Date(before) };
         }
 
-        // 7. Ambil pesan, urutkan dari yang terbaru ke lama
+        // 7. Ambil pesan dari database
         const messages = await messagesCollection
-            .find(query)
-            .sort({ timestamp: -1 }) // Terbaru dulu
-            .limit(limit + 1) // Ambil 1 lebih buat cek ada lagi atau nggak
+            .find(messageQuery)
+            .sort({ timestamp: -1 }) // Urutkan dari terbaru
+            .limit(limit)
             .toArray();
 
-        // 8. Cek apakah masih ada pesan yang lebih lama
-        const hasMore = messages.length > limit;
-        if (hasMore) {
-            messages.pop(); // Buang pesan extra
-        }
-
-        // 9. Balik urutan jadi yang lama di atas (normal chat display)
+        // 8. Balik urutan biar dari lama ke baru
         messages.reverse();
 
-        // 10. Tambahkan data sender untuk setiap pesan
-        const messagesWithSender = [];
+        // 9. Ambil data sender untuk setiap pesan
+        const messagesWithSender = await Promise.all(
+            messages.map(async (msg) => {
+                const sender = await usersCollection.findOne({ _id: msg.senderId });
 
-        for (const message of messages) {
-            const sender = await usersCollection.findOne({ _id: message.senderId });
+                return {
+                    id: msg._id,
+                    message: msg.message,
+                    messageType: msg.messageType,
+                    timestamp: msg.timestamp,
+                    sender: {
+                        id: sender._id,
+                        username: sender.username,
+                        displayName: sender.displayName,
+                        avatar: sender.avatar
+                    },
+                    isOwn: msg.senderId === currentUserId,
+                    isEdited: msg.isEdited || false
+                };
+            })
+        );
 
-            messagesWithSender.push({
-                id: message._id,
-                message: message.message,
-                messageType: message.messageType,
-                timestamp: message.timestamp,
-                isAI: message.isAI,
-                sender: {
-                    userId: sender._id,
-                    username: sender.username,
-                    displayName: sender.displayName,
-                    avatar: sender.avatar
-                },
-                isOwn: message.senderId === currentUserId
-            });
-        }
-
-        // 11. Response WhatsApp style - sederhana dan jelas
         return Response.json({
             success: true,
             data: {
                 roomId: roomId,
                 messages: messagesWithSender,
-                hasMore: hasMore, // Masih ada pesan lebih lama atau nggak
+                hasMore: messages.length === limit, // Kalau jumlah pesan = limit, berarti mungkin masih ada lagi
                 oldestTimestamp: messages.length > 0 ? messages[0].timestamp : null
             }
         });
 
     } catch (error) {
+        console.error("Error loading messages:", error);
         return Response.json({
             success: false,
-            message: "Error waktu ambil pesan",
+            message: "Error waktu load pesan",
             error: error.message
         }, { status: 500 });
     }
-}       
+}
