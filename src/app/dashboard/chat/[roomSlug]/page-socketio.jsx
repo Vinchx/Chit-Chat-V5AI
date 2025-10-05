@@ -3,14 +3,9 @@
 import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
-import {
-  createChatSocket,
-  sendMessage,
-  sendTyping,
-  sendStopTyping,
-} from "@/lib/partykit-client";
+import io from "socket.io-client";
 import MessageBubble from "../../../components/MessageBubble";
-import MessageInput from "../../../components/MessageInput-partykit";
+import MessageInput from "../../../components/MessageInput";
 import ChatHeader from "../../../components/ChatHeader";
 import TypingIndicator from "../../../components/TypingIndicator";
 import ScrollToBottomButton from "../../../components/ScrollToBottomButton";
@@ -25,11 +20,13 @@ export default function ChatRoomPage() {
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [socket, setSocket] = useState(null);
   const [messages, setMessages] = useState([]);
-  const [onlineUsers, setOnlineUsers] = useState([]);
-  const [typingUsers, setTypingUsers] = useState(new Set());
+  const [isTyping, setIsTyping] = useState(false);
+  const [typingUser, setTypingUser] = useState("");
   const [isUserScrolling, setIsUserScrolling] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  const selectedRoomRef = useRef(null);
 
   // Check auth dan load user
   useEffect(() => {
@@ -64,6 +61,7 @@ export default function ChatRoomPage() {
           setSelectedRoom(data.data.room);
           loadMessages(data.data.room.id);
         } else {
+          // Room tidak ditemukan, redirect ke dashboard
           router.push("/dashboard");
         }
       } catch (error) {
@@ -77,117 +75,64 @@ export default function ChatRoomPage() {
     loadRoom();
   }, [user, roomSlug, router]);
 
-  // Setup Partykit WebSocket
+  // Setup Socket.IO
   useEffect(() => {
-    if (!user || !selectedRoom) return;
+    if (!user) return;
 
-    console.log("🎉 Connecting to Partykit room:", selectedRoom.id);
+    const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL || `${window.location.protocol}//${window.location.hostname}:${window.location.port}`;
+    const newSocket = io(serverUrl);
+    setSocket(newSocket);
 
-    const partySocket = createChatSocket(
-      selectedRoom.id,
-      {
-        id: user.id,
-        username: user.displayName || user.username,
-      },
-      {
-        // Callback: New message received
-        onMessage: (data) => {
-          console.log("📨 New message:", data);
+    newSocket.on("connect", () => {
+      console.log("📞 Connected to server!", newSocket.id);
+    });
 
-          const newMsg = {
-            id: data.messageId,
-            text: data.message,
-            sender: data.username,
-            time: new Date(data.timestamp).toLocaleTimeString("id-ID", {
-              hour: "2-digit",
-              minute: "2-digit",
-            }),
-            isOwn: data.userId === user.id,
-          };
+    newSocket.on("receive_message", (messageData) => {
+      console.log("📨 Received message:", messageData);
+      const newMsg = {
+        id: Date.now(),
+        text: messageData.text,
+        sender: messageData.sender,
+        time: messageData.time,
+        isOwn: false,
+      };
+      setMessages((prevMessages) => [...prevMessages, newMsg]);
+    });
 
-          setMessages((prev) => [...prev, newMsg]);
-        },
-
-        // Callback: User joined
-        onUserJoined: (data) => {
-          console.log("👋 User joined:", data.username);
-          // Optional: Show notification
-        },
-
-        // Callback: User left
-        onUserLeft: (data) => {
-          console.log("👋 User left:", data.username);
-          setTypingUsers((prev) => {
-            const newSet = new Set(prev);
-            newSet.delete(data.userId);
-            return newSet;
-          });
-        },
-
-        // Callback: User typing
-        onTyping: (data) => {
-          if (data.userId !== user.id) {
-            setTypingUsers((prev) => new Set(prev).add(data.username));
-
-            // Auto remove setelah 3 detik
-            setTimeout(() => {
-              setTypingUsers((prev) => {
-                const newSet = new Set(prev);
-                newSet.delete(data.username);
-                return newSet;
-              });
-            }, 3000);
-          }
-        },
-
-        // Callback: User stop typing
-        onStopTyping: (data) => {
-          setTypingUsers((prev) => {
-            const newSet = new Set(prev);
-            newSet.delete(data.username);
-            return newSet;
-          });
-        },
-
-        // Callback: Online users list
-        onOnlineUsers: (users) => {
-          console.log("👥 Online users:", users);
-          setOnlineUsers(users);
-        },
-
-        // Callback: Connected
-        onConnect: () => {
-          console.log("✅ Connected to Partykit!");
-        },
-
-        // Callback: Disconnected
-        onDisconnect: () => {
-          console.log("❌ Disconnected from Partykit");
-        },
-
-        // Callback: Error
-        onError: (error) => {
-          console.error("❌ Partykit error:", error);
-        },
+    newSocket.on("typing_start", (data) => {
+      if (data.roomId === selectedRoomRef.current?.id) {
+        setIsTyping(true);
+        setTypingUser(data.userName);
       }
-    );
+    });
 
-    setSocket(partySocket);
+    newSocket.on("typing_stop", (data) => {
+      if (data.roomId === selectedRoomRef.current?.id) {
+        setIsTyping(false);
+        setTypingUser("");
+      }
+    });
 
-    // Cleanup on unmount
     return () => {
-      console.log("🧹 Cleaning up Partykit connection");
-      partySocket.close();
+      if (newSocket) newSocket.disconnect();
     };
-  }, [user, selectedRoom]);
+  }, [user]);
+
+  // Update selectedRoomRef dan join room
+  useEffect(() => {
+    selectedRoomRef.current = selectedRoom;
+
+    if (socket && selectedRoom) {
+      console.log("📍 Joining room:", selectedRoom.id);
+      socket.emit("join_room", selectedRoom.id);
+    }
+  }, [selectedRoom, socket]);
 
   // Auto scroll
   useEffect(() => {
     if (messages.length > 0 && !isUserScrolling) {
       requestAnimationFrame(() => {
-        const messagesContainer = document.querySelector(
-          ".messages-container .overflow-y-auto"
-        );
+        const messagesContainer = document.querySelector(".messages-container .overflow-y-auto");
         if (messagesContainer) {
           const { scrollTop, scrollHeight, clientHeight } = messagesContainer;
           const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
@@ -209,11 +154,9 @@ export default function ChatRoomPage() {
 
   // Typing indicator scroll
   useEffect(() => {
-    if (typingUsers.size > 0 && !isUserScrolling) {
+    if (isTyping && !isUserScrolling) {
       requestAnimationFrame(() => {
-        const messagesContainer = document.querySelector(
-          ".messages-container .overflow-y-auto"
-        );
+        const messagesContainer = document.querySelector(".messages-container .overflow-y-auto");
         if (messagesContainer) {
           const { scrollTop, scrollHeight, clientHeight } = messagesContainer;
           const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
@@ -227,7 +170,7 @@ export default function ChatRoomPage() {
         }
       });
     }
-  }, [typingUsers.size, isUserScrolling]);
+  }, [isTyping, isUserScrolling]);
 
   const loadMessages = async (roomId) => {
     try {
@@ -249,9 +192,7 @@ export default function ChatRoomPage() {
         setMessages(formattedMessages);
 
         setTimeout(() => {
-          const messagesContainer = document.querySelector(
-            ".messages-container .overflow-y-auto"
-          );
+          const messagesContainer = document.querySelector(".messages-container .overflow-y-auto");
           if (messagesContainer) {
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
           }
@@ -263,9 +204,7 @@ export default function ChatRoomPage() {
   };
 
   const scrollToBottom = () => {
-    const messagesContainer = document.querySelector(
-      ".messages-container .overflow-y-auto"
-    );
+    const messagesContainer = document.querySelector(".messages-container .overflow-y-auto");
     if (messagesContainer) {
       messagesContainer.scrollTo({
         top: messagesContainer.scrollHeight,
@@ -290,31 +229,16 @@ export default function ChatRoomPage() {
     }
   };
 
-  const handleSendMessage = async (messageText) => {
-    if (!socket || !messageText.trim()) return;
+  const handleReceiveMessage = (messageData) => {
+    const newMsg = {
+      id: messages.length + 1,
+      text: messageData.text,
+      sender: messageData.sender,
+      time: messageData.time,
+      isOwn: messageData.isOwn,
+    };
 
-    const messageId = `msg${Date.now()}`;
-
-    // Kirim via Partykit
-    sendMessage(socket, {
-      id: messageId,
-      text: messageText,
-    });
-
-    // Simpan ke database via REST API (optional, untuk history)
-    try {
-      await fetch("/api/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          roomId: selectedRoom.id,
-          message: messageText,
-          messageType: "text",
-        }),
-      });
-    } catch (error) {
-      console.error("Error saving message to DB:", error);
-    }
+    setMessages([...messages, newMsg]);
   };
 
   if (isLoading || !user || !selectedRoom) {
@@ -324,11 +248,6 @@ export default function ChatRoomPage() {
       </div>
     );
   }
-
-  const typingText =
-    typingUsers.size > 0
-      ? Array.from(typingUsers).join(", ")
-      : "";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-purple-50 to-indigo-100 relative overflow-hidden">
@@ -342,15 +261,9 @@ export default function ChatRoomPage() {
       <div className="flex h-screen relative z-10">
         <div className="flex-1 backdrop-blur-lg bg-white/10 flex flex-col messages-container">
           <div className="flex flex-col h-full relative">
-            <ChatHeader
-              selectedRoom={selectedRoom}
-              onlineCount={onlineUsers.length}
-            />
+            <ChatHeader selectedRoom={selectedRoom} />
 
-            <div
-              className="flex-1 p-4 overflow-y-auto scroll-smooth"
-              onScroll={handleScroll}
-            >
+            <div className="flex-1 p-4 overflow-y-auto scroll-smooth" onScroll={handleScroll}>
               {messages && messages.length > 0 ? (
                 messages.map((message) => (
                   <MessageBubble key={message.id} message={message} />
@@ -361,10 +274,7 @@ export default function ChatRoomPage() {
                 </div>
               )}
 
-              <TypingIndicator
-                isTyping={typingUsers.size > 0}
-                userName={typingText}
-              />
+              <TypingIndicator isTyping={isTyping} userName={typingUser} />
             </div>
 
             {showScrollButton && (
@@ -372,10 +282,10 @@ export default function ChatRoomPage() {
             )}
 
             <MessageInput
-              onSendMessage={handleSendMessage}
+              onSendMessage={handleReceiveMessage}
+              user={user}
               socket={socket}
-              onTyping={() => socket && sendTyping(socket)}
-              onStopTyping={() => socket && sendStopTyping(socket)}
+              selectedRoom={selectedRoom}
             />
           </div>
         </div>
