@@ -1,4 +1,5 @@
 import { Geist, Geist_Mono } from "next/font/google";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import { Providers } from "./providers";
 
@@ -13,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Chit-Chat-V5.1AI",
+  title: "Chit-Chat-V5.1AI - Real-time Chat App",
   description: "Chat application with Next.js, Socket.IO, and MongoDB",
 };
 
@@ -23,7 +24,10 @@ export default function RootLayout({ children }) {
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <SpeedInsights />
+        </Providers>
       </body>
     </html>
   );
