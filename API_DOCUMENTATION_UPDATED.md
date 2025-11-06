@@ -1,12 +1,21 @@
-# 📡 ChitChat v5.1 API Documentation
+# 📡 ChitChat v5.1 API Documentation (UPDATED)
 
-Base URL: `http://localhost:3000`
+Base URL: `http://localhost:1630` (NOT 3000!)
 
 ## 🔐 Authentication
 
-All endpoints (except register & login) require JWT token in header:
+**IMPORTANT:** This project has migrated to NextAuth 5.0 with dual authentication methods:
+
+### Method 1: NextAuth Session (Browser)
+- Automatic session management in browser
+- Sliding session with 7-day expiry, 1-day refresh
+- Used by frontend React components
+
+### Method 2: API Key + User ID (Postman/Testing)
+For API testing, use these headers:
 ```
-Authorization: Bearer <your_token_here>
+x-api-key: secretbet
+x-user-id: user001
 ```
 
 ---
@@ -17,6 +26,25 @@ Authorization: Bearer <your_token_here>
 3. [Rooms](#3-rooms)
 4. [Messages](#4-messages)
 5. [Users](#5-users)
+6. [Additional Endpoints](#6-additional-endpoints)
+
+---
+
+## ⚠️ **MAJOR CHANGES & DEPRECATIONS**
+
+### ❌ DEPRECATED ENDPOINTS:
+- `POST /api/login` - **DEPRECATED** (returns 410 Gone)
+  - Use NextAuth session or API key method instead
+
+### 🆕 NEW ENDPOINTS:
+- `GET /api/friends/requests` - Get only pending received requests
+- `GET /api/rooms/by-slug/[slug]` - Get room by slug (username/room-name)
+- `GET /api/test-db` - Database connection test
+
+### 🔧 CHANGED BEHAVIOR:
+- **Base URL**: Changed from `:3000` to `:1630`
+- **Authentication**: All endpoints now support both NextAuth session OR API key + User ID
+- **Room slugs**: New slug-based routing for URLs
 
 ---
 
@@ -44,54 +72,42 @@ Authorization: Bearer <your_token_here>
 }
 ```
 
-**Notes:**
+**Validation:**
 - All fields required
+- Password minimum 8 characters
 - Custom ID format: `user001`, `user002`, etc.
 - Password auto-hashed with bcrypt (10 rounds)
 
----
+### 1.2. Login (DEPRECATED)
+**POST** `/api/login` - **DEPRECATED**
 
-### 1.2. Login
-**POST** `/api/login`
-
-**Request Body:**
+**Response:**
 ```json
 {
-  "login": "testuser",
-  "password": "password123"
-}
-```
-
-**Response (Success):**
-```json
-{
-  "success": true,
-  "message": "Login berhasil! Selamat datang! 🎉",
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user": {
-    "id": "user001",
-    "username": "testuser",
-    "email": "testuser@example.com",
-    "displayName": "Test User"
+  "success": false,
+  "message": "Endpoint /api/login sudah tidak dipakai. Gunakan NextAuth untuk login di browser, atau API key untuk testing Postman.",
+  "info": {
+    "browser": "Login otomatis via NextAuth session di /auth",
+    "postman": "Gunakan header x-api-key dan x-user-id untuk testing"
   }
 }
 ```
 
-**Notes:**
-- `login` can be username OR email
-- Token valid for 7 days
-- Save token for subsequent requests
+**Alternative Methods:**
+- **Browser**: Use NextAuth at `/auth` page
+- **API Testing**: Use headers `x-api-key: secretbet` and `x-user-id: user001`
 
 ---
 
 ## 2. Friends
 
-### 2.1. Get Friends List
+### 2.1. Get Friends List (COMPREHENSIVE)
 **GET** `/api/friends`
 
-**Headers:**
+**Headers (API Testing):**
 ```
-Authorization: Bearer <token>
+x-api-key: secretbet
+x-user-id: user001
 ```
 
 **Response:**
@@ -141,19 +157,50 @@ Authorization: Bearer <token>
 }
 ```
 
+### 2.2. Get Pending Requests Only (NEW)
+**GET** `/api/friends/requests`
+
+**Headers (API Testing):**
+```
+x-api-key: secretbet
+x-user-id: user001
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Ditemukan 2 permintaan pertemanan",
+  "data": {
+    "requests": [
+      {
+        "id": "friend001",
+        "sender": {
+          "id": "user002",
+          "username": "john",
+          "displayName": "John Doe",
+          "email": "john@example.com"
+        },
+        "createdAt": "2024-10-01T10:00:00.000Z",
+        "status": "pending"
+      }
+    ]
+  }
+}
+```
+
 **Notes:**
-- `friends`: Accepted friendships
-- `pendingReceived`: Requests YOU need to respond to
-- `pendingSent`: Requests waiting for OTHERS to respond
+- Only returns requests where current user is the receiver
+- Includes full sender information (without password)
+- Status always "pending" (filtered in query)
 
----
-
-### 2.2. Add Friend
+### 2.3. Add Friend
 **POST** `/api/friends/add`
 
-**Headers:**
+**Headers (API Testing):**
 ```
-Authorization: Bearer <token>
+x-api-key: secretbet
+x-user-id: user001
 Content-Type: application/json
 ```
 
@@ -185,14 +232,13 @@ Content-Type: application/json
 - Cannot add yourself
 - Checks for existing friendship (accepted/pending)
 
----
-
-### 2.3. Respond to Friend Request
+### 2.4. Respond to Friend Request
 **POST** `/api/friends/respond`
 
-**Headers:**
+**Headers (API Testing):**
 ```
-Authorization: Bearer <token>
+x-api-key: secretbet
+x-user-id: user001
 Content-Type: application/json
 ```
 
@@ -224,11 +270,6 @@ Content-Type: application/json
 }
 ```
 
-**Notes:**
-- Only receiver can respond
-- Action must be "accept" or "reject"
-- Updates status and adds `respondedAt` timestamp
-
 ---
 
 ## 3. Rooms
@@ -236,9 +277,10 @@ Content-Type: application/json
 ### 3.1. Get All Rooms
 **GET** `/api/rooms`
 
-**Headers:**
+**Headers (API Testing):**
 ```
-Authorization: Bearer <token>
+x-api-key: secretbet
+x-user-id: user001
 ```
 
 **Response:**
@@ -255,6 +297,7 @@ Authorization: Bearer <token>
         "lastMessage": "Hello!",
         "lastActivity": "2024-10-02T10:30:00.000Z",
         "createdAt": "2024-10-01T08:00:00.000Z",
+        "slug": "john",
         "friend": {
           "userId": "user002",
           "username": "john",
@@ -271,6 +314,7 @@ Authorization: Bearer <token>
         "lastMessage": "Meeting at 3pm",
         "lastActivity": "2024-10-02T11:00:00.000Z",
         "createdAt": "2024-10-01T09:00:00.000Z",
+        "slug": "dev-team",
         "members": [
           {
             "userId": "user001",
@@ -297,20 +341,63 @@ Authorization: Bearer <token>
 }
 ```
 
-**Notes:**
-- Only returns rooms where you're a member
-- Sorted by lastActivity (newest first)
-- Private rooms include `friend` object
-- Group rooms include `members` array
+**NEW FEATURES:**
+- Added `slug` field for URL routing
+- Grouped rooms by type
+- Counts per room type
 
----
+### 3.2. Get Room by Slug (NEW)
+**GET** `/api/rooms/by-slug/[slug]`
 
-### 3.2. Create Room
+**Examples:**
+- `GET /api/rooms/by-slug/john` - Private room with user "john"
+- `GET /api/rooms/by-slug/dev-team` - Group room "Dev Team"
+- `GET /api/rooms/by-slug/ai-assistant` - AI room
+
+**Headers (API Testing):**
+```
+x-api-key: secretbet
+x-user-id: user001
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "room": {
+      "id": "room001",
+      "name": "Chat dengan John Doe",
+      "type": "private",
+      "memberCount": 2,
+      "lastMessage": "Hello!",
+      "lastActivity": "2024-10-02T10:30:00.000Z",
+      "createdAt": "2024-10-01T08:00:00.000Z",
+      "slug": "john",
+      "friend": {
+        "userId": "user002",
+        "username": "john",
+        "displayName": "John Doe",
+        "avatar": null,
+        "isOnline": true
+      }
+    }
+  }
+}
+```
+
+**Slug Resolution Strategy:**
+1. **AI Room**: `ai-assistant` → type: "ai"
+2. **Private Room**: `username` → find user, then private room
+3. **Group Room**: `slugified-name` → match slugified room name
+
+### 3.3. Create Room
 **POST** `/api/rooms/create`
 
-**Headers:**
+**Headers (API Testing):**
 ```
-Authorization: Bearer <token>
+x-api-key: secretbet
+x-user-id: user001
 Content-Type: application/json
 ```
 
@@ -365,9 +452,10 @@ Content-Type: application/json
 ### 4.1. Send Message
 **POST** `/api/messages`
 
-**Headers:**
+**Headers (API Testing):**
 ```
-Authorization: Bearer <token>
+x-api-key: secretbet
+x-user-id: user001
 Content-Type: application/json
 ```
 
@@ -400,19 +488,24 @@ Content-Type: application/json
 - Updates room's `lastMessage` and `lastActivity`
 - Also broadcasts via Socket.io to room members
 
----
+### 4.2. Get Messages by Room ID (PAGINATED)
+**GET** `/api/messages/[roomId]`
 
-### 4.2. Get Messages (Latest)
-**GET** `/api/messages/:roomId`
-
-**Headers:**
+**Headers (API Testing):**
 ```
-Authorization: Bearer <token>
+x-api-key: secretbet
+x-user-id: user001
 ```
 
-**Example:**
+**Query Parameters:**
+- `limit` (optional): Number of messages (default 30)
+- `before` (optional): ISO timestamp for pagination
+
+**Examples:**
 ```
 GET /api/messages/room001
+GET /api/messages/room001?limit=50
+GET /api/messages/room001?limit=30&before=2024-10-02T10:00:00.000Z
 ```
 
 **Response:**
@@ -457,18 +550,8 @@ GET /api/messages/room001
 }
 ```
 
-**Query Parameters:**
-- `limit` (optional): Number of messages (default 30)
-- `before` (optional): ISO timestamp for pagination
-
-**Examples:**
-```
-GET /api/messages/room001?limit=50
-GET /api/messages/room001?limit=30&before=2024-10-02T10:00:00.000Z
-```
-
 **Notes:**
-- WhatsApp-style pagination
+- WhatsApp-style pagination (load older messages)
 - Returns messages oldest-to-newest
 - `hasMore`: true if older messages exist
 - `isOwn`: true if message is from current user
@@ -480,9 +563,10 @@ GET /api/messages/room001?limit=30&before=2024-10-02T10:00:00.000Z
 ### 5.1. Search Users
 **GET** `/api/users/search`
 
-**Headers:**
+**Headers (API Testing):**
 ```
-Authorization: Bearer <token>
+x-api-key: secretbet
+x-user-id: user001
 ```
 
 **Query Parameters:**
@@ -525,9 +609,42 @@ GET /api/users/search?q=john
 
 ---
 
+## 6. Additional Endpoints
+
+### 6.1. Database Test (NEW)
+**GET** `/api/test-db`
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "MongoDB connection successful!",
+  "timestamp": "2024-10-02T12:00:00.000Z"
+}
+```
+
+**Purpose:** Test database connectivity
+
+### 6.2. Socket.io Test (BROKEN)
+**GET** `/api/socket`
+
+**Note:** This endpoint has syntax errors and is non-functional
+
+**Response (Error):**
+```json
+{
+  "success": false,
+  "message": "Socket.io endpoint has implementation issues"
+}
+```
+
+---
+
 ## 🔌 Socket.io Events
 
-Connect to: `http://localhost:3000`
+**Server Location:** `server.js` (NOT in API routes)
+
+**Connection:** `http://localhost:1630`
 
 ### Client → Server Events
 
@@ -594,19 +711,26 @@ socket.on("typing_stop", (data) => {
 
 ## 🧪 Testing with Postman
 
-1. **Import Collection**: Import `ChitChat_API_Collection.postman_collection.json`
-2. **Set Variables**:
-   - `base_url`: `http://localhost:3000`
-   - `token`: Will auto-save after login
-3. **Test Flow**:
-   1. Register new account
-   2. Login (token auto-saved)
-   3. Search users
-   4. Add friend
-   5. Accept friend request (from another account)
-   6. Create private room
-   7. Send message
-   8. Get messages
+### Updated Collection Variables:
+- `base_url`: `http://localhost:1630` (CHANGED from 3000)
+- `api_key`: `secretbet`
+- `user_id`: `user001` (or your test user ID)
+
+### Updated Headers:
+Instead of JWT token, use:
+```
+x-api-key: {{api_key}}
+x-user-id: {{user_id}}
+```
+
+### Test Flow:
+1. **Register** new account
+2. **Test endpoints** with API key headers (no login needed)
+3. **Search users**
+4. **Add friend**
+5. **Create room**
+6. **Send message**
+7. **Get messages**
 
 ---
 
@@ -620,19 +744,27 @@ socket.on("typing_stop", (data) => {
 }
 ```
 
-**404 Not Found**
-```json
-{
-  "success": false,
-  "message": "User nggak ditemukan. Coba cek lagi username/email-nya"
-}
-```
-
 **403 Forbidden**
 ```json
 {
   "success": false,
-  "message": "Kamu tidak punya akses ke room ini"
+  "message": "Kamu bukan member room ini"
+}
+```
+
+**404 Not Found**
+```json
+{
+  "success": false,
+  "message": "Room tidak ditemukan"
+}
+```
+
+**410 Gone (Deprecated Endpoint)**
+```json
+{
+  "success": false,
+  "message": "Endpoint /api/login sudah tidak dipakai. Gunakan NextAuth untuk login di browser, atau API key untuk testing Postman."
 }
 ```
 
@@ -647,44 +779,71 @@ socket.on("typing_stop", (data) => {
 
 ---
 
-## 🔑 JWT Secret
+## 🔑 Authentication & Security
 
-Current secret: `secretbet` (stored in code)
+### API Key Configuration:
+- **Key**: `secretbet` (stored in code)
+- **User ID**: Your user ID (e.g., `user001`)
 
-⚠️ **IMPORTANT**: Move to environment variable in production!
+⚠️ **IMPORTANT**: Move API key to environment variable in production!
+
+### Session Management:
+- **NextAuth**: 7-day expiry, 1-day sliding refresh
+- **API Key**: Stateless, no expiry (development only)
 
 ---
 
 ## 📊 Database Collections
 
-- `users` - User accounts
-- `friendships` - Friend relationships
-- `rooms` - Chat rooms
-- `messages` - Chat messages
+- `users` - User accounts with custom IDs
+- `friendships` - Friend relationships (pending/accepted)
+- `rooms` - Chat rooms (private/group/ai)
+- `messages` - Chat messages with pagination
 
 ---
 
-## 🎯 Quick Test Script
+## 🎯 Quick Test Script (Updated)
 
 ```bash
+# Set base URL
+BASE_URL="http://localhost:1630"
+
 # 1. Register
-curl -X POST http://localhost:3000/api/register \
+curl -X POST $BASE_URL/api/register \
   -H "Content-Type: application/json" \
-  -d '{"username":"test1","email":"test1@test.com","password":"123","displayName":"Test One"}'
+  -d '{"username":"test1","email":"test1@test.com","password":"12345678","displayName":"Test One"}'
 
-# 2. Login
-curl -X POST http://localhost:3000/api/login \
+# 2. Test with API key (no login needed)
+curl -X GET $BASE_URL/api/rooms \
+  -H "x-api-key: secretbet" \
+  -H "x-user-id: user001"
+
+# 3. Send message
+curl -X POST $BASE_URL/api/messages \
+  -H "x-api-key: secretbet" \
+  -H "x-user-id: user001" \
   -H "Content-Type: application/json" \
-  -d '{"login":"test1","password":"123"}'
-
-# Save token from response, then:
-
-# 3. Get rooms
-curl -X GET http://localhost:3000/api/rooms \
-  -H "Authorization: Bearer YOUR_TOKEN_HERE"
+  -d '{"roomId":"room001","message":"Hello from API!"}'
 ```
 
 ---
 
-**Last Updated**: October 2, 2024
-**Version**: 5.1.0
+## 🔧 Migration Notes
+
+### From Old Documentation:
+1. **Port Change**: 3000 → 1630
+2. **Auth Method**: JWT token → API key + User ID (for testing)
+3. **Deprecated**: `/api/login` endpoint
+4. **New**: Slug-based room routing
+5. **Enhanced**: Friend request management
+
+### Breaking Changes:
+- ❌ `POST /api/login` - Returns 410 Gone
+- 🔄 All endpoints require different auth headers
+- 🆕 Base URL port change
+
+---
+
+**Last Updated**: November 6, 2024
+**Version**: 5.1.0 (Updated)
+**Status**: Production Ready with API Key Testing Support

@@ -1,0 +1,814 @@
+{
+	"info": {
+		"_postman_id": "chitchat-v5-updated-2024",
+		"name": "ChitChat V5.1 API Collection (Updated 2024)",
+		"description": "🚀 **UPDATED POSTMAN COLLECTION** - ChitChat v5.1 API\n\n**📋 IMPORTANT CHANGES:**\n- ❌ `/api/login` endpoint DEPRECATED (returns 410 Gone)\n- ✅ NEW authentication method: API Key + User ID\n- 🔄 Base URL: http://localhost:1630 (changed from 3000)\n- 🆕 Added new endpoints: `/api/friends/requests`, `/api/rooms/by-slug/[slug]`\n\n**🔧 HOW TO USE:**\n1. Import this collection to Postman\n2. **STEP 1:** Run **Register** to create new user (no auth needed)\n3. **STEP 2:** Copy **userId** from register response (e.g., user001)\n4. **STEP 3:** Set these environment variables:\n   - `user_id`: your userId from step 2\n   - `api_key`: secretbet\n5. **STEP 4:** All other requests will automatically use correct headers\n\n**🔐 AUTHENTICATION:**\nAll endpoints (except Register) require:\n- Header: `x-api-key: {{api_key}}`\n- Header: `x-user-id: {{user_id}}`\n\n**📝 TESTING FLOW:**\nRegister → Get Rooms → Search Users → Add Friend → Create Room → Send Message → Get Messages\n\n**⚠️ NOTES:**\n- API Key is for development testing only\n- Production uses NextAuth session cookies\n- No JWT token system anymore!",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:1630",
+			"type": "string",
+			"description": "API base URL - UPDATED from port 3000 to 1630"
+		},
+		{
+			"key": "api_key",
+			"value": "secretbet",
+			"type": "string",
+			"description": "API key for development testing"
+		},
+		{
+			"key": "user_id",
+			"value": "user001",
+			"type": "string",
+			"description": "Your user ID (get from register response)"
+		},
+		{
+			"key": "token",
+			"value": "",
+			"type": "string",
+			"description": "DEPRECATED - Not used anymore"
+		}
+	],
+	"auth": {
+		"type": "apikey",
+		"apikey": [
+			{
+				"key": "x-api-key",
+				"value": "{{api_key}}",
+				"type": "string"
+			},
+			{
+				"key": "x-user-id",
+				"value": "{{user_id}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Auto-set headers for all requests (except register)",
+					"if (!pm.request.url.path.includes('register')) {",
+					"    pm.request.headers.upsert({",
+					"        key: 'x-api-key',",
+					"        value: pm.collectionVariables.get('api_key') || 'secretbet'",
+					"        type: 'text'",
+					"    });",
+					"    ",
+					"    pm.request.headers.upsert({",
+					"        key: 'x-user-id',",
+					"        value: pm.collectionVariables.get('user_id') || 'user001',",
+					"        type: 'text'",
+					"    });",
+					"}",
+					"",
+					"// Remove old Authorization header if exists",
+					"const authHeader = pm.request.headers.idx('Authorization');",
+					"if (authHeader !== -1) {",
+					"    pm.request.headers.remove(authHeader);",
+					"}"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Log response for debugging",
+					"console.log('Response Status:', pm.response.code);",
+					"console.log('Response:', pm.response.json());",
+					"",
+					"// Auto-save userId from register response",
+					"if (pm.request.url.path.includes('register')) {",
+					"    const response = pm.response.json();",
+					"    if (response.success && response.userId) {",
+					"        pm.collectionVariables.set('user_id', response.userId);",
+					"        console.log('✅ User ID saved:', response.userId);",
+					"        pm.test('✅ User ID saved to collection variables', () => {",
+					"            pm.expect(response.userId).to.be.a('string');",
+					"        });",
+					"    }",
+					"}",
+					"",
+					"// Basic success tests",
+					"pm.test('Response has success field', () => {",
+					"    const response = pm.response.json();",
+					"    pm.expect(response).to.have.property('success');",
+					"});",
+					"",
+					"if (pm.response.code >= 200 && pm.response.code < 300) {",
+					"    const response = pm.response.json();",
+					"    pm.test('✅ API call successful', () => {",
+					"        pm.expect(response.success).to.be.true;",
+					"    });",
+					"}"
+				]
+			}
+		}
+	],
+	"item": [
+		{
+			"name": "🔐 Authentication",
+			"item": [
+				{
+					"name": "Register User (STEP 1)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"const response = pm.response.json();",
+									"if (response.success && response.userId) {",
+									"    pm.collectionVariables.set('user_id', response.userId);",
+									"    console.log('✅ User ID automatically saved:', response.userId);",
+									"    pm.test('✅ User ID saved: ' + response.userId, () => {",
+									"        pm.expect(response.userId).to.match(/^user\\d+$/);",
+									"    });",
+									"}",
+									"",
+									"pm.test('Registration successful', () => {",
+									"    pm.expect(response.success).to.be.true;",
+									"    pm.expect(response.message).to.include('berhasil dibuat');",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"testuser{{random}}\",\n  \"email\": \"test{{random}}@example.com\",\n  \"password\": \"password123\",\n  \"displayName\": \"Test User {{random}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/register",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"register"
+							]
+						},
+						"description": "**🚀 STEP 1: REGISTER NEW USER**\n\nCreate a new user account for testing.\n\n**Requirements:**\n- Username must be unique\n- Email must be unique  \n- Password minimum 8 characters\n- displayName required\n\n**✅ Auto-saves userId to collection variables**\n\n**📝 Response Example:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Akun berhasil dibuat! Selamat bergabung! 🎉\",\n  \"userId\": \"user001\"\n}\n```\n\n**⚠️ IMPORTANT:** This userId will be automatically saved and used for all other requests!"
+					},
+					"response": []
+				},
+				{
+					"name": "Login Endpoint (DEPRECATED)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"login\": \"testuser\",\n  \"password\": \"password123\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"login"
+							]
+						},
+						"description": "❌ **DEPRECATED ENDPOINT** - Returns 410 Gone\n\nThis endpoint is no longer used. The app has migrated to NextAuth for browser authentication and API Key + User ID for testing.\n\n**🔄 Alternatives:**\n- **Browser:** Use NextAuth at `/auth`\n- **API Testing:** Use `x-api-key` and `x-user-id` headers\n\n**📝 Expected Response:**\n```json\n{\n  \"success\": false,\n  \"message\": \"Endpoint /api/login sudah tidak dipakai...\",\n  \"info\": {\n    \"browser\": \"Login otomatis via NextAuth session di /auth\",\n    \"postman\": \"Gunakan header x-api-key dan x-user-id untuk testing\"\n  }\n}\n}\n```"
+					},
+					"response": []
+				}
+			],
+			"description": "Authentication endpoints. Register creates new user and auto-saves userId. Login endpoint is deprecated."
+		},
+		{
+			"name": "👥 Friends Management",
+			"item": [
+				{
+					"name": "Get Friends List (Comprehensive)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/friends",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"friends"
+							]
+						},
+						"description": "**📋 GET COMPREHENSIVE FRIENDS DATA**\n\nReturns all friend relationships in three categories:\n- `friends`: Accepted friendships\n- `pendingReceived`: Requests you need to respond to\n- `pendingSent`: Requests waiting for others to respond\n\n**📝 Response Example:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"friends\": [...],\n    \"pendingReceived\": [...],\n    \"pendingSent\": [...]\n  },\n  \"counts\": {\n    \"totalFriends\": 5,\n    \"pendingReceived\": 2,\n    \"pendingSent\": 1\n  }\n}\n```\n\n**🔧 Auto-headers:** x-api-key and x-user-id are automatically added"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Pending Requests Only (NEW)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/friends/requests",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"friends",
+								"requests"
+							]
+						},
+						"description": "**🆕 NEW ENDPOINT** - Get only pending received requests\n\nReturns friend requests where you are the receiver (requests you need to respond to).\n\n**📝 Response Example:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Ditemukan 2 permintaan pertemanan\",\n  \"data\": {\n    \"requests\": [\n      {\n        \"id\": \"friend001\",\n        \"sender\": {\n          \"id\": \"user002\",\n          \"username\": \"john\",\n          \"displayName\": \"John Doe\",\n          \"email\": \"john@example.com\"\n        },\n        \"createdAt\": \"2024-10-01T10:00:00.000Z\",\n        \"status\": \"pending\"\n      }\n    ]\n  }\n}\n```\n\n**🔧 Auto-headers:** x-api-key and x-user-id are automatically added"
+					},
+					"response": []
+				},
+				{
+					"name": "Add Friend",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"const response = pm.response.json();",
+									"if (response.success) {",
+									"    pm.test('✅ Friend request sent', () => {",
+									"        pm.expect(response.message).to.include('dikirim');",
+									"    });",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"identifier\": \"testuser\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/friends/add",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"friends",
+								"add"
+							]
+						},
+						"description": "**👤 SEND FRIEND REQUEST**\n\nSend a friend request to another user.\n\n**Parameters:**\n- `identifier`: Can be username OR email\n\n**Validation:**\n- Cannot add yourself\n- Checks for existing friendship\n- Must be a valid user\n\n**📝 Response Example:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Permintaan pertemanan dikirim ke John Doe!\",\n  \"friendship\": {\n    \"id\": \"friend001\",\n    \"targetUser\": {\n      \"id\": \"user002\",\n      \"username\": \"john\",\n      \"displayName\": \"John Doe\"\n    }\n  }\n}\n```\n\n**💡 Tip:** Replace \"testuser\" with an actual username from Search Users!"
+					},
+					"response": []
+				},
+				{
+					"name": "Respond to Friend Request",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"friendshipId\": \"friend001\",\n  \"action\": \"accept\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/friends/respond",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"friends",
+								"respond"
+							]
+						},
+						"description": "**✅ ACCEPT OR DECLINE FRIEND REQUEST**\n\nRespond to a pending friend request.\n\n**Parameters:**\n- `friendshipId`: ID from Get Pending Requests response\n- `action`: \"accept\" or \"reject\"\n\n**📝 Accept Response Example:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Permintaan pertemanan diterima! Kalian sekarang berteman\",\n  \"friendship\": {\n    \"id\": \"friend001\",\n    \"status\": \"accepted\"\n  }\n}\n```\n\n**💡 How to get friendshipId:**\n1. Run \"Get Pending Requests Only\"\n2. Copy `id` field from the response\n3. Use it as `friendshipId` here"
+					},
+					"response": []
+				}
+			],
+			"description": "Complete friend management system: add friends, manage requests, get friend lists."
+		},
+		{
+			"name": "🏠 Rooms Management",
+			"item": [
+				{
+					"name": "Get All Rooms",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/rooms",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"rooms"
+							]
+						},
+						"description": "**🏠 GET ALL USER ROOMS**\n\nReturns all rooms where the current user is a member.\n\n**Features:**\n- Sorted by lastActivity (newest first)\n- Includes slug for URL routing\n- Grouped by room type\n- Member counts included\n\n**📝 Response Example:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"rooms\": [\n      {\n        \"id\": \"room001\",\n        \"name\": \"Chat dengan John Doe\",\n        \"type\": \"private\",\n        \"memberCount\": 2,\n        \"lastMessage\": \"Hello!\",\n        \"lastActivity\": \"2024-10-02T10:30:00.000Z\",\n        \"slug\": \"john\",\n        \"friend\": {...}\n      }\n    ],\n    \"grouped\": {\n      \"private\": [...],\n      \"group\": [...],\n      \"ai\": [...]\n    },\n    \"counts\": {\n      \"total\": 3,\n      \"private\": 2,\n      \"group\": 1,\n      \"ai\": 0\n    }\n  }\n}\n```"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Room by Slug (NEW)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/rooms/by-slug/{{room_slug}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"rooms",
+								"by-slug",
+								"{{room_slug}}"
+							]
+						},
+						"description": "**🔗 GET ROOM BY SLUG (NEW)**\n\nFind a room using its slug instead of ID.\n\n**Slug Resolution Strategy:**\n1. **AI Room**: `ai-assistant` → type: \"ai\"\n2. **Private Room**: `username` → find user, then private room\n3. **Group Room**: `slugified-name` → match slugified room name\n\n**Examples:**\n- `/api/rooms/by-slug/john` - Private room with user \"john\"\n- `/api/rooms/by-slug/dev-team` - Group room \"Dev Team\"\n- `/api/rooms/by-slug/ai-assistant` - AI room\n\n**📝 Response Example:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"room\": {\n      \"id\": \"room001\",\n      \"name\": \"Chat dengan John Doe\",\n      \"type\": \"private\",\n      \"slug\": \"john\",\n      \"friend\": {...}\n    }\n  }\n}\n```\n\n**🔧 Variables:**\n- Set `room_slug` variable to test different rooms"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Private Room",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"const response = pm.response.json();",
+									"if (response.success && response.room) {",
+									"    pm.collectionVariables.set('last_room_id', response.room.id);",
+									"    pm.test('✅ Room created and ID saved', () => {",
+									"        pm.expect(response.room.id).to.be.a('string');",
+									"    });",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"private\",\n  \"memberIds\": [\"{{friend_user_id}}\"]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/rooms/create",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"rooms",
+								"create"
+							]
+						},
+						"description": "**👤 CREATE PRIVATE ROOM**\n\nCreate a 1-on-1 private chat room with a friend.\n\n**Requirements:**\n- Must be friends with the user first\n- Exactly 1 member ID (the friend)\n- Room name auto-generated\n\n**📝 Response Example:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Room private berhasil dibuat!\",\n  \"room\": {\n    \"id\": \"room001\",\n    \"name\": \"Chat dengan John Doe\",\n    \"type\": \"private\",\n    \"memberCount\": 2\n  }\n}\n```\n\n**🔧 Variables:**\n- Set `friend_user_id` to the user ID of your friend\n- Room ID will be auto-saved as `last_room_id`\n\n**💡 Tip:** Get friend_user_id from Search Users or Friends List"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Group Room",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"const response = pm.response.json();",
+									"if (response.success && response.room) {",
+									"    pm.collectionVariables.set('last_room_id', response.room.id);",
+									"    pm.test('✅ Group room created and ID saved', () => {",
+									"        pm.expect(response.room.id).to.be.a('string');",
+									"    });",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"group\",\n  \"name\": \"Test Group Chat\",\n  \"memberIds\": [\"{{friend_user_id}}\"]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/rooms/create",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"rooms",
+								"create"
+							]
+						},
+						"description": "**👥 CREATE GROUP ROOM**\n\nCreate a multi-user group chat room.\n\n**Requirements:**\n- Must have a room name\n- At least 1 member ID (+ creator automatically added)\n- Room name will be slugified for URL\n\n**📝 Response Example:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Room group berhasil dibuat!\",\n  \"room\": {\n    \"id\": \"room002\",\n    \"name\": \"Test Group Chat\",\n    \"type\": \"group\",\n    \"memberCount\": 3\n  }\n}\n```\n\n**🔧 Variables:**\n- Set `friend_user_id` to add friends to the group\n- Room ID will be auto-saved as `last_room_id`\n\n**💡 Tip:** Add multiple memberIds in the array for more users"
+					},
+					"response": []
+				},
+				{
+					"name": "Create AI Room",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"const response = pm.response.json();",
+									"if (response.success && response.room) {",
+									"    pm.collectionVariables.set('last_room_id', response.room.id);",
+									"    pm.test('✅ AI room created and ID saved', () => {",
+									"        pm.expect(response.room.id).to.be.a('string');",
+									"    });",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"ai\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/rooms/create",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"rooms",
+								"create"
+							]
+						},
+						"description": "**🤖 CREATE AI CHAT ROOM**\n\nCreate a private room to chat with AI assistant.\n\n**Requirements:**\n- No members needed\n- Room name auto-generated\n- Type must be \"ai\"\n\n**📝 Response Example:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Room AI berhasil dibuat!\",\n  \"room\": {\n    \"id\": \"room003\",\n    \"name\": \"AI Assistant\",\n    \"type\": \"ai\",\n    \"memberCount\": 1\n  }\n}\n```\n\n**🔧 Variables:**\n- Room ID will be auto-saved as `last_room_id`\n- Can be accessed via slug: `ai-assistant`\n\n**💡 Tip:** AI rooms are great for testing messaging without needing other users"
+					},
+					"response": []
+				}
+			],
+			"description": "Complete room management: create private, group, and AI rooms; get rooms by ID or slug."
+		},
+		{
+			"name": "💬 Messages",
+			"item": [
+				{
+					"name": "Send Message",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"const response = pm.response.json();",
+									"if (response.success) {",
+									"    pm.test('✅ Message sent successfully', () => {",
+									"        pm.expect(response.message).to.include('dikirim');",
+									"    });",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"roomId\": \"{{last_room_id}}\",\n  \"message\": \"Hello from Postman! 🚀\",\n  \"messageType\": \"text\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/messages",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"messages"
+							]
+						},
+						"description": "**📤 SEND MESSAGE TO ROOM**\n\nSend a message to a chat room.\n\n**Requirements:**\n- Must be a member of the room\n- Room must exist\n- Message cannot be empty\n\n**📝 Response Example:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Pesan berhasil dikirim!\",\n  \"data\": {\n    \"messageId\": \"msg001\",\n    \"roomId\": \"room001\",\n    \"message\": \"Hello from Postman! 🚀\",\n    \"timestamp\": \"2024-10-02T10:30:00.000Z\"\n  }\n}\n```\n\n**🔧 Variables:**\n- Uses `last_room_id` from room creation\n- Can manually set roomId in the body\n\n**💡 Features:**\n- Updates room's lastMessage and lastActivity\n- Broadcasts via Socket.io to room members\n- Supports different message types (text, image, file)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Messages from Room",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/messages/{{last_room_id}}?limit=10",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"messages",
+								"{{last_room_id}}"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "10",
+									"description": "Number of messages to retrieve (default 30)"
+								}
+							]
+						},
+						"description": "**📥 GET MESSAGES FROM ROOM (PAGINATED)**\n\nRetrieve messages from a specific room with WhatsApp-style pagination.\n\n**Query Parameters:**\n- `limit` (optional): Number of messages (default 30)\n- `before` (optional): ISO timestamp for pagination\n\n**📝 Response Example:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"roomId\": \"room001\",\n    \"messages\": [\n      {\n        \"id\": \"msg001\",\n        \"message\": \"Hello!\",\n        \"messageType\": \"text\",\n        \"timestamp\": \"2024-10-02T10:00:00.000Z\",\n        \"isAI\": false,\n        \"sender\": {\n          \"userId\": \"user002\",\n          \"username\": \"john\",\n          \"displayName\": \"John Doe\",\n          \"avatar\": null\n        },\n        \"isOwn\": false\n      }\n    ],\n    \"hasMore\": false,\n    \"oldestTimestamp\": \"2024-10-02T10:00:00.000Z\"\n  }\n}\n```\n\n**🔧 Variables:**\n- Uses `last_room_id` from room creation\n- Change limit parameter to test pagination\n\n**💡 Features:**\n- Messages returned oldest-to-newest\n- `isOwn` indicates if message is from current user\n- `hasMore` indicates if older messages exist"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Messages with Pagination",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/messages/{{last_room_id}}?limit=5&before=2024-10-02T10:00:00.000Z",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"messages",
+								"{{last_room_id}}"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "5",
+									"description": "Number of messages to retrieve"
+								},
+								{
+									"key": "before",
+									"value": "2024-10-02T10:00:00.000Z",
+									"description": "Get messages older than this timestamp"
+								}
+							]
+						},
+						"description": "**📄 GET MESSAGES WITH PAGINATION**\n\nTest WhatsApp-style pagination by loading older messages.\n\n**Usage:**\n1. Send a few messages to a room\n2. Note the timestamp from the first message\n3. Use that timestamp as the `before` parameter\n4. This will load messages older than that timestamp\n\n**🔧 Variables:**\n- Adjust `before` timestamp to test pagination\n- Change `limit` to control number of messages\n\n**💡 Tip:** Use this to test infinite scroll functionality like WhatsApp!"
+					},
+					"response": []
+				}
+			],
+			"description": "Message management: send messages, retrieve with pagination, real-time updates via Socket.io."
+		},
+		{
+			"name": "🔍 Users & Search",
+			"item": [
+				{
+					"name": "Search Users",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/users/search?q=test",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"search"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "test",
+									"description": "Search query - searches username and displayName"
+								}
+							]
+						},
+						"description": "**🔍 SEARCH USERS**\n\nSearch for users by username or display name.\n\n**Parameters:**\n- `q` (required): Search query\n\n**Features:**\n- Case-insensitive search\n- Searches both username and displayName\n- Max 10 results\n- Excludes yourself from results\n\n**📝 Response Example:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"results\": [\n      {\n        \"userId\": \"user002\",\n        \"username\": \"testuser\",\n        \"displayName\": \"Test User\",\n        \"avatar\": null\n      }\n    ],\n    \"count\": 1\n  }\n}\n```\n\n**💡 Usage:**\n1. Change the `q` parameter to search for different users\n2. Use the `userId` from results for friend requests or room creation\n3. Try searching with partial names (e.g., \"test\" finds \"testuser\")"
+					},
+					"response": []
+				}
+			],
+			"description": "User search and management functionality."
+		},
+		{
+			"name": "🛠️ Utility & Testing",
+			"item": [
+				{
+					"name": "Test Database Connection",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/test-db",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"test-db"
+							]
+						},
+						"description": "**🔧 TEST DATABASE CONNECTION**\n\nTest if the MongoDB connection is working properly.\n\n**📝 Response Example:**\n```json\n{\n  \"success\": true,\n  \"message\": \"MongoDB connection successful!\",\n  \"timestamp\": \"2024-10-02T12:00:00.000Z\"\n}\n```\n\n**💡 Usage:**\n- Use this to verify database connectivity\n- Helpful when troubleshooting API issues\n- No authentication required\n\n**🚨 If this fails:**\n- Check MongoDB is running\n- Verify connection string in environment\n- Check network connectivity"
+					},
+					"response": []
+				},
+				{
+					"name": "Socket.io Test (BROKEN)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/socket",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"socket"
+							]
+						},
+						"description": "❌ **BROKEN ENDPOINT** - Implementation has syntax errors\n\nThis endpoint is non-functional due to code issues.\n\n**🔄 Working Alternative:**\nSocket.io functionality is handled by the main server at `http://localhost:1630`\n\n**💡 For Socket.io testing:**\n- Use Socket.io client library\n- Connect directly to `http://localhost:1630`\n- Listen for events: `receive_message`, `typing_start`, `typing_stop`\n- Emit events: `join_room`, `send_message`, `typing_start`, `typing_stop`\n\n**📝 Expected Response:**\n```json\n{\n  \"success\": false,\n  \"message\": \"Socket.io endpoint has implementation issues\"\n}\n```"
+					},
+					"response": []
+				}
+			],
+			"description": "Utility endpoints for testing and debugging."
+		},
+		{
+			"name": "📋 Complete Testing Flow",
+			"item": [
+				{
+					"name": "🚀 Full API Test Sequence",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// Log the start of test sequence",
+									"console.log('🚀 Starting Complete API Test Sequence');",
+									"console.log('Current User ID:', pm.collectionVariables.get('user_id'));",
+									"console.log('Current Room ID:', pm.collectionVariables.get('last_room_id'));"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('✅ Test sequence completed', () => {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"",
+									"console.log('✅ API Test Sequence Complete');",
+									"console.log('📊 Next Steps:');",
+									"console.log('1. Check the response data');",
+									"console.log('2. Use saved variables for next requests');",
+									"console.log('3. Test real-time features with Socket.io');"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/rooms",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"rooms"
+							]
+						},
+						"description": "**🎯 COMPLETE TESTING FLOW**\n\nThis is a reference request showing the complete API testing workflow.\n\n**📋 RECOMMENDED TESTING SEQUENCE:**\n\n1. **🔐 Authentication**\n   - Run \"Register User (STEP 1)\" → Auto-saves user_id\n\n2. **👥 Friends Management**\n   - Search Users → Find other users\n   - Add Friend → Send friend request\n   - Get Pending Requests → Check requests\n   - Respond to Friend Request → Accept/decline\n\n3. **🏠 Rooms Management**\n   - Get All Rooms → Check existing rooms\n   - Create Private Room → 1-on-1 chat\n   - Create Group Room → Multi-user chat\n   - Create AI Room → AI assistant chat\n\n4. **💬 Messages**\n   - Send Message → Add messages to rooms\n   - Get Messages → Retrieve with pagination\n\n5. **🔍 Search & Utilities**\n   - Search Users → Find more users\n   - Test Database → Verify connectivity\n\n**🔧 VARIABLES USED:**\n- `user_id`: From registration (auto-saved)\n- `last_room_id`: From room creation (auto-saved)\n- `friend_user_id`: Set manually from search results\n- `room_slug`: Set manually from room data\n\n**💡 TIPS:**\n- Check console logs for helpful information\n- Use the Collection Variables to see saved values\n- Test each endpoint individually before running sequences\n- Use the Test Results tab to see detailed information"
+					},
+					"response": []
+				}
+			],
+			"description": "Complete testing workflow and documentation for the entire API."
+		}
+	],
+	"variable": [
+		{
+			"key": "random",
+			"value": "{{$randomInt}}",
+			"type": "string"
+		},
+		{
+			"key": "friend_user_id",
+			"value": "user002",
+			"type": "string",
+			"description": "User ID of friend for room creation and testing"
+		},
+		{
+			"key": "room_slug",
+			"value": "testuser",
+			"type": "string",
+			"description": "Room slug for testing room-by-slug endpoint"
+		}
+	]
+}
