@@ -1,79 +1,120 @@
-import connectToDatabase from "@/lib/mongodb";
-import bcrypt from "bcrypt";
-import mongoose from "mongoose";
+// src/app/api/register/route.js
+import { NextResponse } from 'next/server';
+import User from '@/models/User';
+import EmailService from '@/lib/EmailService';
+import bcrypt from 'bcrypt';
+import crypto from 'crypto';
 
 export async function POST(request) {
   try {
     const { username, email, password, displayName } = await request.json();
 
+    // Validasi input
     if (!username || !email || !password || !displayName) {
-      return Response.json({
-        success: false,
-        message: "isi semua kolom dulu",
-      });
+      return NextResponse.json(
+        { success: false, message: "Semua field wajib diisi!" },
+        { status: 400 }
+      );
     }
 
-    // Validasi password minimal 8 karakter
+    // Validasi format email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json(
+        { success: false, message: "Format email tidak valid!" },
+        { status: 400 }
+      );
+    }
+
+    // Validasi panjang password
     if (password.length < 8) {
-      return Response.json({
-        success: false,
-        message: "Password minimal 8 karakter!",
-      });
+      return NextResponse.json(
+        { success: false, message: "Password minimal 8 karakter!" },
+        { status: 400 }
+      );
     }
 
-    await connectToDatabase();
-
-    const db = mongoose.connection.db;
-    const usersCollection = db.collection("users");
-
-    const existingUser = await usersCollection.findOne({
+    // Cek apakah user sudah ada
+    const existingUser = await User.findOne({
       $or: [{ username }, { email }],
     });
 
     if (existingUser) {
-      return Response.json({
-        success: false,
-        message: "Username atau email sudah digunakan",
-      });
+      return NextResponse.json(
+        { success: false, message: "Username atau email sudah digunakan" },
+        { status: 409 }
+      );
     }
 
-    const saltRound = 10;
-    const hashedPassword = await bcrypt.hash(password, saltRound);
+    // Generate verification token
+    const verificationToken = crypto.randomBytes(32).toString('hex');
 
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    const userCount = await usersCollection.countDocuments();
-    const customId = `user${String(userCount + 1).padStart(3, '0')}`;
-
-
-    const newUser = {
-      _id: customId,
+    // Buat user baru (belum terverifikasi)
+    const newUser = new User({
+      _id: `user${Date.now()}`, // Generate ID unik
       username,
       email,
       password: hashedPassword,
       displayName,
-      avatar: null,
-      isOnline: false,
-      createdAt: new Date(),
-    };
+      isVerified: false,
+      verificationToken
+    });
 
-    const result = await usersCollection.insertOne(newUser);
+    await newUser.save();
 
-    return Response.json(
+    // Kirim email verifikasi
+    try {
+      const emailService = new EmailService();
+      await emailService.sendEmail({
+        to: email,
+        subject: 'Verifikasi Akun ChitChat - Aktifkan Akun Anda',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #333; text-align: center;">Verifikasi Akun Anda</h2>
+            <p>Halo <strong>${displayName}</strong>,</p>
+            <p>Terima kasih telah mendaftar di ChitChat V5.1 AI. Untuk mengaktifkan akun Anda, silakan klik tombol di bawah ini:</p>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${process.env.NEXT_PUBLIC_SERVER_URL}/api/auth/verify/${verificationToken}"
+                 style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
+                Verifikasi Akun
+              </a>
+            </div>
+            <p>Atau copy dan paste link berikut ke browser Anda:</p>
+            <p style="word-break: break-all; background-color: #f5f5f5; padding: 10px; border-radius: 4px;">
+              ${process.env.NEXT_PUBLIC_SERVER_URL}/api/auth/verify/${verificationToken}
+            </p>
+            <p>Link verifikasi ini akan kadaluarsa dalam 24 jam.</p>
+            <p>Jika Anda tidak mendaftar di ChitChat, abaikan email ini.</p>
+            <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
+            <p><small>Email ini dikirim secara otomatis. Mohon tidak membalas email ini.</small></p>
+          </div>
+        `
+      });
+    } catch (emailError) {
+      console.error('Gagal mengirim email verifikasi:', emailError);
+      // Jika gagal kirim email, hapus user yang sudah dibuat
+      await User.deleteOne({ _id: newUser._id });
+      return NextResponse.json(
+        { success: false, message: "Gagal mengirim email verifikasi. Silakan coba lagi." },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json(
       {
         success: true,
-        message: "Akun berhasil dibuat! Selamat bergabung! 🎉",
-        userId: customId,
-      },
-      { status: 200 }
+        message: "Akun berhasil dibuat! Silakan cek email Anda untuk verifikasi akun.",
+        userId: newUser._id
+      }
     );
   } catch (error) {
-    return Response.json(
-      {
-        success: false,
-        message: "ada yg eror",
-        error: error.message,
-      },
-      { status: 400 }
+    console.error('Error registrasi:', error);
+    return NextResponse.json(
+      { success: false, message: "Terjadi kesalahan saat registrasi" },
+      { status: 500 }
     );
   }
 }

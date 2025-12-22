@@ -34,6 +34,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           throw new Error("User tidak ditemukan");
         }
 
+        // Periksa apakah akun sudah terverifikasi
+        if (!user.isVerified) {
+          throw new Error("Akun belum terverifikasi. Silakan cek email Anda untuk link verifikasi.");
+        }
+
         // Verify password
         const isPasswordValid = await bcrypt.compare(
           credentials.password,

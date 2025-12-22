@@ -74,12 +74,27 @@ export async function POST(request) {
             });
 
             if (existingRoom) {
+                // Dapatkan slug dari room yang sudah ada
+                let existingRoomSlug = null;
+                if (existingRoom.type === "private") {
+                    const friendId = existingRoom.members.find(memberId => memberId !== currentUserId);
+                    const friendData = await usersCollection.findOne({ _id: friendId });
+                    if (friendData) {
+                        existingRoomSlug = friendData.username;
+                    }
+                } else if (existingRoom.type === "group") {
+                    existingRoomSlug = existingRoom.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+                } else if (existingRoom.type === "ai") {
+                    existingRoomSlug = "ai-assistant";
+                }
+
                 return Response.json({
                     success: false,
                     message: "Private room dengan teman ini sudah ada",
                     existingRoom: {
                         id: existingRoom._id,
-                        name: existingRoom.name
+                        name: existingRoom.name,
+                        slug: existingRoomSlug
                     }
                 }, { status: 400 });
             }
@@ -117,6 +132,20 @@ export async function POST(request) {
             lastActivity: new Date()
         };
 
+        // Ambil data teman untuk membuat slug (untuk private room)
+        let slug = null;
+        if (type === "private") {
+            const friendId = memberIds[0];
+            const friendData = await usersCollection.findOne({ _id: friendId });
+            if (friendData) {
+                slug = friendData.username;
+            }
+        } else if (type === "group") {
+            slug = roomName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+        } else if (type === "ai") {
+            slug = "ai-assistant";
+        }
+
         await roomsCollection.insertOne(newRoom);
 
         return Response.json({
@@ -126,7 +155,8 @@ export async function POST(request) {
                 id: roomId,
                 name: roomName,
                 type: type,
-                memberCount: members.length
+                memberCount: members.length,
+                slug: slug
             }
         });
 

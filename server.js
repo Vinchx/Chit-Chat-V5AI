@@ -2,11 +2,27 @@ const { createServer } = require("http");
 const next = require("next");
 const { Server } = require("socket.io");
 
+// Kita akan impor fungsi connectToDatabase setelah Next.js disiapkan
+let connectToDatabase;
+
 const dev = process.env.NODE_ENV !== "production";
 const app = next({ dev });
 const handle = app.getRequestHandler();
 
-app.prepare().then(() => {
+app.prepare().then(async () => {
+    // Impor fungsi connectToDatabase setelah Next.js disiapkan
+    connectToDatabase = (await import('./src/lib/mongodb.js')).default;
+
+    // Inisialisasi koneksi database
+    try {
+        console.log("📦 Menginisialisasi koneksi database...");
+        await connectToDatabase();
+        console.log("✅ Koneksi database berhasil diinisialisasi");
+    } catch (error) {
+        console.error("❌ Gagal menginisialisasi koneksi database:", error.message);
+        process.exit(1); // Keluar jika gagal koneksi database
+    }
+
     const server = createServer((req, res) => {
         handle(req, res);
     });

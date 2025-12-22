@@ -16,6 +16,10 @@ export default function DashboardLayout({ children }) {
   const [friendRequests, setFriendRequests] = useState([]);
   const [activeTab, setActiveTab] = useState("chats");
   const [showAddFriendModal, setShowAddFriendModal] = useState(false);
+  const [showCreateRoomModal, setShowCreateRoomModal] = useState(false);
+  const [newRoomType, setNewRoomType] = useState("group");
+  const [newRoomName, setNewRoomName] = useState("");
+  const [selectedMembers, setSelectedMembers] = useState([]);
   const [notification, setNotification] = useState({
     isOpen: false,
     type: "success",
@@ -56,6 +60,48 @@ export default function DashboardLayout({ children }) {
     } catch (error) {
       console.log("Error loading rooms:", error);
     }
+  };
+
+  const createRoom = async () => {
+    if (newRoomType === "group" && !newRoomName.trim()) {
+      alert("Nama group harus diisi!");
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/rooms/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: newRoomType,
+          name: newRoomType === "group" ? newRoomName : undefined,
+          memberIds: selectedMembers
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setShowCreateRoomModal(false);
+        setNewRoomType("group");
+        setNewRoomName("");
+        setSelectedMembers([]);
+        router.push(`/dashboard/chat/${result.room.slug}`);
+      } else {
+        alert('Gagal membuat room: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Error creating room:', error);
+      alert('Terjadi kesalahan saat membuat room');
+    }
+  };
+
+  const toggleMemberSelection = (userId) => {
+    setSelectedMembers(prev =>
+      prev.includes(userId)
+        ? prev.filter(id => id !== userId)
+        : [...prev, userId]
+    );
   };
 
   const loadFriends = async () => {
@@ -217,6 +263,13 @@ export default function DashboardLayout({ children }) {
           <div className="flex-1 overflow-y-auto">
             {activeTab === "chats" ? (
               <div className="p-4 space-y-2">
+                <button
+                  onClick={() => setShowCreateRoomModal(true)}
+                  className="w-full p-3 bg-gradient-to-r from-blue-400 to-purple-400 text-white rounded-lg hover:from-blue-500 hover:to-purple-500 transition-all text-sm font-medium mb-2"
+                >
+                  + Buat Room Baru
+                </button>
+
                 {rooms.length === 0 ? (
                   <div className="text-center text-gray-500 mt-8">
                     <p>Belum ada room</p>
@@ -270,6 +323,55 @@ export default function DashboardLayout({ children }) {
                           <h4 className="font-medium text-gray-800 truncate">{friend.displayName}</h4>
                           <p className="text-sm text-gray-600 truncate">@{friend.username}</p>
                         </div>
+                        <button
+                          onClick={async () => {
+                            try {
+                              const response = await fetch('/api/rooms/create', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  type: 'private',
+                                  memberIds: [friend.userId]
+                                })
+                              });
+
+                              const result = await response.json();
+
+                              if (result.success) {
+                                // Redirect ke room yang baru dibuat menggunakan slug dari response
+                                if (result.room && result.room.slug) {
+                                  router.push(`/dashboard/chat/${result.room.slug}`);
+                                } else {
+                                  alert('Room berhasil dibuat tetapi slug tidak ditemukan');
+                                }
+                              } else if (result.existingRoom) {
+                                // Ambil daftar room untuk mendapatkan slug dari room yang sudah ada
+                                const roomsResponse = await fetch('/api/rooms');
+                                const roomsData = await roomsResponse.json();
+
+                                if (roomsData.success) {
+                                  // Cari room yang sudah ada
+                                  const existingRoom = roomsData.data.rooms.find(r => r.id === result.existingRoom.id);
+                                  if (existingRoom && existingRoom.slug) {
+                                    router.push(`/dashboard/chat/${existingRoom.slug}`);
+                                  } else {
+                                    alert(`Room dengan ${friend.displayName} sudah ada!`);
+                                  }
+                                } else {
+                                  alert(`Room dengan ${friend.displayName} sudah ada!`);
+                                }
+                              } else {
+                                alert('Gagal membuat room: ' + result.message);
+                              }
+                            } catch (error) {
+                              console.error('Error creating room:', error);
+                              alert('Terjadi kesalahan saat membuat room');
+                            }
+                          }}
+                          className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm transition-colors"
+                        >
+                          Chat
+                        </button>
                       </div>
                     </div>
                   ))
@@ -330,6 +432,155 @@ export default function DashboardLayout({ children }) {
           loadFriendRequests();
         }}
       />
+
+      {/* Create Room Modal */}
+      {showCreateRoomModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-gray-800">Buat Room Baru</h3>
+                <button
+                  onClick={() => {
+                    setShowCreateRoomModal(false);
+                    setNewRoomType("group");
+                    setNewRoomName("");
+                    setSelectedMembers([]);
+                  }}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {/* Room Type Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Jenis Room</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setNewRoomType("group")}
+                      className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                        newRoomType === "group"
+                          ? "bg-blue-500 text-white"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      }`}
+                    >
+                      Group
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setNewRoomType("ai")}
+                      className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                        newRoomType === "ai"
+                          ? "bg-blue-500 text-white"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      }`}
+                    >
+                      AI
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        alert("Untuk room private, gunakan tombol 'Chat' di daftar teman");
+                      }}
+                      className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                        newRoomType === "private"
+                          ? "bg-blue-500 text-white"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      }`}
+                    >
+                      Private
+                    </button>
+                  </div>
+                </div>
+
+                {/* Room Name (only for group) */}
+                {newRoomType === "group" && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Nama Group</label>
+                    <input
+                      type="text"
+                      value={newRoomName}
+                      onChange={(e) => setNewRoomName(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Masukkan nama group..."
+                    />
+                  </div>
+                )}
+
+                {/* Members Selection (only for group) */}
+                {newRoomType === "group" && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Tambah Anggota</label>
+                    <div className="max-h-60 overflow-y-auto border border-gray-200 rounded-lg p-2">
+                      {friends.length === 0 ? (
+                        <p className="text-gray-500 text-center py-4">Tidak ada teman ditemukan</p>
+                      ) : (
+                        friends.map((friend) => (
+                          <div
+                            key={friend.userId}
+                            className={`flex items-center p-2 rounded cursor-pointer hover:bg-gray-100 ${
+                              selectedMembers.includes(friend.userId) ? "bg-blue-100" : ""
+                            }`}
+                            onClick={() => toggleMemberSelection(friend.userId)}
+                          >
+                            <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-blue-400 rounded-full flex items-center justify-center text-white font-bold text-sm mr-3">
+                              {friend.displayName.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-gray-800 truncate">{friend.displayName}</p>
+                              <p className="text-xs text-gray-600 truncate">@{friend.username}</p>
+                            </div>
+                            <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                              selectedMembers.includes(friend.userId)
+                                ? "bg-blue-500 border-blue-500"
+                                : "border-gray-300"
+                            }`}>
+                              {selectedMembers.includes(friend.userId) && (
+                                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                    {selectedMembers.length > 0 && (
+                      <p className="text-sm text-gray-600 mt-2">
+                        {selectedMembers.length} anggota dipilih
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Create Button */}
+                <div className="flex space-x-3 pt-4">
+                  <button
+                    onClick={() => {
+                      setShowCreateRoomModal(false);
+                      setNewRoomType("group");
+                      setNewRoomName("");
+                      setSelectedMembers([]);
+                    }}
+                    className="flex-1 py-2.5 bg-gray-200 text-gray-800 rounded-lg font-medium hover:bg-gray-300 transition-colors"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    onClick={createRoom}
+                    className="flex-1 py-2.5 bg-gradient-to-r from-blue-400 to-purple-400 text-white rounded-lg font-medium hover:from-blue-500 hover:to-purple-500 transition-all"
+                  >
+                    Buat Room
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <NotificationModal
         isOpen={notification.isOpen}

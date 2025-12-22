@@ -64,6 +64,10 @@ export function createChatSocket(roomId, user, callbacks = {}) {
           callbacks.onMessageRead?.(data);
           break;
 
+        case "message-deleted":
+          callbacks.onMessageDeleted?.(data);
+          break;
+
         default:
           console.log("Unknown message type:", data.type);
       }
@@ -121,6 +125,18 @@ export function sendReadReceipt(socket, messageId) {
   socket.send(
     JSON.stringify({
       type: "read-receipt",
+      messageId,
+    })
+  );
+}
+
+/**
+ * Send delete message event
+ */
+export function sendDeleteMessage(socket, messageId) {
+  socket.send(
+    JSON.stringify({
+      type: "delete-message",
       messageId,
     })
   );

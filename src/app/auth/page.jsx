@@ -41,6 +41,7 @@ export default function AuthPage() {
         setMessage({ text: '', type: '' });
     };
 
+
     // Fungsi untuk handle Enter key
     const handleKeyDown = (e, action) => {
         if (e.key === 'Enter' && !isLoading) {
@@ -99,6 +100,37 @@ export default function AuthPage() {
         setIsLoading(false);
     };
 
+    // Fungsi untuk mengirim ulang email verifikasi
+    const handleResendVerification = async () => {
+        if (!formData.email) {
+            setMessage({ text: 'Silakan masukkan email Anda terlebih dahulu!', type: 'error' });
+            return;
+        }
+
+        setIsLoading(true);
+        setMessage({ text: '', type: '' });
+
+        try {
+            const response = await fetch('/api/auth/resend-verification', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: formData.email })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                setMessage({ text: data.message, type: 'success' });
+            } else {
+                setMessage({ text: data.message, type: 'error' });
+            }
+        } catch (error) {
+            setMessage({ text: 'Terjadi kesalahan saat mengirim email verifikasi. Coba lagi nanti.', type: 'error' });
+        }
+
+        setIsLoading(false);
+    };
+
     // Fungsi login - gunakan NextAuth
     const handleLogin = async () => {
         if (!formData.email || !formData.password) {
@@ -117,7 +149,15 @@ export default function AuthPage() {
             });
 
             if (result?.error) {
-                setMessage({ text: result.error, type: 'error' });
+                // Cek apakah error terkait dengan verifikasi akun
+                if (result.error.includes('Akun belum terverifikasi')) {
+                    setMessage({
+                        text: 'Akun Anda belum terverifikasi. Silakan cek email untuk link verifikasi atau kirim ulang email verifikasi.',
+                        type: 'error'
+                    });
+                } else {
+                    setMessage({ text: result.error, type: 'error' });
+                }
             } else {
                 setMessage({ text: 'Login berhasil! Mengalihkan...', type: 'success' });
                 setTimeout(() => {
@@ -256,6 +296,20 @@ export default function AuthPage() {
                                     : 'bg-red-100/80 text-red-700 border border-red-300'
                                     }`}>
                                     {message.text}
+
+                                    {/* Tampilkan tombol kirim ulang verifikasi jika pesan terkait verifikasi */}
+                                    {message.text.includes('Akun Anda belum terverifikasi') && (
+                                        <div className="mt-3">
+                                            <button
+                                                type="button"
+                                                onClick={handleResendVerification}
+                                                disabled={isLoading}
+                                                className="text-sm text-blue-600 hover:text-blue-800 underline"
+                                            >
+                                                Kirim Ulang Email Verifikasi
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 

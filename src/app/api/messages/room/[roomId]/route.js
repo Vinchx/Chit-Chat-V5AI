@@ -16,19 +16,21 @@ export async function GET(request, { params }) {
 
         const currentUserId = userId;
 
-        // 3. Ambil parameter query - sistem WhatsApp style
-        const url = new URL(request.url);
-        const limit = parseInt(url.searchParams.get('limit')) || 30; // Default 30 pesan kayak WA
-        const before = url.searchParams.get('before'); // Timestamp untuk load pesan lebih lama
+        if (!roomId) {
+            return Response.json({
+                success: false,
+                message: "Room ID harus diisi"
+            }, { status: 400 });
+        }
 
-        // 4. Sambung ke database
+        // 3. Sambung ke database
         await connectToDatabase();
         const db = mongoose.connection.db;
         const roomsCollection = db.collection("rooms");
         const messagesCollection = db.collection("messages");
         const usersCollection = db.collection("users");
 
-        // 5. Cek akses user ke room
+        // 4. Cek akses user ke room
         const room = await roomsCollection.findOne({ _id: roomId });
 
         if (!room) {
@@ -45,28 +47,32 @@ export async function GET(request, { params }) {
             }, { status: 403 });
         }
 
-        // 6. Build query untuk messages
+        // 5. Build query untuk messages - tampilkan semua pesan termasuk yang dihapus
         let messageQuery = {
-            roomId: roomId,
-            isDeleted: false
+            roomId: roomId
         };
+
+        // Ambil parameter query
+        const url = new URL(request.url);
+        const limit = parseInt(url.searchParams.get('limit')) || 30; // Default 30 pesan kayak WA
+        const before = url.searchParams.get('before'); // Timestamp untuk load pesan lebih lama
 
         // Kalau ada parameter 'before', ambil pesan yang lebih lama
         if (before) {
             messageQuery.timestamp = { $lt: new Date(before) };
         }
 
-        // 7. Ambil pesan dari database
+        // 6. Ambil pesan dari database
         const messages = await messagesCollection
             .find(messageQuery)
             .sort({ timestamp: -1 }) // Urutkan dari terbaru
             .limit(limit)
             .toArray();
 
-        // 8. Balik urutan biar dari lama ke baru
+        // 7. Balik urutan biar dari lama ke baru
         messages.reverse();
 
-        // 9. Ambil data sender untuk setiap pesan
+        // 8. Ambil data sender untuk setiap pesan
         const messagesWithSender = await Promise.all(
             messages.map(async (msg) => {
                 const sender = await usersCollection.findOne({ _id: msg.senderId });
@@ -83,7 +89,8 @@ export async function GET(request, { params }) {
                         avatar: sender.avatar
                     },
                     isOwn: msg.senderId === currentUserId,
-                    isEdited: msg.isEdited || false
+                    isEdited: msg.isEdited || false,
+                    isDeleted: msg.isDeleted || false
                 };
             })
         );

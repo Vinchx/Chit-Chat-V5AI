@@ -101,6 +101,16 @@ export default class ChatRoom implements Party.Server {
         });
         break;
 
+      case "delete-message":
+        // Broadcast pesan yang dihapus ke semua user di room
+        this.broadcast({
+          type: "message-deleted",
+          messageId: data.messageId,
+          deletedBy: senderInfo?.userId,
+          timestamp: new Date().toISOString(),
+        });
+        break;
+
       default:
         console.log("Unknown message type:", data.type);
     }

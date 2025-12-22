@@ -35,6 +35,18 @@ const UserSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  isVerified: {
+    type: Boolean,
+    default: false,
+  },
+  verificationToken: {
+    type: String,
+    default: null,
+  },
+  verifiedAt: {
+    type: Date,
+    default: null,
+  },
 });
 
 // Prevent model overwrite upon initial compilation

@@ -20,6 +20,8 @@ export default function ChatRoomPage() {
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [socket, setSocket] = useState(null);
   const [messages, setMessages] = useState([]);
+  const [editingMessage, setEditingMessage] = useState(null);
+  const [editText, setEditText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [typingUser, setTypingUser] = useState("");
   const [isUserScrolling, setIsUserScrolling] = useState(false);
@@ -174,7 +176,7 @@ export default function ChatRoomPage() {
 
   const loadMessages = async (roomId) => {
     try {
-      const response = await fetch(`/api/messages/${roomId}`);
+      const response = await fetch(`/api/messages/room/${roomId}`);
       const data = await response.json();
 
       if (data.success) {
@@ -189,7 +191,33 @@ export default function ChatRoomPage() {
           isOwn: msg.isOwn,
         }));
 
-        setMessages(formattedMessages);
+        // Gunakan pesan dari server sebagai sumber kebenaran
+        // Hanya ambil perubahan lokal untuk isDeleted karena penghapusan tidak selalu konsisten ke server segera
+        setMessages(prevMessages => {
+          // Buat map dari pesan lokal untuk membandingkan status penghapusan
+          const localMessagesMap = new Map(prevMessages.map(msg => [msg.id, msg]));
+
+          // Update pesan dari server dengan status penghapusan lokal (jika ada)
+          const updatedMessages = formattedMessages.map(serverMsg => {
+            const localMsg = localMessagesMap.get(serverMsg.id);
+            if (localMsg) {
+              // Ambil status penghapusan dari lokal karena mungkin belum disinkron ke server
+              return {
+                ...serverMsg, // Data dari server sebagai sumber utama (termasuk isEdited dari DB)
+                isDeleted: localMsg.isDeleted !== undefined ? localMsg.isDeleted : serverMsg.isDeleted,
+              };
+            }
+            return serverMsg;
+          });
+
+          // Tambahkan pesan lokal yang tidak ada di server (baru dikirim tapi blm diterima server)
+          const serverMessageIds = new Set(formattedMessages.map(msg => msg.id));
+          const newLocalMessages = prevMessages.filter(prevMsg =>
+            !serverMessageIds.has(prevMsg.id)
+          );
+
+          return [...updatedMessages, ...newLocalMessages];
+        });
 
         setTimeout(() => {
           const messagesContainer = document.querySelector(".messages-container .overflow-y-auto");
@@ -231,14 +259,108 @@ export default function ChatRoomPage() {
 
   const handleReceiveMessage = (messageData) => {
     const newMsg = {
-      id: messages.length + 1,
+      id: messageData.id || messages.length + 1,
       text: messageData.text,
       sender: messageData.sender,
       time: messageData.time,
       isOwn: messageData.isOwn,
+      isDeleted: messageData.isDeleted || false,
     };
 
-    setMessages([...messages, newMsg]);
+    setMessages(prevMessages => {
+      // Cek apakah pesan dengan ID yang sama sudah ada
+      const existingIndex = prevMessages.findIndex(msg => msg.id === newMsg.id);
+      if (existingIndex !== -1) {
+        // Jika sudah ada, update pesan yang ada
+        const updatedMessages = [...prevMessages];
+        updatedMessages[existingIndex] = newMsg;
+        return updatedMessages;
+      } else {
+        // Jika belum ada, tambahkan pesan baru
+        return [...prevMessages, newMsg];
+      }
+    });
+  };
+
+  const handleEditMessage = async (message) => {
+    setEditingMessage(message);
+    setEditText(message.text);
+  };
+
+  const saveEditMessage = async () => {
+    if (!editingMessage || !editText.trim()) return;
+
+    try {
+      // Update pesan di server
+      const response = await fetch(`/api/messages?messageId=${editingMessage.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: editText
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Update pesan di state lokal
+        setMessages(prevMessages =>
+          prevMessages.map(msg =>
+            msg.id === editingMessage.id
+              ? { ...msg, text: editText, isEdited: true }
+              : msg
+          )
+        );
+
+        // Reset state edit
+        setEditingMessage(null);
+        setEditText('');
+      } else {
+        console.error('Gagal mengedit pesan:', result.message);
+        alert('Gagal mengedit pesan: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Error saat mengedit pesan:', error);
+      alert('Terjadi kesalahan saat mengedit pesan');
+    }
+  };
+
+  const cancelEditMessage = () => {
+    setEditingMessage(null);
+    setEditText('');
+  };
+
+  const handleDeleteMessage = async (messageId) => {
+    try {
+      const response = await fetch(`/api/messages?messageId=${messageId}`, {
+        method: 'DELETE',
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Update local state untuk menandai pesan telah dihapus
+        setMessages(prevMessages =>
+          prevMessages.map(msg =>
+            msg.id === messageId ? { ...msg, isDeleted: true } : msg
+          )
+        );
+
+        // Beri feedback berdasarkan hasil
+        if (result.message === "Pesan sudah dihapus sebelumnya") {
+          console.log('Pesan sudah dihapus sebelumnya');
+        } else {
+          console.log('Pesan berhasil dihapus');
+        }
+      } else {
+        console.error('Gagal menghapus pesan:', result.message);
+        // Tampilkan pesan error yang lebih deskriptif
+        alert('Gagal menghapus pesan: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Error saat menghapus pesan:', error);
+      alert('Terjadi kesalahan saat menghapus pesan. Silakan coba lagi.');
+    }
   };
 
   if (isLoading || !user || !selectedRoom) {
@@ -266,7 +388,12 @@ export default function ChatRoomPage() {
             <div className="flex-1 p-4 overflow-y-auto scroll-smooth" onScroll={handleScroll}>
               {messages && messages.length > 0 ? (
                 messages.map((message) => (
-                  <MessageBubble key={message.id} message={message} />
+                  <MessageBubble
+                    key={message.id}
+                    message={message}
+                    onDeleteMessage={handleDeleteMessage}
+                    onEditMessage={handleEditMessage}
+                  />
                 ))
               ) : (
                 <div className="text-center text-gray-500 mt-20">
@@ -281,12 +408,49 @@ export default function ChatRoomPage() {
               <ScrollToBottomButton onClick={scrollToBottom} />
             )}
 
-            <MessageInput
-              onSendMessage={handleReceiveMessage}
-              user={user}
-              socket={socket}
-              selectedRoom={selectedRoom}
-            />
+            {/* Edit Message Form - hanya muncul saat sedang mengedit */}
+            {editingMessage && (
+              <div className="p-4 border-t border-white/20 bg-white/5">
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="text"
+                    value={editText}
+                    onChange={(e) => setEditText(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        saveEditMessage();
+                      } else if (e.key === 'Escape') {
+                        cancelEditMessage();
+                      }
+                    }}
+                    className="flex-1 px-4 py-2 bg-white/30 backdrop-blur-sm border border-white/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 text-gray-800 placeholder-gray-600"
+                    placeholder="Edit pesan..."
+                    autoFocus
+                  />
+                  <button
+                    onClick={saveEditMessage}
+                    className="px-4 py-2 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-colors"
+                  >
+                    Simpan
+                  </button>
+                  <button
+                    onClick={cancelEditMessage}
+                    className="px-4 py-2 bg-gray-500 text-white rounded-xl hover:bg-gray-600 transition-colors"
+                  >
+                    Batal
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {!editingMessage && (
+              <MessageInput
+                onSendMessage={handleReceiveMessage}
+                user={user}
+                socket={socket}
+                selectedRoom={selectedRoom}
+              />
+            )}
           </div>
         </div>
       </div>
