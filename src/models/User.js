@@ -27,6 +27,10 @@ const UserSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
+  bio: {
+    type: String,
+    default: '',
+  },
   isOnline: {
     type: Boolean,
     default: false,

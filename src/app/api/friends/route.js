@@ -48,7 +48,7 @@ export async function GET(request) {
                 userId: friendData._id,
                 username: friendData.username,
                 displayName: friendData.displayName,
-                avatar: friendData.avatar,
+                avatar: friendData.avatar ? friendData.avatar.replace(/\\/g, '/') : null,
                 isOnline: friendData.isOnline,
                 createdAt: friendship.createdAt
             };

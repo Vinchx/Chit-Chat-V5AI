@@ -29,7 +29,7 @@ app.prepare().then(async () => {
 
     const io = new Server(server, {
         cors: {
-            origin: dev ? ["http://localhost:1630", "http://192.168.10.16:1630", "http://192.168.1.16:1630"] : "https://Chit-Chat-V5AI",
+            origin: dev ? ["http://localhost:1630", "http://192.168.100.16:1630"] : "https://Chit-Chat-V5AI",
             credentials: true
         }
     });
@@ -78,7 +78,6 @@ app.prepare().then(async () => {
     server.listen(PORT, '0.0.0.0', () => {
         console.log(`🚀 Server jalan di:`);
         console.log(`   - Local:   http://localhost:${PORT}`);
-        console.log(`   - Network: http://192.168.1.16:${PORT}`);
-        console.log(`   - Network: http://192.168.10.16:${PORT}`);
+        console.log(`   - Network: http://192.168.100.16:${PORT}`);
     });
 });

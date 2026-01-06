@@ -55,6 +55,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           username: user.username,
           email: user.email,
           displayName: user.displayName,
+          avatar: user.avatar || null,
         };
       },
     }),
@@ -72,6 +73,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.username = user.username;
         token.displayName = user.displayName;
         token.email = user.email;
+        token.avatar = user.avatar;
       }
 
       // SLIDING SESSION: Setiap kali token di-refresh (setiap 1 hari),
@@ -87,6 +89,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.username = token.username;
         session.user.displayName = token.displayName;
         session.user.email = token.email;
+        session.user.avatar = token.avatar;
       }
       return session;
     },

@@ -100,6 +100,8 @@ export function sendMessage(socket, message) {
       type: "message",
       message: message.text,
       messageId: message.id,
+      attachment: message.attachment || null, // Include attachment data
+      replyTo: message.replyTo || null, // Include reply data
     })
   );
 }

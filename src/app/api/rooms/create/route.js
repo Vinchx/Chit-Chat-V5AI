@@ -132,6 +132,18 @@ export async function POST(request) {
             lastActivity: new Date()
         };
 
+        // Add admin system fields for group rooms
+        if (type === "group") {
+            newRoom.admins = [currentUserId]; // Creator is default admin
+            newRoom.description = ""; // Can be updated later
+            newRoom.groupAvatar = null; // Can be updated later
+            newRoom.settings = {
+                onlyAdminsCanPost: false,
+                onlyAdminsCanAddMembers: true,
+                onlyAdminsCanEditInfo: true
+            };
+        }
+
         // Ambil data teman untuk membuat slug (untuk private room)
         let slug = null;
         if (type === "private") {

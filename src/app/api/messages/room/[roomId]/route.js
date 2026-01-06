@@ -75,7 +75,50 @@ export async function GET(request, { params }) {
         // 8. Ambil data sender untuk setiap pesan
         const messagesWithSender = await Promise.all(
             messages.map(async (msg) => {
-                const sender = await usersCollection.findOne({ _id: msg.senderId });
+                // Handle AI assistant as virtual user
+                let sender;
+                if (msg.senderId === 'ai-assistant') {
+                    sender = {
+                        _id: 'ai-assistant',
+                        username: 'ai-assistant',
+                        displayName: 'AI Assistant',
+                        avatar: null
+                    };
+                } else {
+                    sender = await usersCollection.findOne({ _id: msg.senderId });
+
+                    // If sender not found (deleted user), use placeholder
+                    if (!sender) {
+                        sender = {
+                            _id: msg.senderId,
+                            username: 'deleted-user',
+                            displayName: 'Deleted User',
+                            avatar: null
+                        };
+                    }
+                }
+
+                // If message has replyTo, lookup the sender displayName
+                let replyToData = msg.replyTo || null;
+                if (replyToData && replyToData.sender) {
+                    let repliedSender;
+                    if (replyToData.sender === 'ai-assistant') {
+                        repliedSender = {
+                            displayName: 'AI Assistant',
+                            username: 'ai-assistant'
+                        };
+                    } else {
+                        repliedSender = await usersCollection.findOne({ _id: replyToData.sender });
+                    }
+
+                    if (repliedSender) {
+                        replyToData = {
+                            ...replyToData,
+                            senderName: repliedSender.displayName || repliedSender.username,
+                            senderId: replyToData.sender
+                        };
+                    }
+                }
 
                 return {
                     id: msg._id,
@@ -90,7 +133,9 @@ export async function GET(request, { params }) {
                     },
                     isOwn: msg.senderId === currentUserId,
                     isEdited: msg.isEdited || false,
-                    isDeleted: msg.isDeleted || false
+                    isDeleted: msg.isDeleted || false,
+                    attachment: msg.attachment || null, // Include attachment data
+                    replyTo: replyToData, // Include reply data with sender name
                 };
             })
         );

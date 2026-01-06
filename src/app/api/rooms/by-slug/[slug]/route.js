@@ -98,10 +98,24 @@ export async function GET(request, { params }) {
                     userId: friendData._id,
                     username: friendData.username,
                     displayName: friendData.displayName,
-                    avatar: friendData.avatar,
+                    avatar: friendData.avatar ? friendData.avatar.replace(/\\/g, '/') : null,
                     isOnline: friendData.isOnline
                 };
             }
+
+            // Add members array for ChatProfileSidebar
+            const membersData = await usersCollection.find({
+                _id: { $in: room.members }
+            }).toArray();
+
+            roomInfo.members = membersData.map(member => ({
+                _id: member._id.toString(),
+                userId: member._id.toString(),
+                username: member.username,
+                displayName: member.displayName,
+                avatar: member.avatar ? member.avatar.replace(/\\/g, '/') : null,
+                isOnline: member.isOnline
+            }));
         }
 
         // Add members data for group room
@@ -111,12 +125,27 @@ export async function GET(request, { params }) {
             }).toArray();
 
             roomInfo.members = membersData.map(member => ({
-                userId: member._id,
+                _id: member._id.toString(),
+                userId: member._id.toString(),
                 username: member.username,
                 displayName: member.displayName,
-                avatar: member.avatar,
+                avatar: member.avatar ? member.avatar.replace(/\\/g, '/') : null,
                 isOnline: member.isOnline
             }));
+
+            // Add admin and group-specific fields
+            if (room.admins) {
+                roomInfo.admins = room.admins.map(id => id.toString());
+            }
+            if (room.description) {
+                roomInfo.description = room.description;
+            }
+            if (room.groupAvatar) {
+                roomInfo.groupAvatar = room.groupAvatar;
+            }
+            if (room.settings) {
+                roomInfo.settings = room.settings;
+            }
         }
 
         return Response.json({

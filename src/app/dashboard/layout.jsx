@@ -3,12 +3,15 @@
 import { useState, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
+import { useUser } from "@/contexts/UserContext";
 import AddFriendModal from "../components/AddFriendModal";
 import NotificationModal from "../components/NotificationModal";
 
 export default function DashboardLayout({ children }) {
   const router = useRouter();
   const { data: session, status } = useSession();
+  const { user: currentUser } = useUser();
 
   const [user, setUser] = useState(null);
   const [rooms, setRooms] = useState([]);
@@ -26,6 +29,22 @@ export default function DashboardLayout({ children }) {
     title: "",
     message: "",
   });
+
+  // Helper function untuk normalize avatar path
+  const normalizeAvatar = (avatar) => {
+    return avatar ? avatar.replace(/\\/g, '/') : null;
+  };
+
+  // Helper function untuk get initials
+  const getInitials = (name) => {
+    if (!name) return 'U';
+    return name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
   // Check auth
   useEffect(() => {
@@ -69,14 +88,14 @@ export default function DashboardLayout({ children }) {
     }
 
     try {
-      const response = await fetch('/api/rooms/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/rooms/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           type: newRoomType,
           name: newRoomType === "group" ? newRoomName : undefined,
-          memberIds: selectedMembers
-        })
+          memberIds: selectedMembers,
+        }),
       });
 
       const result = await response.json();
@@ -88,18 +107,18 @@ export default function DashboardLayout({ children }) {
         setSelectedMembers([]);
         router.push(`/dashboard/chat/${result.room.slug}`);
       } else {
-        alert('Gagal membuat room: ' + result.message);
+        alert("Gagal membuat room: " + result.message);
       }
     } catch (error) {
-      console.error('Error creating room:', error);
-      alert('Terjadi kesalahan saat membuat room');
+      console.error("Error creating room:", error);
+      alert("Terjadi kesalahan saat membuat room");
     }
   };
 
   const toggleMemberSelection = (userId) => {
-    setSelectedMembers(prev =>
+    setSelectedMembers((prev) =>
       prev.includes(userId)
-        ? prev.filter(id => id !== userId)
+        ? prev.filter((id) => id !== userId)
         : [...prev, userId]
     );
   };
@@ -174,6 +193,14 @@ export default function DashboardLayout({ children }) {
 
   const handleLogout = async () => {
     await signOut({ callbackUrl: "/auth" });
+    // Tidak perlu router.push karena signOut akan menangani redirect
+  };
+
+  const updateAvatar = (newAvatar) => {
+    setUser(prevUser => ({
+      ...prevUser,
+      avatar: newAvatar
+    }));
   };
 
   if (status === "loading" || !user) {
@@ -183,6 +210,9 @@ export default function DashboardLayout({ children }) {
       </div>
     );
   }
+
+  // Get avatar from UserContext (which has the latest data from session)
+  const userAvatar = normalizeAvatar(currentUser?.avatar);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-purple-50 to-indigo-100 relative overflow-hidden">
@@ -208,14 +238,29 @@ export default function DashboardLayout({ children }) {
               </button>
             </div>
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-400 rounded-full flex items-center justify-center text-white font-bold">
-                {user?.displayName?.charAt(0).toUpperCase() || "U"}
+              {/* Avatar with Image or Initials fallback */}
+              <div className="relative w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
+                {userAvatar ? (
+                  <Image
+                    src={userAvatar}
+                    alt={user?.displayName || "User"}
+                    fill
+                    className="object-cover"
+                    sizes="40px"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-blue-400 to-purple-400 flex items-center justify-center text-white font-bold text-sm">
+                    {getInitials(user?.displayName || "User")}
+                  </div>
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-gray-800 truncate">
                   {user?.displayName || "User"}
                 </h3>
-                <p className="text-sm text-gray-600 truncate">@{user?.username}</p>
+                <p className="text-sm text-gray-600 truncate">
+                  @{user?.username}
+                </p>
               </div>
             </div>
           </div>
@@ -286,11 +331,34 @@ export default function DashboardLayout({ children }) {
                       className="p-3 rounded-lg cursor-pointer transition-colors hover:bg-white/20"
                     >
                       <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-blue-400 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                          {room.type === "private" ? "👤" : room.type === "group" ? "👥" : "🤖"}
-                        </div>
+                        {/* Avatar */}
+                        {room.type === "private" && room.friend?.avatar ? (
+                          <div className="relative w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
+                            <Image
+                              src={normalizeAvatar(room.friend.avatar)}
+                              alt={room.friend.displayName || room.name}
+                              fill
+                              className="object-cover"
+                              sizes="40px"
+                            />
+                          </div>
+                        ) : room.type === "private" && room.friend ? (
+                          <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-blue-400 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                            {getInitials(room.friend.displayName || room.name)}
+                          </div>
+                        ) : (
+                          <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-blue-400 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                            {room.type === "private"
+                              ? "👤"
+                              : room.type === "group"
+                              ? "👥"
+                              : "🤖"}
+                          </div>
+                        )}
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-gray-800 truncate">{room.name}</h4>
+                          <h4 className="font-medium text-gray-800 truncate">
+                            {room.name}
+                          </h4>
                           <p className="text-sm text-gray-600 truncate">
                             {room.lastMessage || "No messages yet"}
                           </p>
@@ -314,58 +382,83 @@ export default function DashboardLayout({ children }) {
                   </div>
                 ) : (
                   friends.map((friend) => (
-                    <div key={friend.userId} className="p-3 rounded-lg bg-white/10">
+                    <div
+                      key={friend.userId}
+                      className="p-3 rounded-lg bg-white/10"
+                    >
                       <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-blue-400 rounded-full flex items-center justify-center text-white font-bold">
                           {friend.displayName.charAt(0).toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-gray-800 truncate">{friend.displayName}</h4>
-                          <p className="text-sm text-gray-600 truncate">@{friend.username}</p>
+                          <h4 className="font-medium text-gray-800 truncate">
+                            {friend.displayName}
+                          </h4>
+                          <p className="text-sm text-gray-600 truncate">
+                            @{friend.username}
+                          </p>
                         </div>
                         <button
                           onClick={async () => {
                             try {
-                              const response = await fetch('/api/rooms/create', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                  type: 'private',
-                                  memberIds: [friend.userId]
-                                })
-                              });
+                              const response = await fetch(
+                                "/api/rooms/create",
+                                {
+                                  method: "POST",
+                                  headers: {
+                                    "Content-Type": "application/json",
+                                  },
+                                  body: JSON.stringify({
+                                    type: "private",
+                                    memberIds: [friend.userId],
+                                  }),
+                                }
+                              );
 
                               const result = await response.json();
 
                               if (result.success) {
                                 // Redirect ke room yang baru dibuat menggunakan slug dari response
                                 if (result.room && result.room.slug) {
-                                  router.push(`/dashboard/chat/${result.room.slug}`);
+                                  router.push(
+                                    `/dashboard/chat/${result.room.slug}`
+                                  );
                                 } else {
-                                  alert('Room berhasil dibuat tetapi slug tidak ditemukan');
+                                  alert(
+                                    "Room berhasil dibuat tetapi slug tidak ditemukan"
+                                  );
                                 }
                               } else if (result.existingRoom) {
                                 // Ambil daftar room untuk mendapatkan slug dari room yang sudah ada
-                                const roomsResponse = await fetch('/api/rooms');
+                                const roomsResponse = await fetch("/api/rooms");
                                 const roomsData = await roomsResponse.json();
 
                                 if (roomsData.success) {
                                   // Cari room yang sudah ada
-                                  const existingRoom = roomsData.data.rooms.find(r => r.id === result.existingRoom.id);
+                                  const existingRoom =
+                                    roomsData.data.rooms.find(
+                                      (r) => r.id === result.existingRoom.id
+                                    );
                                   if (existingRoom && existingRoom.slug) {
-                                    router.push(`/dashboard/chat/${existingRoom.slug}`);
+                                    router.push(
+                                      `/dashboard/chat/${existingRoom.slug}`
+                                    );
                                   } else {
-                                    alert(`Room dengan ${friend.displayName} sudah ada!`);
+                                    alert(
+                                      `Room dengan ${friend.displayName} sudah ada!`
+                                    );
                                   }
                                 } else {
-                                  alert(`Room dengan ${friend.displayName} sudah ada!`);
+                                  alert(
+                                    `Room dengan ${friend.displayName} sudah ada!`
+                                  );
                                 }
                               } else {
-                                alert('Gagal membuat room: ' + result.message);
+                                alert("Gagal membuat room: " + result.message);
                               }
                             } catch (error) {
-                              console.error('Error creating room:', error);
-                              alert('Terjadi kesalahan saat membuat room');
+                              console.error("Error creating room:", error);
+                              alert("Terjadi kesalahan saat membuat room");
                             }
                           }}
                           className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm transition-colors"
@@ -385,25 +478,36 @@ export default function DashboardLayout({ children }) {
                   </div>
                 ) : (
                   friendRequests.map((request) => (
-                    <div key={request.friendshipId} className="p-3 rounded-lg bg-white/10">
+                    <div
+                      key={request.friendshipId}
+                      className="p-3 rounded-lg bg-white/10"
+                    >
                       <div className="flex items-center space-x-3 mb-3">
                         <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-400 rounded-full flex items-center justify-center text-white font-bold">
                           {request.displayName.charAt(0).toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-gray-800 truncate">{request.displayName}</h4>
-                          <p className="text-sm text-gray-600 truncate">@{request.username}</p>
+                          <h4 className="font-medium text-gray-800 truncate">
+                            {request.displayName}
+                          </h4>
+                          <p className="text-sm text-gray-600 truncate">
+                            @{request.username}
+                          </p>
                         </div>
                       </div>
                       <div className="flex space-x-2">
                         <button
-                          onClick={() => handleAcceptRequest(request.friendshipId)}
+                          onClick={() =>
+                            handleAcceptRequest(request.friendshipId)
+                          }
                           className="flex-1 py-1.5 bg-green-400/20 hover:bg-green-400/30 text-green-700 rounded-lg transition-colors text-sm font-medium"
                         >
                           Terima
                         </button>
                         <button
-                          onClick={() => handleDeclineRequest(request.friendshipId)}
+                          onClick={() =>
+                            handleDeclineRequest(request.friendshipId)
+                          }
                           className="flex-1 py-1.5 bg-red-400/20 hover:bg-red-400/30 text-red-700 rounded-lg transition-colors text-sm font-medium"
                         >
                           Tolak
@@ -415,11 +519,83 @@ export default function DashboardLayout({ children }) {
               </div>
             )}
           </div>
+
+          {/* Footer dengan tombol profil */}
+          <div className="p-4 border-t border-white/20 bg-white/5">
+            <button
+              onClick={() => router.push("/profile")}
+              className="w-full p-3 bg-gradient-to-r from-purple-400 to-blue-400 text-white rounded-lg hover:from-purple-500 hover:to-blue-500 transition-all text-sm font-medium flex items-center justify-center space-x-2"
+            >
+              <span>👤</span>
+              <span>Profil Saya</span>
+            </button>
+          </div>
         </div>
 
         {/* Main content area */}
-        <div className="flex-1">
+        <div className="flex-1 flex flex-col pb-16 md:pb-0">
           {children}
+
+          {/* Mobile footer navigation */}
+          <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-2 flex justify-around z-50">
+            <button
+              onClick={() => {
+                setActiveTab("chats");
+                router.push("/dashboard");
+              }}
+              className={`flex flex-col items-center p-2 rounded-lg ${
+                activeTab === "chats"
+                  ? "text-blue-600 bg-blue-50"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              <span className="text-lg">💬</span>
+              <span className="text-xs mt-1">Chats</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveTab("friends");
+                router.push("/dashboard");
+              }}
+              className={`flex flex-col items-center p-2 rounded-lg ${
+                activeTab === "friends"
+                  ? "text-blue-600 bg-blue-50"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              <span className="text-lg">👥</span>
+              <span className="text-xs mt-1">Friends</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveTab("requests");
+                router.push("/dashboard");
+              }}
+              className={`flex flex-col items-center p-2 rounded-lg relative ${
+                activeTab === "requests"
+                  ? "text-blue-600 bg-blue-50"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              <span className="text-lg">🔔</span>
+              {friendRequests.length > 0 && (
+                <span className="absolute top-0 right-3 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                  {friendRequests.length}
+                </span>
+              )}
+              <span className="text-xs mt-1">Requests</span>
+            </button>
+
+            <button
+              onClick={() => router.push("/profile")}
+              className="flex flex-col items-center p-2 rounded-lg text-gray-600 hover:bg-gray-100"
+            >
+              <span className="text-lg">👤</span>
+              <span className="text-xs mt-1">Profile</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -439,7 +615,9 @@ export default function DashboardLayout({ children }) {
           <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold text-gray-800">Buat Room Baru</h3>
+                <h3 className="text-xl font-bold text-gray-800">
+                  Buat Room Baru
+                </h3>
                 <button
                   onClick={() => {
                     setShowCreateRoomModal(false);
@@ -456,7 +634,9 @@ export default function DashboardLayout({ children }) {
               <div className="space-y-6">
                 {/* Room Type Selection */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Jenis Room</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Jenis Room
+                  </label>
                   <div className="grid grid-cols-3 gap-2">
                     <button
                       type="button"
@@ -483,7 +663,9 @@ export default function DashboardLayout({ children }) {
                     <button
                       type="button"
                       onClick={() => {
-                        alert("Untuk room private, gunakan tombol 'Chat' di daftar teman");
+                        alert(
+                          "Untuk room private, gunakan tombol 'Chat' di daftar teman"
+                        );
                       }}
                       className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
                         newRoomType === "private"
@@ -499,7 +681,9 @@ export default function DashboardLayout({ children }) {
                 {/* Room Name (only for group) */}
                 {newRoomType === "group" && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Nama Group</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Nama Group
+                    </label>
                     <input
                       type="text"
                       value={newRoomName}
@@ -513,16 +697,22 @@ export default function DashboardLayout({ children }) {
                 {/* Members Selection (only for group) */}
                 {newRoomType === "group" && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Tambah Anggota</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Tambah Anggota
+                    </label>
                     <div className="max-h-60 overflow-y-auto border border-gray-200 rounded-lg p-2">
                       {friends.length === 0 ? (
-                        <p className="text-gray-500 text-center py-4">Tidak ada teman ditemukan</p>
+                        <p className="text-gray-500 text-center py-4">
+                          Tidak ada teman ditemukan
+                        </p>
                       ) : (
                         friends.map((friend) => (
                           <div
                             key={friend.userId}
                             className={`flex items-center p-2 rounded cursor-pointer hover:bg-gray-100 ${
-                              selectedMembers.includes(friend.userId) ? "bg-blue-100" : ""
+                              selectedMembers.includes(friend.userId)
+                                ? "bg-blue-100"
+                                : ""
                             }`}
                             onClick={() => toggleMemberSelection(friend.userId)}
                           >
@@ -530,17 +720,33 @@ export default function DashboardLayout({ children }) {
                               {friend.displayName.charAt(0).toUpperCase()}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium text-gray-800 truncate">{friend.displayName}</p>
-                              <p className="text-xs text-gray-600 truncate">@{friend.username}</p>
+                              <p className="font-medium text-gray-800 truncate">
+                                {friend.displayName}
+                              </p>
+                              <p className="text-xs text-gray-600 truncate">
+                                @{friend.username}
+                              </p>
                             </div>
-                            <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                              selectedMembers.includes(friend.userId)
-                                ? "bg-blue-500 border-blue-500"
-                                : "border-gray-300"
-                            }`}>
+                            <div
+                              className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                                selectedMembers.includes(friend.userId)
+                                  ? "bg-blue-500 border-blue-500"
+                                  : "border-gray-300"
+                              }`}
+                            >
                               {selectedMembers.includes(friend.userId) && (
-                                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                                <svg
+                                  className="w-3 h-3 text-white"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth="2"
+                                    d="M5 13l4 4L19 7"
+                                  ></path>
                                 </svg>
                               )}
                             </div>

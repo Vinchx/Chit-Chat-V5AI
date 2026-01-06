@@ -15,6 +15,8 @@ import MessageInput from "../../../components/MessageInput-partykit";
 import ChatHeader from "../../../components/ChatHeader";
 import TypingIndicator from "../../../components/TypingIndicator";
 import ScrollToBottomButton from "../../../components/ScrollToBottomButton";
+import ChatProfileSidebar from "@/components/ChatProfileSidebar";
+import GroupInfoSidebar from "@/components/GroupInfoSidebar";
 
 export default function ChatRoomPage() {
   const router = useRouter();
@@ -33,6 +35,14 @@ export default function ChatRoomPage() {
   const [isUserScrolling, setIsUserScrolling] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [showProfileSidebar, setShowProfileSidebar] = useState(false);
+  const [friendUserId, setFriendUserId] = useState(null);
+  const [replyingTo, setReplyingTo] = useState(null);
+  
+  // Load more messages states
+  const [hasMoreMessages, setHasMoreMessages] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [oldestTimestamp, setOldestTimestamp] = useState(null);
 
   // Check auth dan load user
   useEffect(() => {
@@ -60,12 +70,42 @@ export default function ChatRoomPage() {
     const loadRoom = async () => {
       try {
         setIsLoading(true);
+        
+        // CRITICAL: Clear messages from previous room to prevent cross-contamination
+        setMessages([]);
+        
         const response = await fetch(`/api/rooms/by-slug/${roomSlug}`);
         const data = await response.json();
 
         if (data.success) {
+          console.log('Room loaded:', data.data.room);
           setSelectedRoom(data.data.room);
           loadMessages(data.data.room.id);
+          
+          // Untuk private chat, ambil ID teman
+          if (data.data.room.type === 'private' && data.data.room.members) {
+            console.log('=== Setting Friend User ID ===');
+            console.log('Room members:', data.data.room.members);
+            console.log('Current user ID:', user.id);
+            console.log('Current user ID type:', typeof user.id);
+            
+            const friend = data.data.room.members.find(m => {
+              console.log('Comparing member._id:', m._id, 'with user.id:', user.id);
+              return m._id !== user.id;
+            });
+            
+            console.log('Friend found:', friend);
+            if (friend) {
+              console.log('Setting friendUserId to:', friend._id);
+              console.log('Friend._id type:', typeof friend._id);
+              setFriendUserId(friend._id);
+            } else {
+              console.warn('Friend not found in room members');
+              console.warn('This might be because all members have same ID as current user');
+            }
+          } else {
+            console.log('Not a private chat or no members:', data.data.room.type);
+          }
         } else {
           router.push("/dashboard");
         }
@@ -101,11 +141,14 @@ export default function ChatRoomPage() {
             id: data.messageId,
             text: data.message,
             sender: data.username,
+            senderId: data.userId,
             time: new Date(data.timestamp).toLocaleTimeString("id-ID", {
               hour: "2-digit",
               minute: "2-digit",
             }),
             isOwn: data.userId === user.id,
+            attachment: data.attachment || null,
+            replyTo: data.replyTo || null,
           };
 
           setMessages((prev) => {
@@ -264,13 +307,20 @@ export default function ChatRoomPage() {
           id: msg.id,
           text: msg.message,
           sender: msg.sender.displayName,
+          senderId: msg.sender.id,
           time: new Date(msg.timestamp).toLocaleTimeString("id-ID", {
             hour: "2-digit",
             minute: "2-digit",
           }),
           isOwn: msg.isOwn,
           isDeleted: msg.isDeleted || false,
+          attachment: msg.attachment || null,
+          replyTo: msg.replyTo || null,
         }));
+
+        // Set pagination state
+        setHasMoreMessages(data.data.hasMore || false);
+        setOldestTimestamp(data.data.oldestTimestamp || null);
 
         // Gunakan pesan dari server sebagai sumber kebenaran
         // Hanya ambil perubahan lokal untuk isDeleted karena penghapusan tidak selalu konsisten ke server segera
@@ -314,6 +364,64 @@ export default function ChatRoomPage() {
     }
   };
 
+  const loadMoreMessages = async () => {
+    if (!selectedRoom || !hasMoreMessages || isLoadingMore || !oldestTimestamp) return;
+
+    try {
+      setIsLoadingMore(true);
+      console.log('📜 Loading more messages before:', oldestTimestamp);
+
+      // Get current scroll position to restore later
+      const messagesContainer = document.querySelector(".messages-container .overflow-y-auto");
+      const scrollHeightBefore = messagesContainer?.scrollHeight || 0;
+
+      const response = await fetch(`/api/messages/room/${selectedRoom.id}?before=${oldestTimestamp}`);
+      const data = await response.json();
+
+      if (data.success && data.data.messages.length > 0) {
+        const formattedMessages = data.data.messages.map((msg) => ({
+          id: msg.id,
+          text: msg.message,
+          sender: msg.sender.displayName,
+          senderId: msg.sender.id,
+          time: new Date(msg.timestamp).toLocaleTimeString("id-ID", {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          isOwn: msg.isOwn,
+          isDeleted: msg.isDeleted || false,
+          attachment: msg.attachment || null,
+          replyTo: msg.replyTo || null,
+        }));
+
+        // Update pagination state
+        setHasMoreMessages(data.data.hasMore || false);
+        setOldestTimestamp(data.data.oldestTimestamp || null);
+
+        // Prepend older messages to existing messages
+        setMessages(prevMessages => [...formattedMessages, ...prevMessages]);
+
+        // Restore scroll position after new messages are added
+        setTimeout(() => {
+          if (messagesContainer) {
+            const scrollHeightAfter = messagesContainer.scrollHeight;
+            const scrollDiff = scrollHeightAfter - scrollHeightBefore;
+            messagesContainer.scrollTop = scrollDiff;
+          }
+        }, 50);
+
+        console.log('✅ Loaded', formattedMessages.length, 'more messages');
+      } else {
+        setHasMoreMessages(false);
+        console.log('📭 No more messages to load');
+      }
+    } catch (error) {
+      console.error("Error loading more messages:", error);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
   const scrollToBottom = () => {
     const messagesContainer = document.querySelector(
       ".messages-container .overflow-y-auto"
@@ -332,6 +440,12 @@ export default function ChatRoomPage() {
     const container = e.target;
     const { scrollTop, scrollHeight, clientHeight } = container;
     const isAtBottom = scrollHeight - scrollTop - clientHeight < 50;
+    const isNearTop = scrollTop < 100; // User scrolled near top
+
+    // Load more messages when scrolling near top
+    if (isNearTop && hasMoreMessages && !isLoadingMore) {
+      loadMoreMessages();
+    }
 
     if (isAtBottom) {
       setShowScrollButton(false);
@@ -342,10 +456,23 @@ export default function ChatRoomPage() {
     }
   };
 
-  const handleSendMessage = async (messageText) => {
-    if (!socket || !messageText.trim()) return;
+  const handleSendMessage = async (messageText, attachment = null, replyTo = null) => {
+    if (!socket || (!messageText.trim() && !attachment)) return;
 
     try {
+      console.log('📤 Sending message with attachment:', attachment, 'and replyTo:', replyTo);
+      
+      // Prepare replyTo data if replying
+      let replyToData = null;
+      if (replyTo) {
+        replyToData = {
+          messageId: replyTo.id,
+          text: replyTo.text || '',
+          sender: replyTo.senderId || replyTo.sender || '',
+          attachment: replyTo.attachment || null
+        };
+      }
+      
       // Kirim ke server dulu untuk mendapatkan ID resmi
       const response = await fetch("/api/messages", {
         method: "POST",
@@ -353,7 +480,9 @@ export default function ChatRoomPage() {
         body: JSON.stringify({
           roomId: selectedRoom.id,
           message: messageText,
-          messageType: "text",
+          messageType: attachment ? (attachment.type === 'image' ? 'image' : 'file') : 'text',
+          attachment: attachment,
+          replyTo: replyToData,
         }),
       });
 
@@ -365,20 +494,25 @@ export default function ChatRoomPage() {
         // Kirim via Partykit dengan ID resmi dari server
         sendMessage(socket, {
           id: serverMessageId,
-          text: messageText,
+          text: messageText || (attachment ? `📎 ${attachment.filename}` : ''),
+          attachment: attachment,
+          replyTo: replyToData,
         });
 
         // Tambahkan pesan langsung ke state lokal dengan ID resmi hanya jika belum ada
         const newMsg = {
           id: serverMessageId,
-          text: messageText,
+          text: messageText || (attachment ? `📎 ${attachment.filename}` : ''),
           sender: user.displayName || user.username,
+          senderId: user.id,
           time: new Date().toLocaleTimeString("id-ID", {
             hour: "2-digit",
             minute: "2-digit",
           }),
           isOwn: true,
           isDeleted: false,
+          attachment: attachment,
+          replyTo: replyToData,
         };
 
         setMessages(prevMessages => {
@@ -392,12 +526,129 @@ export default function ChatRoomPage() {
             return [...prevMessages, newMsg];
           }
         });
+
+        // 🤖 AI INTEGRATION: If this is an AI room, get AI response
+        if (selectedRoom.type === 'ai') {
+          console.log('🤖 AI room detected, generating response...');
+          
+          // Show AI typing indicator
+          setTypingUsers(prev => new Set(prev).add('AI Assistant'));
+          
+          try {
+            // Get conversation history for context (last 10 messages)
+            const conversationHistory = messages.slice(-10).map(msg => ({
+              role: msg.senderId === user.id ? 'user' : 'assistant',
+              content: msg.text
+            }));
+
+            // Call AI API
+            const aiResponse = await fetch('/api/ai/chat', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                message: messageText,
+                conversationHistory: conversationHistory
+              })
+            });
+
+            const aiResult = await aiResponse.json();
+
+            // Remove AI typing indicator
+            setTypingUsers(prev => {
+              const newSet = new Set(prev);
+              newSet.delete('AI Assistant');
+              return newSet;
+            });
+
+            if (aiResult.success) {
+              // Save AI response to database
+              const aiMessageResponse = await fetch("/api/messages", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  roomId: selectedRoom.id,
+                  message: aiResult.data.response,
+                  messageType: 'text',
+                  senderId: 'ai-assistant', // AI sender ID
+                }),
+              });
+
+              const aiMessageResult = await aiMessageResponse.json();
+
+              if (aiMessageResult.success) {
+                const aiMessageId = aiMessageResult.data.messageId;
+
+                // Clean AI response: remove markdown formatting
+                let cleanResponse = aiResult.data.response
+                  .replace(/\*\*/g, '') // Remove bold markdown
+                  .replace(/\*/g, '')   // Remove italic markdown
+                  .replace(/`/g, '')    // Remove code markdown
+                  .trim();
+
+                // Broadcast AI response via Partykit
+                sendMessage(socket, {
+                  id: aiMessageId,
+                  text: cleanResponse,
+                  userId: 'ai-assistant',
+                  username: 'AI Assistant'
+                });
+
+                // Add AI response to local state
+                const aiMsg = {
+                  id: aiMessageId,
+                  text: cleanResponse,
+                  sender: 'AI Assistant',
+                  senderId: 'ai-assistant',
+                  time: new Date().toLocaleTimeString("id-ID", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  }),
+                  isOwn: false,
+                  isDeleted: false,
+                };
+
+                // Add with duplicate check to prevent race condition with PartyKit broadcast
+                setMessages(prevMessages => {
+                  const existingIndex = prevMessages.findIndex(msg => msg.id === aiMessageId);
+                  if (existingIndex !== -1) {
+                    // Message already exists (from PartyKit broadcast), don't add again
+                    return prevMessages;
+                  } else {
+                    // Message not yet in state, add it for immediate display
+                    return [...prevMessages, aiMsg];
+                  }
+                });
+              }
+            } else {
+              console.error('AI response error:', aiResult.message);
+              // Optionally show error message to user
+            }
+          } catch (aiError) {
+            console.error('Error getting AI response:', aiError);
+            // Remove AI typing indicator on error
+            setTypingUsers(prev => {
+              const newSet = new Set(prev);
+              newSet.delete('AI Assistant');
+              return newSet;
+            });
+          }
+        }
       } else {
         console.error("Error saving message to DB:", result.message);
+        alert('Gagal mengirim pesan: ' + result.message);
       }
     } catch (error) {
       console.error("Error saving message to DB:", error);
+      alert('Terjadi kesalahan saat mengirim pesan');
     }
+  };
+
+  const handleReplyMessage = (message) => {
+    setReplyingTo(message);
+  };
+
+  const handleCancelReply = () => {
+    setReplyingTo(null);
   };
 
   const handleEditMessage = async (message) => {
@@ -514,12 +765,23 @@ export default function ChatRoomPage() {
             <ChatHeader
               selectedRoom={selectedRoom}
               onlineCount={onlineUsers.length}
+              onInfoClick={() => setShowProfileSidebar(true)}
             />
 
             <div
               className="flex-1 p-4 overflow-y-auto scroll-smooth"
               onScroll={handleScroll}
             >
+              {/* Loading indicator for load more messages */}
+              {isLoadingMore && (
+                <div className="flex justify-center items-center py-3 mb-2">
+                  <div className="flex items-center gap-2 px-4 py-2 bg-white/40 backdrop-blur-sm rounded-full">
+                    <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    <span className="text-sm text-gray-700">Loading more messages...</span>
+                  </div>
+                </div>
+              )}
+
               {messages && messages.length > 0 ? (
                 messages.map((message) => (
                   <MessageBubble
@@ -527,6 +789,7 @@ export default function ChatRoomPage() {
                     message={message}
                     onDeleteMessage={handleDeleteMessage}
                     onEditMessage={handleEditMessage}
+                    onReplyMessage={handleReplyMessage}
                   />
                 ))
               ) : (
@@ -586,10 +849,30 @@ export default function ChatRoomPage() {
                 socket={socket}
                 onTyping={() => socket && sendTyping(socket)}
                 onStopTyping={() => socket && sendStopTyping(socket)}
+                roomId={selectedRoom.id}
+                replyingTo={replyingTo}
+                onCancelReply={handleCancelReply}
               />
             )}
           </div>
         </div>
+
+        {/* Conditional Sidebar based on room type */}
+        {selectedRoom?.type === "private" ? (
+          <ChatProfileSidebar
+            isOpen={showProfileSidebar}
+            onClose={() => setShowProfileSidebar(false)}
+            userId={friendUserId}
+            roomId={selectedRoom?.id}
+          />
+        ) : selectedRoom?.type === "group" ? (
+          <GroupInfoSidebar
+            isOpen={showProfileSidebar}
+            onClose={() => setShowProfileSidebar(false)}
+            roomData={selectedRoom}
+            currentUserId={user?.id}
+          />
+        ) : null}
       </div>
     </div>
   );

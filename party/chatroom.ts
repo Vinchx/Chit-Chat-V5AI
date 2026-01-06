@@ -66,6 +66,8 @@ export default class ChatRoom implements Party.Server {
           userId: senderInfo?.userId,
           username: senderInfo?.username,
           timestamp: new Date().toISOString(),
+          attachment: data.attachment || null, // Include attachment data
+          replyTo: data.replyTo || null, // Include reply data
         });
         break;
 

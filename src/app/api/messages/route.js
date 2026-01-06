@@ -14,13 +14,21 @@ export async function POST(request) {
         const currentUserId = userId;
 
         // 2. Ambil data pesan yang mau dikirim
-        const { roomId, message, messageType = "text" } = await request.json();
-        console.log("📝 DATA RECEIVED:", { roomId, message, messageType, currentUserId });
+        const { roomId, message, messageType = "text", attachment, replyTo, senderId: customSenderId } = await request.json();
+        console.log("📝 DATA RECEIVED:", { roomId, message, messageType, attachment, replyTo, currentUserId, customSenderId });
 
-        if (!roomId || !message) {
+        // Validate: must have roomId and either message or attachment
+        if (!roomId) {
             return Response.json({
                 success: false,
-                message: "Room ID dan pesan harus diisi"
+                message: "Room ID harus diisi"
+            }, { status: 400 });
+        }
+
+        if (!message && !attachment) {
+            return Response.json({
+                success: false,
+                message: "Pesan atau attachment harus diisi"
             }, { status: 400 });
         }
 
@@ -52,30 +60,155 @@ export async function POST(request) {
         const messageCount = await messagesCollection.countDocuments();
         const messageId = `msg${String(messageCount + 1).padStart(6, '0')}`;
 
+        // 5.5. Validate replyTo if provided
+        if (replyTo && replyTo.messageId) {
+            const repliedMessage = await messagesCollection.findOne({ _id: replyTo.messageId });
+            if (!repliedMessage) {
+                return Response.json({
+                    success: false,
+                    message: "Pesan yang ingin dibalas tidak ditemukan"
+                }, { status: 404 });
+            }
+            // Note: We allow replying to deleted messages, but the UI will show it as deleted
+        }
+
         // 6. Simpan pesan ke database
+        // Use customSenderId for AI messages, otherwise use currentUserId
+        const finalSenderId = customSenderId || currentUserId;
+
         const newMessage = {
             _id: messageId,
             roomId: roomId,
-            senderId: currentUserId,
-            message: message,
+            senderId: finalSenderId,
+            message: message || (attachment ? `[${attachment.type === 'image' ? 'Image' : 'File'}]` : ''),
             messageType: messageType,
             timestamp: new Date(),
             isEdited: false,
             isDeleted: false
         };
 
+        // Add attachment if provided
+        if (attachment) {
+            newMessage.attachment = {
+                type: attachment.type,
+                url: attachment.url,
+                filename: attachment.filename,
+                size: attachment.size,
+                mimeType: attachment.mimeType
+            };
+        }
+
+        // Add replyTo if provided
+        if (replyTo && replyTo.messageId) {
+            newMessage.replyTo = {
+                messageId: replyTo.messageId,
+                text: replyTo.text || '',
+                sender: replyTo.sender || '',
+                attachment: replyTo.attachment || null
+            };
+        }
+
         await messagesCollection.insertOne(newMessage);
 
         // 7. Update last activity dan last message di room
+        const lastMessageText = message || (attachment ? `📎 ${attachment.filename}` : '');
         await roomsCollection.updateOne(
             { _id: roomId },
             {
                 $set: {
-                    lastMessage: message.substring(0, 50), // Ambil 50 karakter pertama
+                    lastMessage: lastMessageText.substring(0, 50), // Ambil 50 karakter pertama
                     lastActivity: new Date()
                 }
             }
         );
+
+        // 8. 🤖 AI COMMAND DETECTION: Check if message starts with /ai
+        const isAICommand = message && message.trim().toLowerCase().startsWith('/ai ');
+
+        if (isAICommand) {
+            console.log('🤖 AI command detected in regular chat');
+
+            // Extract the question after /ai
+            const aiQuestion = message.trim().substring(4).trim(); // Remove '/ai ' prefix
+
+            if (aiQuestion) {
+                try {
+                    // Get recent messages for context (last 10 messages)
+                    const recentMessages = await messagesCollection
+                        .find({ roomId: roomId })
+                        .sort({ timestamp: -1 })
+                        .limit(10)
+                        .toArray();
+
+                    // Build conversation history
+                    const conversationHistory = recentMessages.reverse().map(msg => ({
+                        role: msg.senderId === currentUserId ? 'user' : 'assistant',
+                        content: msg.message
+                    }));
+
+                    // Call AI API
+                    const aiResponse = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/ai/chat`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Cookie': request.headers.get('cookie') || ''
+                        },
+                        body: JSON.stringify({
+                            message: aiQuestion,
+                            conversationHistory: conversationHistory
+                        })
+                    });
+
+                    const aiResult = await aiResponse.json();
+
+                    if (aiResult.success) {
+                        // Create AI response message
+                        const aiMessageCount = await messagesCollection.countDocuments();
+                        const aiMessageId = `msg${String(aiMessageCount + 1).padStart(6, '0')}`;
+
+                        // Clean AI response: remove markdown formatting and robot emojis
+                        let cleanResponse = aiResult.data.response
+                            .replace(/\*\*/g, '') // Remove bold markdown
+                            .replace(/\*/g, '')   // Remove italic markdown
+                            .replace(/`/g, '')    // Remove code markdown
+                            .replace(/#{1,6}\s/g, '') // Remove heading markdown
+                            .replace(/🤖/g, '')   // Remove robot emoji to prevent duplication
+                            .replace(/\s+/g, ' ') // Normalize whitespace
+                            .trim();
+
+                        const aiMessage = {
+                            _id: aiMessageId,
+                            roomId: roomId,
+                            senderId: 'ai-assistant',
+                            message: cleanResponse, // No prefix needed, badge will show it's AI
+                            messageType: 'text',
+                            timestamp: new Date(),
+                            isEdited: false,
+                            isDeleted: false
+                        };
+
+                        await messagesCollection.insertOne(aiMessage);
+
+                        // Update room last message
+                        await roomsCollection.updateOne(
+                            { _id: roomId },
+                            {
+                                $set: {
+                                    lastMessage: `${aiResult.data.response.substring(0, 50)}...`,
+                                    lastActivity: new Date()
+                                }
+                            }
+                        );
+
+                        console.log('✅ AI response saved:', aiMessageId);
+                    } else {
+                        console.error('❌ AI API error:', aiResult.message);
+                    }
+                } catch (aiError) {
+                    console.error('❌ Error processing AI command:', aiError);
+                }
+            }
+        }
 
         return Response.json({
             success: true,
@@ -83,7 +216,8 @@ export async function POST(request) {
             data: {
                 messageId: messageId,
                 timestamp: newMessage.timestamp,
-                isDeleted: newMessage.isDeleted || false
+                isDeleted: newMessage.isDeleted || false,
+                isAICommand: isAICommand // Flag to indicate AI command was processed
             }
         }, { status: 201 });
 
