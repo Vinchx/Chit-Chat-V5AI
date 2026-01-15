@@ -125,29 +125,43 @@ export async function POST(request) {
         // 8. 🤖 AI COMMAND DETECTION: Check if message starts with /ai
         const isAICommand = message && message.trim().toLowerCase().startsWith('/ai ');
 
+        // Return response immediately - AI processing will happen in background
+        const responseData = {
+            success: true,
+            message: "Pesan berhasil dikirim!",
+            data: {
+                messageId: messageId,
+                timestamp: newMessage.timestamp,
+                isDeleted: newMessage.isDeleted || false,
+                isAICommand: isAICommand
+            }
+        };
+
+        // Process AI command in background (non-blocking)
         if (isAICommand) {
-            console.log('🤖 AI command detected in regular chat');
+            console.log('🤖 AI command detected, processing in background...');
 
-            // Extract the question after /ai
-            const aiQuestion = message.trim().substring(4).trim(); // Remove '/ai ' prefix
+            // Use setImmediate pattern for non-blocking
+            (async () => {
+                const aiQuestion = message.trim().substring(4).trim();
 
-            if (aiQuestion) {
+                if (!aiQuestion) return;
+
                 try {
-                    // Get recent messages for context (last 10 messages)
+                    // Get recent messages for context
                     const recentMessages = await messagesCollection
                         .find({ roomId: roomId })
                         .sort({ timestamp: -1 })
                         .limit(10)
                         .toArray();
 
-                    // Build conversation history
                     const conversationHistory = recentMessages.reverse().map(msg => ({
                         role: msg.senderId === currentUserId ? 'user' : 'assistant',
                         content: msg.message
                     }));
 
                     // Call AI API
-                    const aiResponse = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/ai/chat`, {
+                    const aiResponse = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:1630'}/api/ai/chat`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -162,25 +176,23 @@ export async function POST(request) {
                     const aiResult = await aiResponse.json();
 
                     if (aiResult.success) {
-                        // Create AI response message
                         const aiMessageCount = await messagesCollection.countDocuments();
                         const aiMessageId = `msg${String(aiMessageCount + 1).padStart(6, '0')}`;
 
-                        // Clean AI response: remove markdown formatting and robot emojis
                         let cleanResponse = aiResult.data.response
-                            .replace(/\*\*/g, '') // Remove bold markdown
-                            .replace(/\*/g, '')   // Remove italic markdown
-                            .replace(/`/g, '')    // Remove code markdown
-                            .replace(/#{1,6}\s/g, '') // Remove heading markdown
-                            .replace(/🤖/g, '')   // Remove robot emoji to prevent duplication
-                            .replace(/\s+/g, ' ') // Normalize whitespace
+                            .replace(/\*\*/g, '')
+                            .replace(/\*/g, '')
+                            .replace(/`/g, '')
+                            .replace(/#{1,6}\s/g, '')
+                            .replace(/🤖/g, '')
+                            .replace(/\s+/g, ' ')
                             .trim();
 
                         const aiMessage = {
                             _id: aiMessageId,
                             roomId: roomId,
                             senderId: 'ai-assistant',
-                            message: cleanResponse, // No prefix needed, badge will show it's AI
+                            message: cleanResponse,
                             messageType: 'text',
                             timestamp: new Date(),
                             isEdited: false,
@@ -189,12 +201,11 @@ export async function POST(request) {
 
                         await messagesCollection.insertOne(aiMessage);
 
-                        // Update room last message
                         await roomsCollection.updateOne(
                             { _id: roomId },
                             {
                                 $set: {
-                                    lastMessage: `${aiResult.data.response.substring(0, 50)}...`,
+                                    lastMessage: `${cleanResponse.substring(0, 50)}...`,
                                     lastActivity: new Date()
                                 }
                             }
@@ -207,19 +218,10 @@ export async function POST(request) {
                 } catch (aiError) {
                     console.error('❌ Error processing AI command:', aiError);
                 }
-            }
+            })();
         }
 
-        return Response.json({
-            success: true,
-            message: "Pesan berhasil dikirim!",
-            data: {
-                messageId: messageId,
-                timestamp: newMessage.timestamp,
-                isDeleted: newMessage.isDeleted || false,
-                isAICommand: isAICommand // Flag to indicate AI command was processed
-            }
-        }, { status: 201 });
+        return Response.json(responseData, { status: 201 });
 
     } catch (error) {
         console.error("❌ ERROR SAVE MESSAGE:", error);
@@ -408,6 +410,19 @@ export async function DELETE(request) {
                 }
             }, { status: 200 }); // Kembalikan sukses agar UI bisa diperbarui
         }
+
+        // 6.5. Cek apakah pesan sudah lebih dari 1 jam (time limit)
+        const messageAge = Date.now() - new Date(message.timestamp).getTime();
+        const oneHourInMs = 60 * 60 * 1000; // 1 hour in milliseconds
+
+        if (messageAge > oneHourInMs) {
+            console.log("⚠️ Message too old to delete:", { messageId, ageInMinutes: Math.floor(messageAge / 60000) });
+            return Response.json({
+                success: false,
+                message: "Pesan sudah lebih dari 1 jam, tidak bisa dihapus"
+            }, { status: 403 });
+        }
+
 
         // 7. Update pesan jadi isDeleted: true
         const result = await messagesCollection.updateOne(

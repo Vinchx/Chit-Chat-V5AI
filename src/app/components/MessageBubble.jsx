@@ -44,6 +44,34 @@ export default function MessageBubble({ message, onDeleteMessage, onEditMessage,
   // Tampilkan menu untuk semua pesan yang tidak dihapus
   const canShowMenu = !message.isDeleted;
 
+  // Check if message can be deleted (within 1 hour)
+  const canDeleteMessage = () => {
+    // Use raw timestamp if available (from API)
+    if (message.timestamp) {
+      const messageAge = Date.now() - new Date(message.timestamp).getTime();
+      const oneHour = 60 * 60 * 1000;
+      return messageAge <= oneHour;
+    }
+    
+    // Fallback: parse time string (format: "HH:MM") 
+    if (!message.time) return true; // Allow if no time info
+    
+    const [hours, minutes] = message.time.split(':').map(Number);
+    if (isNaN(hours) || isNaN(minutes)) return true;
+    
+    const messageDate = new Date();
+    messageDate.setHours(hours, minutes, 0, 0);
+    
+    // If message time is in the future, it's from yesterday
+    if (messageDate > new Date()) {
+      messageDate.setDate(messageDate.getDate() - 1);
+    }
+    
+    const messageAge = Date.now() - messageDate.getTime();
+    const oneHour = 60 * 60 * 1000;
+    return messageAge <= oneHour;
+  };
+
   // Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -224,12 +252,14 @@ export default function MessageBubble({ message, onDeleteMessage, onEditMessage,
                     </button>
                     <button
                       onClick={handleDelete}
-                      className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center"
+                      disabled={!canDeleteMessage()}
+                      className={`w-full text-left px-4 py-2 text-sm flex items-center ${canDeleteMessage() ? 'text-red-600 hover:bg-red-50' : 'text-gray-400 cursor-not-allowed'}`}
+                      title={!canDeleteMessage() ? 'Pesan sudah lebih dari 1 jam' : 'Hapus Pesan'}
                     >
                       <svg width="16" height="16" className="mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                       </svg>
-                      Hapus Pesan
+                      {canDeleteMessage() ? 'Hapus Pesan' : 'Tidak bisa dihapus'} '/  '
                     </button>
                   </>
                 )}

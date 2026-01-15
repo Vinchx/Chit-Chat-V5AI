@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "node server.js",
+    "dev:fast": "next dev --turbopack -p 1630",
     "dev:debug": "node --inspect node_modules/next/dist/bin/next dev",
     "dev:partykit": "partykit dev",
     "build": "next build",

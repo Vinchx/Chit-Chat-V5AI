@@ -76,15 +76,24 @@ export function createChatSocket(roomId, user, callbacks = {}) {
     }
   });
 
-  // Connection error
+  // Connection error - WebSocket errors are often empty, this is normal
   socket.addEventListener("error", (error) => {
-    console.error("❌ Socket error:", error);
+    // Only log if there's actual error info
+    if (error?.message || error?.code) {
+      console.error("❌ Socket error:", error.message || error.code);
+    } else {
+      // Empty error is usually just a temporary connection hiccup
+      console.log("⚠️ Socket connection hiccup (auto-reconnecting...)");
+    }
     callbacks.onError?.(error);
   });
 
   // Connection closed
-  socket.addEventListener("close", () => {
-    console.log(`👋 Disconnected from room ${roomId}`);
+  socket.addEventListener("close", (event) => {
+    // Only log unexpected closes
+    if (event.code !== 1000 && event.code !== 1001) {
+      console.log(`👋 Disconnected from room ${roomId} (code: ${event.code})`);
+    }
     callbacks.onDisconnect?.();
   });
 

@@ -146,6 +146,7 @@ export default function ChatRoomPage() {
               hour: "2-digit",
               minute: "2-digit",
             }),
+            timestamp: data.timestamp, // Raw timestamp for delete time check
             isOwn: data.userId === user.id,
             attachment: data.attachment || null,
             replyTo: data.replyTo || null,
@@ -233,9 +234,12 @@ export default function ChatRoomPage() {
           );
         },
 
-        // Callback: Error
+        // Callback: Error - only log if there's meaningful info
         onError: (error) => {
-          console.error("❌ Partykit error:", error);
+          if (error?.message || error?.code) {
+            console.error("❌ Partykit error:", error.message || error.code);
+          }
+          // Empty errors are normal WebSocket hiccups, PartySocket auto-reconnects
         },
       }
     );
@@ -312,6 +316,7 @@ export default function ChatRoomPage() {
             hour: "2-digit",
             minute: "2-digit",
           }),
+          timestamp: msg.timestamp, // Raw timestamp for delete time check
           isOwn: msg.isOwn,
           isDeleted: msg.isDeleted || false,
           attachment: msg.attachment || null,
@@ -388,6 +393,7 @@ export default function ChatRoomPage() {
             hour: "2-digit",
             minute: "2-digit",
           }),
+          timestamp: msg.timestamp, // Raw timestamp for delete time check
           isOwn: msg.isOwn,
           isDeleted: msg.isDeleted || false,
           attachment: msg.attachment || null,
@@ -468,7 +474,8 @@ export default function ChatRoomPage() {
         replyToData = {
           messageId: replyTo.id,
           text: replyTo.text || '',
-          sender: replyTo.senderId || replyTo.sender || '',
+          sender: replyTo.sender || replyTo.senderId || '',
+          senderName: replyTo.sender || '',
           attachment: replyTo.attachment || null
         };
       }
@@ -509,6 +516,7 @@ export default function ChatRoomPage() {
             hour: "2-digit",
             minute: "2-digit",
           }),
+          timestamp: new Date().toISOString(), // Raw timestamp for delete time check
           isOwn: true,
           isDeleted: false,
           attachment: attachment,
@@ -526,6 +534,41 @@ export default function ChatRoomPage() {
             return [...prevMessages, newMsg];
           }
         });
+
+        // 🤖 Auto-refresh for /ai command in regular chat
+        const isAICommand = messageText && messageText.trim().toLowerCase().startsWith('/ai ');
+        if (isAICommand && selectedRoom.type !== 'ai') {
+          console.log('🤖 /ai command detected, waiting for AI response...');
+          
+          // Show typing indicator
+          setTypingUsers(prev => new Set(prev).add('AI Assistant'));
+          
+          // Helper function to refresh messages
+          const refreshForAI = async () => {
+            try {
+              await loadMessages(selectedRoom.id);
+              console.log('🤖 Messages refreshed for AI response');
+            } catch (error) {
+              console.error('Error refreshing messages:', error);
+            }
+          };
+          
+          // First refresh after 5 seconds (AI usually takes 3-5s)
+          setTimeout(async () => {
+            await refreshForAI();
+          }, 5000);
+          
+          // Second refresh after 8 seconds (in case AI was slow)
+          setTimeout(async () => {
+            await refreshForAI();
+            // Remove typing indicator after second refresh
+            setTypingUsers(prev => {
+              const newSet = new Set(prev);
+              newSet.delete('AI Assistant');
+              return newSet;
+            });
+          }, 8000);
+        }
 
         // 🤖 AI INTEGRATION: If this is an AI room, get AI response
         if (selectedRoom.type === 'ai') {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -29,6 +29,10 @@ export default function DashboardLayout({ children }) {
     title: "",
     message: "",
   });
+
+  // Refs to prevent duplicate API calls
+  const isLoadingRef = useRef(false);
+  const hasLoadedRef = useRef(false);
 
   // Helper function untuk normalize avatar path
   const normalizeAvatar = (avatar) => {
@@ -63,11 +67,45 @@ export default function DashboardLayout({ children }) {
         displayName: session.user.displayName,
       });
 
-      loadRooms();
-      loadFriends();
-      loadFriendRequests();
+      // Only load data once on initial mount
+      if (!hasLoadedRef.current && !isLoadingRef.current) {
+        hasLoadedRef.current = true;
+        loadAllData();
+      }
     }
   }, [status, session, router]);
+
+  // Consolidated function to load all data in parallel (single batch)
+  const loadAllData = async () => {
+    if (isLoadingRef.current) return;
+    isLoadingRef.current = true;
+    
+    try {
+      // Load rooms and friends data in parallel
+      const [roomsRes, friendsRes] = await Promise.all([
+        fetch("/api/rooms"),
+        fetch("/api/friends")
+      ]);
+      
+      const [roomsData, friendsData] = await Promise.all([
+        roomsRes.json(),
+        friendsRes.json()
+      ]);
+      
+      if (roomsData.success) {
+        setRooms(roomsData.data.rooms);
+      }
+      
+      if (friendsData.success) {
+        setFriends(friendsData.data.friends || []);
+        setFriendRequests(friendsData.data.pendingReceived || []);
+      }
+    } catch (error) {
+      console.log("Error loading data:", error);
+    } finally {
+      isLoadingRef.current = false;
+    }
+  };
 
   const loadRooms = async () => {
     try {
@@ -123,19 +161,7 @@ export default function DashboardLayout({ children }) {
     );
   };
 
-  const loadFriends = async () => {
-    try {
-      const response = await fetch("/api/friends");
-      const data = await response.json();
-      if (data.success) {
-        setFriends(data.data.friends);
-      }
-    } catch (error) {
-      console.log("Error loading friends:", error);
-    }
-  };
-
-  const loadFriendRequests = async () => {
+  const loadFriendsData = async () => {
     try {
       const response = await fetch("/api/friends");
       const data = await response.json();
@@ -144,7 +170,7 @@ export default function DashboardLayout({ children }) {
         setFriendRequests(data.data.pendingReceived || []);
       }
     } catch (error) {
-      console.log("Error loading friend requests:", error);
+      console.log("Error loading friends data:", error);
     }
   };
 
@@ -158,8 +184,7 @@ export default function DashboardLayout({ children }) {
 
       const data = await response.json();
       if (data.success) {
-        loadFriendRequests();
-        loadFriends();
+        loadFriendsData();
         alert("✅ Permintaan pertemanan diterima!");
       } else {
         alert("❌ Gagal menerima permintaan: " + data.message);
@@ -180,7 +205,7 @@ export default function DashboardLayout({ children }) {
 
       const data = await response.json();
       if (data.success) {
-        loadFriendRequests();
+        loadFriendsData();
         alert("❌ Permintaan pertemanan ditolak");
       } else {
         alert("❌ Gagal menolak permintaan: " + data.message);
@@ -605,7 +630,7 @@ export default function DashboardLayout({ children }) {
         onClose={() => setShowAddFriendModal(false)}
         onAddFriend={() => {
           setShowAddFriendModal(false);
-          loadFriendRequests();
+          loadFriendsData();
         }}
       />
 
