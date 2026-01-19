@@ -149,15 +149,22 @@ export default function AuthPage() {
             });
 
             if (result?.error) {
-                // Cek apakah error terkait dengan verifikasi akun
-                if (result.error.includes('Akun belum terverifikasi')) {
-                    setMessage({
-                        text: 'Akun Anda belum terverifikasi. Silakan cek email untuk link verifikasi atau kirim ulang email verifikasi.',
-                        type: 'error'
-                    });
-                } else {
-                    setMessage({ text: result.error, type: 'error' });
+                // Tampilkan pesan error yang spesifik dari backend
+                let errorMessage = result.error;
+                
+                // Cek berbagai jenis error dan berikan pesan yang sesuai
+                if (result.error.includes('User tidak ditemukan')) {
+                    errorMessage = 'Email atau username tidak ditemukan. Silakan periksa kembali atau daftar akun baru.';
+                } else if (result.error.includes('Password salah')) {
+                    errorMessage = 'Password yang Anda masukkan salah. Silakan coba lagi.';
+                } else if (result.error.includes('Akun belum terverifikasi')) {
+                    errorMessage = 'Akun Anda belum terverifikasi. Silakan cek email untuk link verifikasi atau kirim ulang email verifikasi.';
+                } else if (result.error.includes('Configuration') || result.error === 'CredentialsSignin') {
+                    // Error generic dari NextAuth, tampilkan pesan yang lebih friendly
+                    errorMessage = 'Login gagal. Silakan periksa email/username dan password Anda.';
                 }
+                
+                setMessage({ text: errorMessage, type: 'error' });
             } else {
                 setMessage({ text: 'Login berhasil! Mengalihkan...', type: 'success' });
                 setTimeout(() => {

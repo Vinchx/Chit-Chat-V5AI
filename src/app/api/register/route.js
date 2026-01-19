@@ -7,10 +7,13 @@ import crypto from 'crypto';
 
 export async function POST(request) {
   try {
+    console.log('[REGISTER] Starting registration process...');
     const { username, email, password, displayName } = await request.json();
+    console.log('[REGISTER] Received data:', { username, email, displayName });
 
     // Validasi input
     if (!username || !email || !password || !displayName) {
+      console.log('[REGISTER] Validation failed: Missing fields');
       return NextResponse.json(
         { success: false, message: "Semua field wajib diisi!" },
         { status: 400 }
@@ -20,6 +23,7 @@ export async function POST(request) {
     // Validasi format email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
+      console.log('[REGISTER] Validation failed: Invalid email format');
       return NextResponse.json(
         { success: false, message: "Format email tidak valid!" },
         { status: 400 }
@@ -28,6 +32,7 @@ export async function POST(request) {
 
     // Validasi panjang password
     if (password.length < 8) {
+      console.log('[REGISTER] Validation failed: Password too short');
       return NextResponse.json(
         { success: false, message: "Password minimal 8 karakter!" },
         { status: 400 }
@@ -35,11 +40,13 @@ export async function POST(request) {
     }
 
     // Cek apakah user sudah ada
+    console.log('[REGISTER] Checking for existing user...');
     const existingUser = await User.findOne({
       $or: [{ username }, { email }],
     });
 
     if (existingUser) {
+      console.log('[REGISTER] User already exists');
       return NextResponse.json(
         { success: false, message: "Username atau email sudah digunakan" },
         { status: 409 }
@@ -47,12 +54,15 @@ export async function POST(request) {
     }
 
     // Generate verification token
+    console.log('[REGISTER] Generating verification token...');
     const verificationToken = crypto.randomBytes(32).toString('hex');
 
     // Hash password
+    console.log('[REGISTER] Hashing password...');
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Buat user baru (belum terverifikasi)
+    console.log('[REGISTER] Creating new user...');
     const newUser = new User({
       _id: `user${Date.now()}`, // Generate ID unik
       username,
@@ -63,12 +73,17 @@ export async function POST(request) {
       verificationToken
     });
 
+    console.log('[REGISTER] Saving user to database...');
     await newUser.save();
+    console.log('[REGISTER] User saved successfully!');
 
     // Kirim email verifikasi
     try {
+      console.log('[REGISTER] Initializing email service...');
       const emailService = new EmailService();
-      await emailService.sendEmail({
+      console.log('[REGISTER] Sending verification email to:', email);
+
+      const emailResult = await emailService.sendEmail({
         to: email,
         subject: 'Verifikasi Akun ChitChat - Aktifkan Akun Anda',
         html: `
@@ -77,14 +92,14 @@ export async function POST(request) {
             <p>Halo <strong>${displayName}</strong>,</p>
             <p>Terima kasih telah mendaftar di ChitChat V5.1 AI. Untuk mengaktifkan akun Anda, silakan klik tombol di bawah ini:</p>
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${process.env.NEXT_PUBLIC_SERVER_URL}/api/auth/verify/${verificationToken}"
+              <a href="${process.env.NEXT_PUBLIC_SERVER_URL}/auth/verify/${verificationToken}"
                  style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
                 Verifikasi Akun
               </a>
             </div>
             <p>Atau copy dan paste link berikut ke browser Anda:</p>
             <p style="word-break: break-all; background-color: #f5f5f5; padding: 10px; border-radius: 4px;">
-              ${process.env.NEXT_PUBLIC_SERVER_URL}/api/auth/verify/${verificationToken}
+              ${process.env.NEXT_PUBLIC_SERVER_URL}/auth/verify/${verificationToken}
             </p>
             <p>Link verifikasi ini akan kadaluarsa dalam 24 jam.</p>
             <p>Jika Anda tidak mendaftar di ChitChat, abaikan email ini.</p>
@@ -93,9 +108,18 @@ export async function POST(request) {
           </div>
         `
       });
+
+      console.log('[REGISTER] Email send result:', emailResult);
+
+      if (!emailResult.success) {
+        throw new Error(emailResult.error);
+      }
+
+      console.log('[REGISTER] Email sent successfully!');
     } catch (emailError) {
-      console.error('Gagal mengirim email verifikasi:', emailError);
+      console.error('[REGISTER] Failed to send verification email:', emailError);
       // Jika gagal kirim email, hapus user yang sudah dibuat
+      console.log('[REGISTER] Deleting user due to email failure...');
       await User.deleteOne({ _id: newUser._id });
       return NextResponse.json(
         { success: false, message: "Gagal mengirim email verifikasi. Silakan coba lagi." },

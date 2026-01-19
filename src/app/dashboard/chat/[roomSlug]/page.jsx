@@ -408,13 +408,15 @@ export default function ChatRoomPage() {
         setMessages(prevMessages => [...formattedMessages, ...prevMessages]);
 
         // Restore scroll position after new messages are added
-        setTimeout(() => {
+        // Use requestAnimationFrame for smoother restoration
+        requestAnimationFrame(() => {
           if (messagesContainer) {
             const scrollHeightAfter = messagesContainer.scrollHeight;
             const scrollDiff = scrollHeightAfter - scrollHeightBefore;
-            messagesContainer.scrollTop = scrollDiff;
+            // Set scroll position to keep the same messages visible
+            messagesContainer.scrollTop = scrollDiff + 10; // +10 to avoid triggering loadMore again immediately
           }
-        }, 50);
+        });
 
         console.log('✅ Loaded', formattedMessages.length, 'more messages');
       } else {

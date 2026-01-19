@@ -447,11 +447,24 @@ export async function DELETE(request) {
 
         console.log("✅ Message deleted successfully:", messageId);
 
-        // 7. Update last activity di room
+        // 8. Update last message in room if this was the last message
+        // Get the most recent non-deleted message for the room
+        const lastNonDeletedMessage = await messagesCollection
+            .find({ roomId: message.roomId, isDeleted: { $ne: true } })
+            .sort({ timestamp: -1 })
+            .limit(1)
+            .toArray();
+
+        let newLastMessage = "Pesan dihapus";
+        if (lastNonDeletedMessage.length > 0) {
+            newLastMessage = lastNonDeletedMessage[0].message?.substring(0, 50) || "Pesan dihapus";
+        }
+
         await roomsCollection.updateOne(
             { _id: message.roomId },
             {
                 $set: {
+                    lastMessage: newLastMessage,
                     lastActivity: new Date()
                 }
             }
