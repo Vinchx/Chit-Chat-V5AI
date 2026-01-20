@@ -18,6 +18,15 @@ export async function getAuthSession() {
         };
     }
 
+
+
+
+
+
+
+
+
+
     return {
         session,
         userId: session.user.id,

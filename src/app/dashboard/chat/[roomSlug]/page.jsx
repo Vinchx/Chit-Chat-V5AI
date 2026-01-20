@@ -43,7 +43,24 @@ export default function ChatRoomPage() {
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [oldestTimestamp, setOldestTimestamp] = useState(null);
+  
+  // AI Model selection
+  const [selectedModel, setSelectedModel] = useState('gemini-3-flash-preview');
 
+  // Load model preference from localStorage
+  useEffect(() => {
+    const savedModel = localStorage.getItem('ai-model-preference');
+    if (savedModel) {
+      setSelectedModel(savedModel);
+    }
+  }, []);
+  
+  // Handle model change
+  const handleModelChange = (model) => {
+    setSelectedModel(model);
+    localStorage.setItem('ai-model-preference', model);
+  };
+  
   // Check auth dan load user
   useEffect(() => {
     if (status === "loading") return;
@@ -78,33 +95,19 @@ export default function ChatRoomPage() {
         const data = await response.json();
 
         if (data.success) {
-          console.log('Room loaded:', data.data.room);
           setSelectedRoom(data.data.room);
           loadMessages(data.data.room.id);
           
           // Untuk private chat, ambil ID teman
           if (data.data.room.type === 'private' && data.data.room.members) {
-            console.log('=== Setting Friend User ID ===');
-            console.log('Room members:', data.data.room.members);
-            console.log('Current user ID:', user.id);
-            console.log('Current user ID type:', typeof user.id);
             
-            const friend = data.data.room.members.find(m => {
-              console.log('Comparing member._id:', m._id, 'with user.id:', user.id);
-              return m._id !== user.id;
-            });
+            const friend = data.data.room.members.find(m => m._id !== user.id);
             
-            console.log('Friend found:', friend);
             if (friend) {
-              console.log('Setting friendUserId to:', friend._id);
-              console.log('Friend._id type:', typeof friend._id);
               setFriendUserId(friend._id);
-            } else {
-              console.warn('Friend not found in room members');
-              console.warn('This might be because all members have same ID as current user');
             }
           } else {
-            console.log('Not a private chat or no members:', data.data.room.type);
+            // Not a private chat or no members
           }
         } else {
           router.push("/dashboard");
@@ -124,8 +127,6 @@ export default function ChatRoomPage() {
   useEffect(() => {
     if (!user || !selectedRoom) return;
 
-    console.log("🎉 Connecting to Partykit room:", selectedRoom.id);
-
     const partySocket = createChatSocket(
       selectedRoom.id,
       {
@@ -135,7 +136,6 @@ export default function ChatRoomPage() {
       {
         // Callback: New message received
         onMessage: (data) => {
-          console.log("📨 New message:", data);
 
           const newMsg = {
             id: data.messageId,
@@ -169,13 +169,11 @@ export default function ChatRoomPage() {
 
         // Callback: User joined
         onUserJoined: (data) => {
-          console.log("👋 User joined:", data.username);
-          // Optional: Show notification
+          // User joined - no action needed
         },
 
         // Callback: User left
         onUserLeft: (data) => {
-          console.log("👋 User left:", data.username);
           setTypingUsers((prev) => {
             const newSet = new Set(prev);
             newSet.delete(data.userId);
@@ -210,23 +208,21 @@ export default function ChatRoomPage() {
 
         // Callback: Online users list
         onOnlineUsers: (users) => {
-          console.log("👥 Online users:", users);
           setOnlineUsers(users);
         },
 
         // Callback: Connected
         onConnect: () => {
-          console.log("✅ Connected to Partykit!");
+          // Connected successfully
         },
 
         // Callback: Disconnected
         onDisconnect: () => {
-          console.log("❌ Disconnected from Partykit");
+          // Disconnected - will auto-reconnect
         },
 
         // Callback: Message deleted
         onMessageDeleted: (data) => {
-          console.log("🗑️ Message deleted:", data);
           setMessages(prevMessages =>
             prevMessages.map(msg =>
               msg.id === data.messageId ? { ...msg, isDeleted: true } : msg
@@ -248,7 +244,6 @@ export default function ChatRoomPage() {
 
     // Cleanup on unmount
     return () => {
-      console.log("🧹 Cleaning up Partykit connection");
       partySocket.close();
     };
   }, [user, selectedRoom]);
@@ -365,7 +360,7 @@ export default function ChatRoomPage() {
         }, 100);
       }
     } catch (error) {
-      console.log("Error loading messages:", error);
+      console.error("Error loading messages:", error);
     }
   };
 
@@ -374,7 +369,6 @@ export default function ChatRoomPage() {
 
     try {
       setIsLoadingMore(true);
-      console.log('📜 Loading more messages before:', oldestTimestamp);
 
       // Get current scroll position to restore later
       const messagesContainer = document.querySelector(".messages-container .overflow-y-auto");
@@ -417,11 +411,8 @@ export default function ChatRoomPage() {
             messagesContainer.scrollTop = scrollDiff + 10; // +10 to avoid triggering loadMore again immediately
           }
         });
-
-        console.log('✅ Loaded', formattedMessages.length, 'more messages');
       } else {
         setHasMoreMessages(false);
-        console.log('📭 No more messages to load');
       }
     } catch (error) {
       console.error("Error loading more messages:", error);
@@ -468,7 +459,6 @@ export default function ChatRoomPage() {
     if (!socket || (!messageText.trim() && !attachment)) return;
 
     try {
-      console.log('📤 Sending message with attachment:', attachment, 'and replyTo:', replyTo);
       
       // Prepare replyTo data if replying
       let replyToData = null;
@@ -540,7 +530,6 @@ export default function ChatRoomPage() {
         // 🤖 Auto-refresh for /ai command in regular chat
         const isAICommand = messageText && messageText.trim().toLowerCase().startsWith('/ai ');
         if (isAICommand && selectedRoom.type !== 'ai') {
-          console.log('🤖 /ai command detected, waiting for AI response...');
           
           // Show typing indicator
           setTypingUsers(prev => new Set(prev).add('AI Assistant'));
@@ -549,7 +538,6 @@ export default function ChatRoomPage() {
           const refreshForAI = async () => {
             try {
               await loadMessages(selectedRoom.id);
-              console.log('🤖 Messages refreshed for AI response');
             } catch (error) {
               console.error('Error refreshing messages:', error);
             }
@@ -574,7 +562,6 @@ export default function ChatRoomPage() {
 
         // 🤖 AI INTEGRATION: If this is an AI room, get AI response
         if (selectedRoom.type === 'ai') {
-          console.log('🤖 AI room detected, generating response...');
           
           // Show AI typing indicator
           setTypingUsers(prev => new Set(prev).add('AI Assistant'));
@@ -586,13 +573,15 @@ export default function ChatRoomPage() {
               content: msg.text
             }));
 
-            // Call AI API
+            // Call AI API with selected model
             const aiResponse = await fetch('/api/ai/chat', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 message: messageText,
-                conversationHistory: conversationHistory
+                conversationHistory: conversationHistory,
+                attachment: attachment,  // Pass attachment to AI
+                model: selectedModel  // Pass selected model
               })
             });
 
@@ -812,6 +801,34 @@ export default function ChatRoomPage() {
               onlineCount={onlineUsers.length}
               onInfoClick={() => setShowProfileSidebar(true)}
             />
+            
+            {/* Model Selector - Only for AI rooms */}
+            {selectedRoom?.type === 'ai' && (
+              <div className="px-4 py-3 bg-white/20 backdrop-blur-sm border-b border-white/20">
+                <div className="flex items-center gap-3">
+                  <label className="text-sm font-medium text-gray-700">AI Model:</label>
+                  <select 
+                    value={selectedModel}
+                    onChange={(e) => handleModelChange(e.target.value)}
+                    className="flex-1 px-3 py-2 bg-white/60 backdrop-blur-sm border border-white/40 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                  >
+                    <optgroup label="Latest (Gemini 3)">
+                      <option value="gemini-3-flash-preview">⚡ Gemini 3 Flash - Fast & Vision</option>
+                      <option value="gemini-3-pro-preview">🧠 Gemini 3 Pro - Most Intelligent</option>
+                    </optgroup>
+                    <optgroup label="Stable (Gemini 2.5)">
+                      <option value="gemini-2.5-flash">🚀 Gemini 2.5 Flash - Balanced</option>
+                      <option value="gemini-2.5-pro">💎 Gemini 2.5 Pro - Advanced Thinking</option>
+                      <option value="gemini-2.5-flash-lite">⚡⚡ Gemini 2.5 Flash Lite - Ultra Fast</option>
+                    </optgroup>
+                    <optgroup label="Previous Gen (Gemini 2.0)">
+                      <option value="gemini-2.0-flash">📦 Gemini 2.0 Flash - Workhorse</option>
+                    </optgroup>
+                  </select>
+                </div>
+                <p className="text-xs text-gray-600 mt-1">Choose the AI model for this conversation. Your preference will be saved.</p>
+              </div>
+            )}
 
             <div
               className="flex-1 p-4 overflow-y-auto scroll-smooth"

@@ -1,33 +1,52 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 
 // Initialize Gemini AI
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const genAI = new GoogleGenAI({});
 
 /**
  * Generate AI response using Gemini
  * @param {string} prompt - User's message/prompt
- * @param {Array} conversationHistory - Optional conversation history for context
+ * @param {Array} imageAttachments - Optional array of image data [{data: base64, mimeType: string}]
+ * @param {string} modelName - Gemini model to use (default: gemini-3-flash-preview)
  * @returns {Promise<string>} - AI generated response
  */
-export async function generateAIResponse(prompt) {
+export async function generateAIResponse(prompt, imageAttachments = [], modelName = "gemini-3-flash-preview") {
     try {
-        console.log("🤖 Generating AI response...");
-        console.log("🤖 Prompt length:", prompt.length);
-
         // Check if API key is available
         if (!process.env.GEMINI_API_KEY) {
             throw new Error("GEMINI_API_KEY is not configured");
         }
 
-        // Use gemini-2.5-flash model (latest stable version)
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        // Prepare content parts for Gemini
+        let contents = [];
 
-        // Generate response
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
+        if (imageAttachments.length > 0) {
+            // Multimodal request: images + text
 
-        console.log("✅ AI response generated, length:", text.length);
+            // Add images first
+            imageAttachments.forEach((img, index) => {
+                contents.push({
+                    inlineData: {
+                        mimeType: img.mimeType,
+                        data: img.data,
+                    }
+                });
+            });
+
+            // Then add text
+            contents.push({ text: prompt });
+        } else {
+            // Text-only request (backward compatible)
+            contents.push({ text: prompt });
+        }
+
+        // Generate response using specified model
+        const result = await genAI.models.generateContent({
+            model: modelName,
+            contents: contents,
+        });
+
+        const text = result.text;
 
         return text;
     } catch (error) {

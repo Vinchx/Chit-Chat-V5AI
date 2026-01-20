@@ -2,6 +2,25 @@ import { generateAIResponse, getAISystemPrompt } from "@/lib/gemini";
 import { getAuthSessionOrApiKey } from "@/lib/auth-helpers";
 import connectToDatabase from "@/lib/mongodb";
 import mongoose from "mongoose";
+import fs from "fs/promises";
+import path from "path";
+
+/**
+ * Helper function to read image file and convert to base64
+ */
+async function readImageAsBase64(filePath) {
+    try {
+        // Read file from uploads directory
+        const absolutePath = path.join(process.cwd(), 'public', filePath);
+
+        const fileBuffer = await fs.readFile(absolutePath);
+        const base64Data = fileBuffer.toString('base64');
+
+        return base64Data;
+    } catch (error) {
+        throw new Error(`Failed to read image: ${error.message}`);
+    }
+}
 
 export async function POST(request) {
     try {
@@ -15,24 +34,44 @@ export async function POST(request) {
         const currentUserId = userId;
 
         // 2. Get request data
-        const { message, conversationHistory } = await request.json();
+        const { message, conversationHistory, attachment, model } = await request.json();
 
-        console.log("🤖 AI Chat Request:", { userId: currentUserId, message });
+        // Validate and select model
+        const allowedModels = [
+            // Gemini 3 (Latest)
+            'gemini-3-pro-preview',
+            'gemini-3-flash-preview',
+            'gemini-3-pro-image-preview',
 
-        // Validate message
-        if (!message || message.trim() === "") {
+            // Gemini 2.5 (Stable & Recommended)
+            'gemini-2.5-flash',
+            'gemini-2.5-flash-lite',
+            'gemini-2.5-pro',
+            'gemini-2.5-flash-image',
+
+            // Gemini 2.0 (Previous Gen)
+            'gemini-2.0-flash',
+            'gemini-2.0-flash-lite',
+        ];
+
+        const selectedModel = model && allowedModels.includes(model)
+            ? model
+            : 'gemini-3-flash-preview'; // Default fallback
+
+        // Validate message - allow empty if there's an attachment (image-only messages)
+        if ((!message || message.trim() === "") && !attachment) {
             return Response.json({
                 success: false,
-                message: "Pesan tidak boleh kosong"
+                message: "Pesan atau gambar harus diisi"
             }, { status: 400 });
         }
 
-        // 3. Prepare conversation history for AI
-        const history = conversationHistory || [];
+        // 3. Build conversation history
+        const history = Array.isArray(conversationHistory)
+            ? conversationHistory
+            : [];
 
-        console.log("📝 Conversation history:", history);
-
-        // Add system prompt as context
+        // Create system message with history context
         const systemPrompt = getAISystemPrompt();
 
         // Build full prompt with system context
@@ -47,27 +86,61 @@ export async function POST(request) {
             fullPrompt += "\n";
         }
 
-        // Add current user message
-        fullPrompt += `User: ${message}\n\nAI:`;
+        // Add current user message (or default prompt for image-only)
+        const userMessage = message && message.trim() !== ""
+            ? message
+            : "What's in this image?"; // Default prompt for image-only messages
 
-        console.log("📝 Full prompt (first 200 chars):", fullPrompt.substring(0, 200));
+        fullPrompt += `User: ${userMessage}\n\nAI:`;
 
-        // 4. Generate AI response
+        // 4. Process image attachment if present
+        let imageAttachments = [];
+
+        if (attachment && attachment.type === 'image' && attachment.url) {
+            try {
+                // Read image file and convert to base64
+                // attachment.url format: /uploads/chat/{roomId}/{filename}
+                const base64Data = await readImageAsBase64(attachment.url);
+
+                // Determine mimeType from file extension or stored mimeType
+                let mimeType = attachment.mimeType || 'image/jpeg';
+
+                // Map common extensions to proper mimeTypes
+                if (attachment.filename) {
+                    const ext = path.extname(attachment.filename).toLowerCase();
+                    const mimeTypeMap = {
+                        '.jpg': 'image/jpeg',
+                        '.jpeg': 'image/jpeg',
+                        '.png': 'image/png',
+                        '.gif': 'image/gif',
+                        '.webp': 'image/webp'
+                    };
+                    mimeType = mimeTypeMap[ext] || mimeType;
+                }
+
+                imageAttachments.push({
+                    data: base64Data,
+                    mimeType: mimeType
+                });
+            } catch (imageError) {
+                console.error('❌ Error processing image:', imageError);
+                // Continue with text-only request
+            }
+        }
+
+        // 5. Generate AI response with selected model
         let aiResponse;
         try {
-            aiResponse = await generateAIResponse(fullPrompt);
+            aiResponse = await generateAIResponse(fullPrompt, imageAttachments, selectedModel);
         } catch (aiError) {
             console.error("❌ AI Generation Error:", aiError);
-            console.error("❌ AI Error message:", aiError.message);
             return Response.json({
                 success: false,
                 message: aiError.message || "Gagal mendapatkan respons dari AI"
             }, { status: 500 });
         }
 
-        console.log("✅ AI Response generated:", aiResponse.substring(0, 100) + "...");
-
-        // 5. Return AI response
+        // 6. Return AI response
         return Response.json({
             success: true,
             data: {

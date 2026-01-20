@@ -169,7 +169,8 @@ export async function POST(request) {
                         },
                         body: JSON.stringify({
                             message: aiQuestion,
-                            conversationHistory: conversationHistory
+                            conversationHistory: conversationHistory,
+                            attachment: attachment  // Pass attachment to AI for /ai commands
                         })
                     });
 

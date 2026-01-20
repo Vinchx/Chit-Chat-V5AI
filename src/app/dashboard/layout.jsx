@@ -144,6 +144,13 @@ export default function DashboardLayout({ children }) {
         setNewRoomName("");
         setSelectedMembers([]);
         router.push(`/dashboard/chat/${result.room.slug}`);
+      } else if (result.existingRoom) {
+        // Room sudah ada, redirect ke room tersebut
+        setShowCreateRoomModal(false);
+        setNewRoomType("group");
+        setNewRoomName("");
+        setSelectedMembers([]);
+        router.push(`/dashboard/chat/${result.existingRoom.slug}`);
       } else {
         alert("Gagal membuat room: " + result.message);
       }
