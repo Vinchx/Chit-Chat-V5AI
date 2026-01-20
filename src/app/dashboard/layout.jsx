@@ -8,6 +8,7 @@ import { useUser } from "@/contexts/UserContext";
 import AddFriendModal from "../components/AddFriendModal";
 import NotificationModal from "../components/NotificationModal";
 import Dock from "../../components/Dock";
+import FlowingRoomItem from "../../components/FlowingRoomItem";
 import { VscHome, VscAdd, VscAccount, VscSettingsGear } from "react-icons/vsc";
 
 export default function DashboardLayout({ children }) {
@@ -399,57 +400,24 @@ export default function DashboardLayout({ children }) {
           {/* Content */}
           <div className="flex-1 overflow-y-auto">
             {activeTab === "chats" ? (
-              <div className="p-4 space-y-2">
+              <div>
                 {rooms.length === 0 ? (
                   <div className="text-center text-gray-500 mt-8">
                     <p>Belum ada room</p>
                   </div>
                 ) : (
                   rooms.map((room) => (
-                    <div
+                    <FlowingRoomItem
                       key={room.id}
+                      room={room}
                       onClick={() => {
                         if (room.slug) {
                           router.push(`/dashboard/chat/${room.slug}`);
                         }
                       }}
-                      className="p-3 rounded-lg cursor-pointer transition-colors hover:bg-white/20"
-                    >
-                      <div className="flex items-center space-x-3">
-                        {/* Avatar */}
-                        {room.type === "private" && room.friend?.avatar ? (
-                          <div className="relative w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
-                            <Image
-                              src={normalizeAvatar(room.friend.avatar)}
-                              alt={room.friend.displayName || room.name}
-                              fill
-                              className="object-cover"
-                              sizes="40px"
-                            />
-                          </div>
-                        ) : room.type === "private" && room.friend ? (
-                          <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-blue-400 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-                            {getInitials(room.friend.displayName || room.name)}
-                          </div>
-                        ) : (
-                          <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-blue-400 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-                            {room.type === "private"
-                              ? "👤"
-                              : room.type === "group"
-                                ? "👥"
-                                : "🤖"}
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-gray-800 dark:text-white truncate">
-                            {room.name}
-                          </h4>
-                          <p className="text-sm text-gray-600 dark:text-gray-300 truncate">
-                            {room.lastMessage || "No messages yet"}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
+                      normalizeAvatar={normalizeAvatar}
+                      getInitials={getInitials}
+                    />
                   ))
                 )}
               </div>
