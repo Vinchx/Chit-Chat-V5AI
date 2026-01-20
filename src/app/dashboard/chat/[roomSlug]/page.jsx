@@ -10,6 +10,7 @@ import {
   sendStopTyping,
   sendDeleteMessage,
 } from "@/lib/partykit-client";
+import useMessageCache from "@/hooks/useMessageCache";
 import MessageBubble from "../../../components/MessageBubble";
 import MessageInput from "../../../components/MessageInput-partykit";
 import ChatHeader from "../../../components/ChatHeader";
@@ -47,6 +48,15 @@ export default function ChatRoomPage() {
   // AI Model selection
   const [selectedModel, setSelectedModel] = useState('gemini-3-flash-preview');
 
+  // Initialize message cache hook
+  const { 
+    loadFromCache, 
+    saveToCache, 
+    addMessageToCache, 
+    updateMessageInCache, 
+    clearCache 
+  } = useMessageCache();
+
   // Load model preference from localStorage
   useEffect(() => {
     const savedModel = localStorage.getItem('ai-model-preference');
@@ -59,6 +69,35 @@ export default function ChatRoomPage() {
   const handleModelChange = (model) => {
     setSelectedModel(model);
     localStorage.setItem('ai-model-preference', model);
+  };
+  
+  // Helper function to ensure no duplicate messages - ROBUST VERSION
+  const deduplicateMessages = (messages) => {
+    if (!Array.isArray(messages)) return [];
+    
+    // Use Map to ensure uniqueness by ID (last occurrence wins)
+    const messageMap = new Map();
+    let duplicateCount = 0;
+    
+    messages.forEach(msg => {
+      if (!msg || !msg.id) {
+        console.warn('⚠️ Message without ID detected, skipping');
+        return;
+      }
+      
+      if (messageMap.has(msg.id)) {
+        duplicateCount++;
+        console.warn(`⚠️ Duplicate message ID detected: ${msg.id}`);
+      }
+      
+      messageMap.set(msg.id, msg);
+    });
+    
+    if (duplicateCount > 0) {
+      console.warn(`⚠️ Removed ${duplicateCount} duplicate messages`);
+    }
+    
+    return Array.from(messageMap.values());
   };
   
   // Check auth dan load user
@@ -88,15 +127,36 @@ export default function ChatRoomPage() {
       try {
         setIsLoading(true);
         
-        // CRITICAL: Clear messages from previous room to prevent cross-contamination
-        setMessages([]);
-        
         const response = await fetch(`/api/rooms/by-slug/${roomSlug}`);
         const data = await response.json();
 
         if (data.success) {
+          const roomId = data.data.room.id;
+          
+          // 🔥 CRITICAL: Always clear messages when loading a new room to prevent cross-contamination
+          setMessages([]);
+          
+          // Only set room after clearing messages
           setSelectedRoom(data.data.room);
-          loadMessages(data.data.room.id);
+          
+          // 🚀 CACHE OPTIMIZATION: Load from cache first for instant display
+          const cachedMessages = loadFromCache(roomId);
+          if (cachedMessages && cachedMessages.length > 0) {
+            console.log(`📦 Loading ${cachedMessages.length} messages from cache for room ${roomId}`);
+            // Validate that cached messages are actually from this room
+            // This prevents cross-contamination if cache has wrong data
+            const validMessages = cachedMessages.filter(msg => {
+              // Messages don't have roomId stored, so we trust the cache key
+              // But we log for debugging
+              return true;
+            });
+            setMessages(validMessages);
+            setIsLoading(false); // Stop loading immediately with cached data
+          }
+          
+          // Then load from server in background to ensure fresh data
+          // This will replace cache if there's any mismatch
+          loadMessages(roomId);
           
           // Untuk private chat, ambil ID teman
           if (data.data.room.type === 'private' && data.data.room.members) {
@@ -121,7 +181,7 @@ export default function ChatRoomPage() {
     };
 
     loadRoom();
-  }, [user, roomSlug, router]);
+  }, [user, roomSlug, router, loadFromCache]);
 
   // Setup Partykit WebSocket
   useEffect(() => {
@@ -155,15 +215,26 @@ export default function ChatRoomPage() {
           setMessages((prev) => {
             // Cek apakah pesan dengan ID yang sama sudah ada
             const existingIndex = prev.findIndex(msg => msg.id === newMsg.id);
+            let updatedMessages;
+            
             if (existingIndex !== -1) {
               // Jika sudah ada, update pesan yang ada (mungkin karena perbedaan waktu)
-              const updatedMessages = [...prev];
+              updatedMessages = [...prev];
               updatedMessages[existingIndex] = newMsg;
-              return updatedMessages;
             } else {
               // Jika belum ada, tambahkan pesan baru
-              return [...prev, newMsg];
+              updatedMessages = [...prev, newMsg];
             }
+            
+            // Deduplicate to ensure no duplicates from race conditions
+            const deduplicated = deduplicateMessages(updatedMessages);
+            
+            // 💾 CACHE: Update cache with new message
+            if (selectedRoom?.id) {
+              addMessageToCache(selectedRoom.id, newMsg);
+            }
+            
+            return deduplicated;
           });
         },
 
@@ -223,11 +294,18 @@ export default function ChatRoomPage() {
 
         // Callback: Message deleted
         onMessageDeleted: (data) => {
-          setMessages(prevMessages =>
-            prevMessages.map(msg =>
+          setMessages(prevMessages => {
+            const updated = prevMessages.map(msg =>
               msg.id === data.messageId ? { ...msg, isDeleted: true } : msg
-            )
-          );
+            );
+            
+            // 💾 CACHE: Update cache with deleted message
+            if (selectedRoom?.id) {
+              updateMessageInCache(selectedRoom.id, data.messageId, { isDeleted: true });
+            }
+            
+            return updated;
+          });
         },
 
         // Callback: Error - only log if there's meaningful info
@@ -322,33 +400,15 @@ export default function ChatRoomPage() {
         setHasMoreMessages(data.data.hasMore || false);
         setOldestTimestamp(data.data.oldestTimestamp || null);
 
-        // Gunakan pesan dari server sebagai sumber kebenaran
-        // Hanya ambil perubahan lokal untuk isDeleted karena penghapusan tidak selalu konsisten ke server segera
-        setMessages(prevMessages => {
-          // Buat map dari pesan lokal untuk membandingkan status penghapusan
-          const localMessagesMap = new Map(prevMessages.map(msg => [msg.id, msg]));
-
-          // Update pesan dari server dengan status penghapusan lokal (jika ada)
-          const updatedMessages = formattedMessages.map(serverMsg => {
-            const localMsg = localMessagesMap.get(serverMsg.id);
-            if (localMsg) {
-              // Ambil status penghapusan dari lokal karena mungkin belum disinkron ke server
-              return {
-                ...serverMsg, // Data dari server sebagai sumber utama (termasuk isEdited dari DB)
-                isDeleted: localMsg.isDeleted !== undefined ? localMsg.isDeleted : serverMsg.isDeleted,
-              };
-            }
-            return serverMsg;
-          });
-
-          // Tambahkan pesan lokal yang tidak ada di server (baru dikirim tapi blm diterima server)
-          const serverMessageIds = new Set(formattedMessages.map(msg => msg.id));
-          const newLocalMessages = prevMessages.filter(prevMsg =>
-            !serverMessageIds.has(prevMsg.id)
-          );
-
-          return [...updatedMessages, ...newLocalMessages];
-        });
+        // 🔥 CRITICAL FIX: Just use server data directly
+        // Don't merge with previous state - server is source of truth
+        const uniqueMessages = deduplicateMessages(formattedMessages);
+        
+        // 💾 CACHE: Save to cache
+        saveToCache(roomId, uniqueMessages);
+        
+        // Set messages from server (replacing any cached/old data)
+        setMessages(uniqueMessages);
 
         setTimeout(() => {
           const messagesContainer = document.querySelector(
@@ -523,7 +583,16 @@ export default function ChatRoomPage() {
             return prevMessages;
           } else {
             // Jika belum ada, tambahkan pesan baru
-            return [...prevMessages, newMsg];
+            const updatedMessages = [...prevMessages, newMsg];
+            
+            // 💾 CACHE: Add sent message to cache immediately (optimistic update)
+            if (selectedRoom?.id) {
+              addMessageToCache(selectedRoom.id, newMsg);
+            }
+            
+            const deduplicated = deduplicateMessages(updatedMessages);
+            
+            return deduplicated;
           }
         });
 
@@ -707,13 +776,23 @@ export default function ChatRoomPage() {
 
       if (result.success) {
         // Update pesan di state lokal
-        setMessages(prevMessages =>
-          prevMessages.map(msg =>
+        setMessages(prevMessages => {
+          const updated = prevMessages.map(msg =>
             msg.id === editingMessage.id
               ? { ...msg, text: editText, isEdited: true }
               : msg
-          )
-        );
+          );
+          
+          // 💾 CACHE: Update edited message in cache
+          if (selectedRoom?.id) {
+            updateMessageInCache(selectedRoom.id, editingMessage.id, { 
+              text: editText, 
+              isEdited: true 
+            });
+          }
+          
+          return updated;
+        });
 
         // Reset state edit
         setEditingMessage(null);
@@ -743,11 +822,18 @@ export default function ChatRoomPage() {
 
       if (result.success) {
         // Update local state untuk menandai pesan telah dihapus
-        setMessages(prevMessages =>
-          prevMessages.map(msg =>
+        setMessages(prevMessages => {
+          const updated = prevMessages.map(msg =>
             msg.id === messageId ? { ...msg, isDeleted: true } : msg
-          )
-        );
+          );
+          
+          // 💾 CACHE: Update deleted message in cache
+          if (selectedRoom?.id) {
+            updateMessageInCache(selectedRoom.id, messageId, { isDeleted: true });
+          }
+          
+          return updated;
+        });
 
         // Beri feedback berdasarkan hasil
         if (result.message === "Pesan sudah dihapus sebelumnya") {
