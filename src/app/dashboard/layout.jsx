@@ -8,32 +8,27 @@ import { useUser } from "@/contexts/UserContext";
 import AddFriendModal from "../components/AddFriendModal";
 import NotificationModal from "../components/NotificationModal";
 import Dock from "../../components/Dock";
-import {
-  VscHome,
-  VscArchive,
-  VscAccount,
-  VscSettingsGear,
-} from "react-icons/vsc";
+import { VscHome, VscAdd, VscAccount, VscSettingsGear } from "react-icons/vsc";
 
 export default function DashboardLayout({ children }) {
   const items = [
     {
-      icon: <VscHome size={24} color="black" />,
+      icon: <VscHome size={24} color="white" />,
       label: "Home",
       onClick: () => alert("Home!"),
     },
     {
-      icon: <VscArchive size={24} color="black" />,
-      label: "Archive",
-      onClick: () => alert("Archive!"),
+      icon: <VscAdd size={24} color="white" />,
+      label: "Create Room",
+      onClick: () => setShowCreateRoomModal(true),
     },
     {
-      icon: <VscAccount size={24} color="black" />,
+      icon: <VscAccount size={24} color="white" />,
       label: "Profile",
       onClick: () => router.push("/profile"),
     },
     {
-      icon: <VscSettingsGear size={24} color="black" />,
+      icon: <VscSettingsGear size={24} color="white" />,
       label: "Settings",
       onClick: () => alert("Settings!"),
     },
@@ -53,6 +48,7 @@ export default function DashboardLayout({ children }) {
   const [newRoomType, setNewRoomType] = useState("group");
   const [newRoomName, setNewRoomName] = useState("");
   const [selectedMembers, setSelectedMembers] = useState([]);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const [notification, setNotification] = useState({
     isOpen: false,
     type: "success",
@@ -104,6 +100,27 @@ export default function DashboardLayout({ children }) {
       }
     }
   }, [status, session, router]);
+
+  // Theme management
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("theme");
+    if (savedTheme === "dark") {
+      setIsDarkMode(true);
+      document.documentElement.classList.add("dark");
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = !isDarkMode;
+    setIsDarkMode(newTheme);
+    if (newTheme) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  };
 
   // Consolidated function to load all data in parallel (single batch)
   const loadAllData = async () => {
@@ -277,27 +294,40 @@ export default function DashboardLayout({ children }) {
   const userAvatar = normalizeAvatar(currentUser?.avatar);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-purple-50 to-indigo-100 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-purple-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 relative overflow-hidden">
       {/* Background effects */}
-      <div className="absolute inset-0 opacity-30">
-        <div className="h-full w-full bg-[radial-gradient(circle,_rgba(139,_69,_195,_0.1)_1px,_transparent_1px)] bg-[length:20px_20px]"></div>
+      <div className="absolute inset-0 opacity-30 dark:opacity-20">
+        <div className="h-full w-full bg-[radial-gradient(circle,_rgba(139,_69,_195,_0.1)_1px,_transparent_1px)] dark:bg-[radial-gradient(circle,_rgba(139,_69,_195,_0.2)_1px,_transparent_1px)] bg-[length:20px_20px]"></div>
       </div>
-      <div className="absolute top-20 left-20 w-64 h-64 bg-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse"></div>
-      <div className="absolute bottom-20 right-20 w-72 h-72 bg-purple-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse delay-1000"></div>
+      <div className="absolute top-20 left-20 w-64 h-64 bg-blue-200 dark:bg-blue-900 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse"></div>
+      <div className="absolute bottom-20 right-20 w-72 h-72 bg-purple-200 dark:bg-purple-900 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse delay-1000"></div>
 
       <div className="flex h-screen relative z-10">
         {/* Sidebar */}
-        <div className="w-80 backdrop-blur-lg bg-white/10 border-r border-white/20 flex flex-col">
+        <div className="w-80 backdrop-blur-lg bg-white/10 dark:bg-gray-900/40 border-r border-white/20 dark:border-gray-700 flex flex-col">
           {/* Header */}
-          <div className="p-4 border-b border-white/20 bg-white/5">
+          <div className="p-4 border-b border-white/20 dark:border-gray-700 bg-white/5 dark:bg-gray-800/50">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-800">ChitChat</h2>
-              <button
-                onClick={handleLogout}
-                className="px-3 py-1.5 bg-red-400/20 hover:bg-red-400/30 text-red-700 rounded-lg transition-colors text-sm font-medium"
-              >
-                Logout
-              </button>
+              <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+                ChitChat
+              </h2>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={toggleTheme}
+                  className="px-3 py-1.5 bg-gray-400/20 hover:bg-gray-400/30 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg transition-colors text-sm font-medium"
+                  title={
+                    isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"
+                  }
+                >
+                  {isDarkMode ? "☀️" : "🌙"}
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="px-3 py-1.5 bg-red-400/20 hover:bg-red-400/30 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-300 rounded-lg transition-colors text-sm font-medium"
+                >
+                  Logout
+                </button>
+              </div>
             </div>
             <div className="flex items-center space-x-3">
               {/* Avatar with Image or Initials fallback */}
@@ -317,10 +347,10 @@ export default function DashboardLayout({ children }) {
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-gray-800 truncate">
+                <h3 className="font-semibold text-gray-800 dark:text-white truncate">
                   {user?.displayName || "User"}
                 </h3>
-                <p className="text-sm text-gray-600 truncate">
+                <p className="text-sm text-gray-600 dark:text-gray-300 truncate">
                   @{user?.username}
                 </p>
               </div>
@@ -328,13 +358,13 @@ export default function DashboardLayout({ children }) {
           </div>
 
           {/* Tabs */}
-          <div className="flex border-b border-white/20 bg-white/5">
+          <div className="flex border-b border-white/20 dark:border-gray-700 bg-white/5 dark:bg-gray-800/50">
             <button
               onClick={() => setActiveTab("chats")}
               className={`flex-1 py-3 text-sm font-medium transition-colors ${
                 activeTab === "chats"
-                  ? "text-blue-600 border-b-2 border-blue-600 bg-white/10"
-                  : "text-gray-600 hover:bg-white/5"
+                  ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-white/10 dark:bg-gray-700/50"
+                  : "text-gray-600 dark:text-gray-300 hover:bg-white/5 dark:hover:bg-gray-700/30"
               }`}
             >
               Chats ({rooms.length})
@@ -343,8 +373,8 @@ export default function DashboardLayout({ children }) {
               onClick={() => setActiveTab("friends")}
               className={`flex-1 py-3 text-sm font-medium transition-colors ${
                 activeTab === "friends"
-                  ? "text-blue-600 border-b-2 border-blue-600 bg-white/10"
-                  : "text-gray-600 hover:bg-white/5"
+                  ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-white/10 dark:bg-gray-700/50"
+                  : "text-gray-600 dark:text-gray-300 hover:bg-white/5 dark:hover:bg-gray-700/30"
               }`}
             >
               Friends ({friends.length})
@@ -370,13 +400,6 @@ export default function DashboardLayout({ children }) {
           <div className="flex-1 overflow-y-auto">
             {activeTab === "chats" ? (
               <div className="p-4 space-y-2">
-                <button
-                  onClick={() => setShowCreateRoomModal(true)}
-                  className="w-full p-3 bg-gradient-to-r from-blue-400 to-purple-400 text-white rounded-lg hover:from-blue-500 hover:to-purple-500 transition-all text-sm font-medium mb-2"
-                >
-                  + Buat Room Baru
-                </button>
-
                 {rooms.length === 0 ? (
                   <div className="text-center text-gray-500 mt-8">
                     <p>Belum ada room</p>
@@ -418,10 +441,10 @@ export default function DashboardLayout({ children }) {
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-gray-800 truncate">
+                          <h4 className="font-medium text-gray-800 dark:text-white truncate">
                             {room.name}
                           </h4>
-                          <p className="text-sm text-gray-600 truncate">
+                          <p className="text-sm text-gray-600 dark:text-gray-300 truncate">
                             {room.lastMessage || "No messages yet"}
                           </p>
                         </div>
@@ -583,10 +606,10 @@ export default function DashboardLayout({ children }) {
           </div>
 
           {/* Footer dengan Dock navigation */}
-          <div className="p-4 border-t border-white/20 bg-white/5">
+          <div className="p-2 border-t border-white/20 dark:border-gray-700 h-20 flex items-end justify-center relative">
             <Dock
               items={items}
-              panelHeight={40}
+              panelHeight={60}
               baseItemSize={40}
               magnification={70}
             />

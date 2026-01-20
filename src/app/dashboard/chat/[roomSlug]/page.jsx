@@ -30,7 +30,7 @@ export default function ChatRoomPage() {
   const [socket, setSocket] = useState(null);
   const [messages, setMessages] = useState([]);
   const [editingMessage, setEditingMessage] = useState(null);
-  const [editText, setEditText] = useState('');
+  const [editText, setEditText] = useState("");
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [typingUsers, setTypingUsers] = useState(new Set());
   const [isUserScrolling, setIsUserScrolling] = useState(false);
@@ -39,67 +39,67 @@ export default function ChatRoomPage() {
   const [showProfileSidebar, setShowProfileSidebar] = useState(false);
   const [friendUserId, setFriendUserId] = useState(null);
   const [replyingTo, setReplyingTo] = useState(null);
-  
+
   // Load more messages states
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [oldestTimestamp, setOldestTimestamp] = useState(null);
-  
+
   // AI Model selection
-  const [selectedModel, setSelectedModel] = useState('gemini-3-flash-preview');
+  const [selectedModel, setSelectedModel] = useState("gemini-3-flash-preview");
 
   // Initialize message cache hook
-  const { 
-    loadFromCache, 
-    saveToCache, 
-    addMessageToCache, 
-    updateMessageInCache, 
-    clearCache 
+  const {
+    loadFromCache,
+    saveToCache,
+    addMessageToCache,
+    updateMessageInCache,
+    clearCache,
   } = useMessageCache();
 
   // Load model preference from localStorage
   useEffect(() => {
-    const savedModel = localStorage.getItem('ai-model-preference');
+    const savedModel = localStorage.getItem("ai-model-preference");
     if (savedModel) {
       setSelectedModel(savedModel);
     }
   }, []);
-  
+
   // Handle model change
   const handleModelChange = (model) => {
     setSelectedModel(model);
-    localStorage.setItem('ai-model-preference', model);
+    localStorage.setItem("ai-model-preference", model);
   };
-  
+
   // Helper function to ensure no duplicate messages - ROBUST VERSION
   const deduplicateMessages = (messages) => {
     if (!Array.isArray(messages)) return [];
-    
+
     // Use Map to ensure uniqueness by ID (last occurrence wins)
     const messageMap = new Map();
     let duplicateCount = 0;
-    
-    messages.forEach(msg => {
+
+    messages.forEach((msg) => {
       if (!msg || !msg.id) {
-        console.warn('⚠️ Message without ID detected, skipping');
+        console.warn("⚠️ Message without ID detected, skipping");
         return;
       }
-      
+
       if (messageMap.has(msg.id)) {
         duplicateCount++;
         console.warn(`⚠️ Duplicate message ID detected: ${msg.id}`);
       }
-      
+
       messageMap.set(msg.id, msg);
     });
-    
+
     if (duplicateCount > 0) {
       console.warn(`⚠️ Removed ${duplicateCount} duplicate messages`);
     }
-    
+
     return Array.from(messageMap.values());
   };
-  
+
   // Check auth dan load user
   useEffect(() => {
     if (status === "loading") return;
@@ -126,26 +126,28 @@ export default function ChatRoomPage() {
     const loadRoom = async () => {
       try {
         setIsLoading(true);
-        
+
         const response = await fetch(`/api/rooms/by-slug/${roomSlug}`);
         const data = await response.json();
 
         if (data.success) {
           const roomId = data.data.room.id;
-          
+
           // 🔥 CRITICAL: Always clear messages when loading a new room to prevent cross-contamination
           setMessages([]);
-          
+
           // Only set room after clearing messages
           setSelectedRoom(data.data.room);
-          
+
           // 🚀 CACHE OPTIMIZATION: Load from cache first for instant display
           const cachedMessages = loadFromCache(roomId);
           if (cachedMessages && cachedMessages.length > 0) {
-            console.log(`📦 Loading ${cachedMessages.length} messages from cache for room ${roomId}`);
+            console.log(
+              `📦 Loading ${cachedMessages.length} messages from cache for room ${roomId}`,
+            );
             // Validate that cached messages are actually from this room
             // This prevents cross-contamination if cache has wrong data
-            const validMessages = cachedMessages.filter(msg => {
+            const validMessages = cachedMessages.filter((msg) => {
               // Messages don't have roomId stored, so we trust the cache key
               // But we log for debugging
               return true;
@@ -153,16 +155,17 @@ export default function ChatRoomPage() {
             setMessages(validMessages);
             setIsLoading(false); // Stop loading immediately with cached data
           }
-          
+
           // Then load from server in background to ensure fresh data
           // This will replace cache if there's any mismatch
           loadMessages(roomId);
-          
+
           // Untuk private chat, ambil ID teman
-          if (data.data.room.type === 'private' && data.data.room.members) {
-            
-            const friend = data.data.room.members.find(m => m._id !== user.id);
-            
+          if (data.data.room.type === "private" && data.data.room.members) {
+            const friend = data.data.room.members.find(
+              (m) => m._id !== user.id,
+            );
+
             if (friend) {
               setFriendUserId(friend._id);
             }
@@ -196,7 +199,6 @@ export default function ChatRoomPage() {
       {
         // Callback: New message received
         onMessage: (data) => {
-
           const newMsg = {
             id: data.messageId,
             text: data.message,
@@ -214,9 +216,9 @@ export default function ChatRoomPage() {
 
           setMessages((prev) => {
             // Cek apakah pesan dengan ID yang sama sudah ada
-            const existingIndex = prev.findIndex(msg => msg.id === newMsg.id);
+            const existingIndex = prev.findIndex((msg) => msg.id === newMsg.id);
             let updatedMessages;
-            
+
             if (existingIndex !== -1) {
               // Jika sudah ada, update pesan yang ada (mungkin karena perbedaan waktu)
               updatedMessages = [...prev];
@@ -225,15 +227,15 @@ export default function ChatRoomPage() {
               // Jika belum ada, tambahkan pesan baru
               updatedMessages = [...prev, newMsg];
             }
-            
+
             // Deduplicate to ensure no duplicates from race conditions
             const deduplicated = deduplicateMessages(updatedMessages);
-            
+
             // 💾 CACHE: Update cache with new message
             if (selectedRoom?.id) {
               addMessageToCache(selectedRoom.id, newMsg);
             }
-            
+
             return deduplicated;
           });
         },
@@ -294,16 +296,18 @@ export default function ChatRoomPage() {
 
         // Callback: Message deleted
         onMessageDeleted: (data) => {
-          setMessages(prevMessages => {
-            const updated = prevMessages.map(msg =>
-              msg.id === data.messageId ? { ...msg, isDeleted: true } : msg
+          setMessages((prevMessages) => {
+            const updated = prevMessages.map((msg) =>
+              msg.id === data.messageId ? { ...msg, isDeleted: true } : msg,
             );
-            
+
             // 💾 CACHE: Update cache with deleted message
             if (selectedRoom?.id) {
-              updateMessageInCache(selectedRoom.id, data.messageId, { isDeleted: true });
+              updateMessageInCache(selectedRoom.id, data.messageId, {
+                isDeleted: true,
+              });
             }
-            
+
             return updated;
           });
         },
@@ -315,7 +319,7 @@ export default function ChatRoomPage() {
           }
           // Empty errors are normal WebSocket hiccups, PartySocket auto-reconnects
         },
-      }
+      },
     );
 
     setSocket(partySocket);
@@ -331,7 +335,7 @@ export default function ChatRoomPage() {
     if (messages.length > 0 && !isUserScrolling) {
       requestAnimationFrame(() => {
         const messagesContainer = document.querySelector(
-          ".messages-container .overflow-y-auto"
+          ".messages-container .overflow-y-auto",
         );
         if (messagesContainer) {
           const { scrollTop, scrollHeight, clientHeight } = messagesContainer;
@@ -357,7 +361,7 @@ export default function ChatRoomPage() {
     if (typingUsers.size > 0 && !isUserScrolling) {
       requestAnimationFrame(() => {
         const messagesContainer = document.querySelector(
-          ".messages-container .overflow-y-auto"
+          ".messages-container .overflow-y-auto",
         );
         if (messagesContainer) {
           const { scrollTop, scrollHeight, clientHeight } = messagesContainer;
@@ -403,16 +407,16 @@ export default function ChatRoomPage() {
         // 🔥 CRITICAL FIX: Just use server data directly
         // Don't merge with previous state - server is source of truth
         const uniqueMessages = deduplicateMessages(formattedMessages);
-        
+
         // 💾 CACHE: Save to cache
         saveToCache(roomId, uniqueMessages);
-        
+
         // Set messages from server (replacing any cached/old data)
         setMessages(uniqueMessages);
 
         setTimeout(() => {
           const messagesContainer = document.querySelector(
-            ".messages-container .overflow-y-auto"
+            ".messages-container .overflow-y-auto",
           );
           if (messagesContainer) {
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
@@ -425,16 +429,21 @@ export default function ChatRoomPage() {
   };
 
   const loadMoreMessages = async () => {
-    if (!selectedRoom || !hasMoreMessages || isLoadingMore || !oldestTimestamp) return;
+    if (!selectedRoom || !hasMoreMessages || isLoadingMore || !oldestTimestamp)
+      return;
 
     try {
       setIsLoadingMore(true);
 
       // Get current scroll position to restore later
-      const messagesContainer = document.querySelector(".messages-container .overflow-y-auto");
+      const messagesContainer = document.querySelector(
+        ".messages-container .overflow-y-auto",
+      );
       const scrollHeightBefore = messagesContainer?.scrollHeight || 0;
 
-      const response = await fetch(`/api/messages/room/${selectedRoom.id}?before=${oldestTimestamp}`);
+      const response = await fetch(
+        `/api/messages/room/${selectedRoom.id}?before=${oldestTimestamp}`,
+      );
       const data = await response.json();
 
       if (data.success && data.data.messages.length > 0) {
@@ -459,7 +468,7 @@ export default function ChatRoomPage() {
         setOldestTimestamp(data.data.oldestTimestamp || null);
 
         // Prepend older messages to existing messages
-        setMessages(prevMessages => [...formattedMessages, ...prevMessages]);
+        setMessages((prevMessages) => [...formattedMessages, ...prevMessages]);
 
         // Restore scroll position after new messages are added
         // Use requestAnimationFrame for smoother restoration
@@ -483,7 +492,7 @@ export default function ChatRoomPage() {
 
   const scrollToBottom = () => {
     const messagesContainer = document.querySelector(
-      ".messages-container .overflow-y-auto"
+      ".messages-container .overflow-y-auto",
     );
     if (messagesContainer) {
       messagesContainer.scrollTo({
@@ -515,23 +524,26 @@ export default function ChatRoomPage() {
     }
   };
 
-  const handleSendMessage = async (messageText, attachment = null, replyTo = null) => {
+  const handleSendMessage = async (
+    messageText,
+    attachment = null,
+    replyTo = null,
+  ) => {
     if (!socket || (!messageText.trim() && !attachment)) return;
 
     try {
-      
       // Prepare replyTo data if replying
       let replyToData = null;
       if (replyTo) {
         replyToData = {
           messageId: replyTo.id,
-          text: replyTo.text || '',
-          sender: replyTo.sender || replyTo.senderId || '',
-          senderName: replyTo.sender || '',
-          attachment: replyTo.attachment || null
+          text: replyTo.text || "",
+          sender: replyTo.sender || replyTo.senderId || "",
+          senderName: replyTo.sender || "",
+          attachment: replyTo.attachment || null,
         };
       }
-      
+
       // Kirim ke server dulu untuk mendapatkan ID resmi
       const response = await fetch("/api/messages", {
         method: "POST",
@@ -539,7 +551,11 @@ export default function ChatRoomPage() {
         body: JSON.stringify({
           roomId: selectedRoom.id,
           message: messageText,
-          messageType: attachment ? (attachment.type === 'image' ? 'image' : 'file') : 'text',
+          messageType: attachment
+            ? attachment.type === "image"
+              ? "image"
+              : "file"
+            : "text",
           attachment: attachment,
           replyTo: replyToData,
         }),
@@ -553,7 +569,7 @@ export default function ChatRoomPage() {
         // Kirim via Partykit dengan ID resmi dari server
         sendMessage(socket, {
           id: serverMessageId,
-          text: messageText || (attachment ? `📎 ${attachment.filename}` : ''),
+          text: messageText || (attachment ? `📎 ${attachment.filename}` : ""),
           attachment: attachment,
           replyTo: replyToData,
         });
@@ -561,7 +577,7 @@ export default function ChatRoomPage() {
         // Tambahkan pesan langsung ke state lokal dengan ID resmi hanya jika belum ada
         const newMsg = {
           id: serverMessageId,
-          text: messageText || (attachment ? `📎 ${attachment.filename}` : ''),
+          text: messageText || (attachment ? `📎 ${attachment.filename}` : ""),
           sender: user.displayName || user.username,
           senderId: user.id,
           time: new Date().toLocaleTimeString("id-ID", {
@@ -575,91 +591,92 @@ export default function ChatRoomPage() {
           replyTo: replyToData,
         };
 
-        setMessages(prevMessages => {
+        setMessages((prevMessages) => {
           // Cek apakah pesan dengan ID yang sama sudah ada
-          const existingIndex = prevMessages.findIndex(msg => msg.id === serverMessageId);
+          const existingIndex = prevMessages.findIndex(
+            (msg) => msg.id === serverMessageId,
+          );
           if (existingIndex !== -1) {
             // Jika sudah ada, jangan tambahkan lagi (mungkin sudah ditambahkan dari onMessage)
             return prevMessages;
           } else {
             // Jika belum ada, tambahkan pesan baru
             const updatedMessages = [...prevMessages, newMsg];
-            
+
             // 💾 CACHE: Add sent message to cache immediately (optimistic update)
             if (selectedRoom?.id) {
               addMessageToCache(selectedRoom.id, newMsg);
             }
-            
+
             const deduplicated = deduplicateMessages(updatedMessages);
-            
+
             return deduplicated;
           }
         });
 
         // 🤖 Auto-refresh for /ai command in regular chat
-        const isAICommand = messageText && messageText.trim().toLowerCase().startsWith('/ai ');
-        if (isAICommand && selectedRoom.type !== 'ai') {
-          
+        const isAICommand =
+          messageText && messageText.trim().toLowerCase().startsWith("/ai ");
+        if (isAICommand && selectedRoom.type !== "ai") {
           // Show typing indicator
-          setTypingUsers(prev => new Set(prev).add('AI Assistant'));
-          
+          setTypingUsers((prev) => new Set(prev).add("AI Assistant"));
+
           // Helper function to refresh messages
           const refreshForAI = async () => {
             try {
               await loadMessages(selectedRoom.id);
             } catch (error) {
-              console.error('Error refreshing messages:', error);
+              console.error("Error refreshing messages:", error);
             }
           };
-          
+
           // First refresh after 5 seconds (AI usually takes 3-5s)
           setTimeout(async () => {
             await refreshForAI();
           }, 5000);
-          
+
           // Second refresh after 8 seconds (in case AI was slow)
           setTimeout(async () => {
             await refreshForAI();
             // Remove typing indicator after second refresh
-            setTypingUsers(prev => {
+            setTypingUsers((prev) => {
               const newSet = new Set(prev);
-              newSet.delete('AI Assistant');
+              newSet.delete("AI Assistant");
               return newSet;
             });
           }, 8000);
         }
 
         // 🤖 AI INTEGRATION: If this is an AI room, get AI response
-        if (selectedRoom.type === 'ai') {
-          
+        if (selectedRoom.type === "ai") {
           // Show AI typing indicator
-          setTypingUsers(prev => new Set(prev).add('AI Assistant'));
-          
+          setTypingUsers((prev) => new Set(prev).add("AI Assistant"));
+
           try {
             // Get conversation history for context (last 10 messages)
-            const conversationHistory = messages.slice(-10).map(msg => ({
-              role: msg.senderId === user.id ? 'user' : 'assistant',
-              content: msg.text
+            const conversationHistory = messages.slice(-10).map((msg) => ({
+              role: msg.senderId === user.id ? "user" : "assistant",
+              content: msg.text,
             }));
 
             // Call AI API with selected model
-            const aiResponse = await fetch('/api/ai/chat', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+            const aiResponse = await fetch("/api/ai/chat", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 message: messageText,
                 conversationHistory: conversationHistory,
-                attachment: attachment,  // Pass attachment to AI
-                model: selectedModel  // Pass selected model
-              })
+                attachment: attachment, // Pass attachment to AI
+                model: selectedModel, // Pass selected model
+              }),
             });
 
             const aiResult = await aiResponse.json();
 
             // Remove AI typing indicator
-            setTypingUsers(prev => {
+            setTypingUsers((prev) => {
               const newSet = new Set(prev);
-              newSet.delete('AI Assistant');
+              newSet.delete("AI Assistant");
               return newSet;
             });
 
@@ -671,8 +688,8 @@ export default function ChatRoomPage() {
                 body: JSON.stringify({
                   roomId: selectedRoom.id,
                   message: aiResult.data.response,
-                  messageType: 'text',
-                  senderId: 'ai-assistant', // AI sender ID
+                  messageType: "text",
+                  senderId: "ai-assistant", // AI sender ID
                 }),
               });
 
@@ -683,25 +700,25 @@ export default function ChatRoomPage() {
 
                 // Clean AI response: remove markdown formatting
                 let cleanResponse = aiResult.data.response
-                  .replace(/\*\*/g, '') // Remove bold markdown
-                  .replace(/\*/g, '')   // Remove italic markdown
-                  .replace(/`/g, '')    // Remove code markdown
+                  .replace(/\*\*/g, "") // Remove bold markdown
+                  .replace(/\*/g, "") // Remove italic markdown
+                  .replace(/`/g, "") // Remove code markdown
                   .trim();
 
                 // Broadcast AI response via Partykit
                 sendMessage(socket, {
                   id: aiMessageId,
                   text: cleanResponse,
-                  userId: 'ai-assistant',
-                  username: 'AI Assistant'
+                  userId: "ai-assistant",
+                  username: "AI Assistant",
                 });
 
                 // Add AI response to local state
                 const aiMsg = {
                   id: aiMessageId,
                   text: cleanResponse,
-                  sender: 'AI Assistant',
-                  senderId: 'ai-assistant',
+                  sender: "AI Assistant",
+                  senderId: "ai-assistant",
                   time: new Date().toLocaleTimeString("id-ID", {
                     hour: "2-digit",
                     minute: "2-digit",
@@ -711,8 +728,10 @@ export default function ChatRoomPage() {
                 };
 
                 // Add with duplicate check to prevent race condition with PartyKit broadcast
-                setMessages(prevMessages => {
-                  const existingIndex = prevMessages.findIndex(msg => msg.id === aiMessageId);
+                setMessages((prevMessages) => {
+                  const existingIndex = prevMessages.findIndex(
+                    (msg) => msg.id === aiMessageId,
+                  );
                   if (existingIndex !== -1) {
                     // Message already exists (from PartyKit broadcast), don't add again
                     return prevMessages;
@@ -723,26 +742,26 @@ export default function ChatRoomPage() {
                 });
               }
             } else {
-              console.error('AI response error:', aiResult.message);
+              console.error("AI response error:", aiResult.message);
               // Optionally show error message to user
             }
           } catch (aiError) {
-            console.error('Error getting AI response:', aiError);
+            console.error("Error getting AI response:", aiError);
             // Remove AI typing indicator on error
-            setTypingUsers(prev => {
+            setTypingUsers((prev) => {
               const newSet = new Set(prev);
-              newSet.delete('AI Assistant');
+              newSet.delete("AI Assistant");
               return newSet;
             });
           }
         }
       } else {
         console.error("Error saving message to DB:", result.message);
-        alert('Gagal mengirim pesan: ' + result.message);
+        alert("Gagal mengirim pesan: " + result.message);
       }
     } catch (error) {
       console.error("Error saving message to DB:", error);
-      alert('Terjadi kesalahan saat mengirim pesan');
+      alert("Terjadi kesalahan saat mengirim pesan");
     }
   };
 
@@ -764,82 +783,87 @@ export default function ChatRoomPage() {
 
     try {
       // Update pesan di server
-      const response = await fetch(`/api/messages?messageId=${editingMessage.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: editText
-        })
-      });
+      const response = await fetch(
+        `/api/messages?messageId=${editingMessage.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            text: editText,
+          }),
+        },
+      );
 
       const result = await response.json();
 
       if (result.success) {
         // Update pesan di state lokal
-        setMessages(prevMessages => {
-          const updated = prevMessages.map(msg =>
+        setMessages((prevMessages) => {
+          const updated = prevMessages.map((msg) =>
             msg.id === editingMessage.id
               ? { ...msg, text: editText, isEdited: true }
-              : msg
+              : msg,
           );
-          
+
           // 💾 CACHE: Update edited message in cache
           if (selectedRoom?.id) {
-            updateMessageInCache(selectedRoom.id, editingMessage.id, { 
-              text: editText, 
-              isEdited: true 
+            updateMessageInCache(selectedRoom.id, editingMessage.id, {
+              text: editText,
+              isEdited: true,
             });
           }
-          
+
           return updated;
         });
 
         // Reset state edit
         setEditingMessage(null);
-        setEditText('');
+        setEditText("");
       } else {
-        console.error('Gagal mengedit pesan:', result.message);
-        alert('Gagal mengedit pesan: ' + result.message);
+        console.error("Gagal mengedit pesan:", result.message);
+        alert("Gagal mengedit pesan: " + result.message);
       }
     } catch (error) {
-      console.error('Error saat mengedit pesan:', error);
-      alert('Terjadi kesalahan saat mengedit pesan');
+      console.error("Error saat mengedit pesan:", error);
+      alert("Terjadi kesalahan saat mengedit pesan");
     }
   };
 
   const cancelEditMessage = () => {
     setEditingMessage(null);
-    setEditText('');
+    setEditText("");
   };
 
   const handleDeleteMessage = async (messageId) => {
     try {
       const response = await fetch(`/api/messages?messageId=${messageId}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
 
       const result = await response.json();
 
       if (result.success) {
         // Update local state untuk menandai pesan telah dihapus
-        setMessages(prevMessages => {
-          const updated = prevMessages.map(msg =>
-            msg.id === messageId ? { ...msg, isDeleted: true } : msg
+        setMessages((prevMessages) => {
+          const updated = prevMessages.map((msg) =>
+            msg.id === messageId ? { ...msg, isDeleted: true } : msg,
           );
-          
+
           // 💾 CACHE: Update deleted message in cache
           if (selectedRoom?.id) {
-            updateMessageInCache(selectedRoom.id, messageId, { isDeleted: true });
+            updateMessageInCache(selectedRoom.id, messageId, {
+              isDeleted: true,
+            });
           }
-          
+
           return updated;
         });
 
         // Beri feedback berdasarkan hasil
         if (result.message === "Pesan sudah dihapus sebelumnya") {
-          console.log('Pesan sudah dihapus sebelumnya');
+          console.log("Pesan sudah dihapus sebelumnya");
         } else {
-          console.log('Pesan berhasil dihapus');
+          console.log("Pesan berhasil dihapus");
         }
 
         // Broadcast ke semua user di room bahwa pesan telah dihapus
@@ -847,13 +871,13 @@ export default function ChatRoomPage() {
           sendDeleteMessage(socket, messageId);
         }
       } else {
-        console.error('Gagal menghapus pesan:', result.message);
+        console.error("Gagal menghapus pesan:", result.message);
         // Tampilkan pesan error yang lebih deskriptif
-        alert('Gagal menghapus pesan: ' + result.message);
+        alert("Gagal menghapus pesan: " + result.message);
       }
     } catch (error) {
-      console.error('Error saat menghapus pesan:', error);
-      alert('Terjadi kesalahan saat menghapus pesan. Silakan coba lagi.');
+      console.error("Error saat menghapus pesan:", error);
+      alert("Terjadi kesalahan saat menghapus pesan. Silakan coba lagi.");
     }
   };
 
@@ -866,53 +890,68 @@ export default function ChatRoomPage() {
   }
 
   const typingText =
-    typingUsers.size > 0
-      ? Array.from(typingUsers).join(", ")
-      : "";
+    typingUsers.size > 0 ? Array.from(typingUsers).join(", ") : "";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-purple-50 to-indigo-100 relative overflow-hidden">
-      <div className="absolute inset-0 opacity-30">
+    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-purple-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 relative overflow-hidden">
+      <div className="absolute inset-0 opacity-30 dark:opacity-20">
         <div className="h-full w-full bg-[radial-gradient(circle,_rgba(139,_69,_195,_0.1)_1px,_transparent_1px)] bg-[length:20px_20px]"></div>
       </div>
 
-      <div className="absolute top-20 left-20 w-64 h-64 bg-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse"></div>
-      <div className="absolute bottom-20 right-20 w-72 h-72 bg-purple-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse delay-1000"></div>
+      <div className="absolute top-20 left-20 w-64 h-64 bg-blue-200 dark:bg-blue-900 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse"></div>
+      <div className="absolute bottom-20 right-20 w-72 h-72 bg-purple-200 dark:bg-purple-900 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse delay-1000"></div>
 
       <div className="flex h-screen relative z-10">
-        <div className="flex-1 backdrop-blur-lg bg-white/10 flex flex-col messages-container">
+        <div className="flex-1 backdrop-blur-lg bg-white/10 dark:bg-gray-900/40 flex flex-col messages-container">
           <div className="flex flex-col h-full relative">
             <ChatHeader
               selectedRoom={selectedRoom}
               onlineCount={onlineUsers.length}
               onInfoClick={() => setShowProfileSidebar(true)}
             />
-            
+
             {/* Model Selector - Only for AI rooms */}
-            {selectedRoom?.type === 'ai' && (
-              <div className="px-4 py-3 bg-white/20 backdrop-blur-sm border-b border-white/20">
+            {selectedRoom?.type === "ai" && (
+              <div className="px-4 py-3 bg-white/20 dark:bg-gray-800/50 backdrop-blur-sm border-b border-white/20 dark:border-gray-700">
                 <div className="flex items-center gap-3">
-                  <label className="text-sm font-medium text-gray-700">AI Model:</label>
-                  <select 
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                    AI Model:
+                  </label>
+                  <select
                     value={selectedModel}
                     onChange={(e) => handleModelChange(e.target.value)}
-                    className="flex-1 px-3 py-2 bg-white/60 backdrop-blur-sm border border-white/40 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                    className="flex-1 px-3 py-2 bg-white/60 dark:bg-gray-700 dark:text-white backdrop-blur-sm border border-white/40 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
                   >
                     <optgroup label="Latest (Gemini 3)">
-                      <option value="gemini-3-flash-preview">⚡ Gemini 3 Flash - Fast & Vision</option>
-                      <option value="gemini-3-pro-preview">🧠 Gemini 3 Pro - Most Intelligent</option>
+                      <option value="gemini-3-flash-preview">
+                        ⚡ Gemini 3 Flash - Fast & Vision
+                      </option>
+                      <option value="gemini-3-pro-preview">
+                        🧠 Gemini 3 Pro - Most Intelligent
+                      </option>
                     </optgroup>
                     <optgroup label="Stable (Gemini 2.5)">
-                      <option value="gemini-2.5-flash">🚀 Gemini 2.5 Flash - Balanced</option>
-                      <option value="gemini-2.5-pro">💎 Gemini 2.5 Pro - Advanced Thinking</option>
-                      <option value="gemini-2.5-flash-lite">⚡⚡ Gemini 2.5 Flash Lite - Ultra Fast</option>
+                      <option value="gemini-2.5-flash">
+                        🚀 Gemini 2.5 Flash - Balanced
+                      </option>
+                      <option value="gemini-2.5-pro">
+                        💎 Gemini 2.5 Pro - Advanced Thinking
+                      </option>
+                      <option value="gemini-2.5-flash-lite">
+                        ⚡⚡ Gemini 2.5 Flash Lite - Ultra Fast
+                      </option>
                     </optgroup>
                     <optgroup label="Previous Gen (Gemini 2.0)">
-                      <option value="gemini-2.0-flash">📦 Gemini 2.0 Flash - Workhorse</option>
+                      <option value="gemini-2.0-flash">
+                        📦 Gemini 2.0 Flash - Workhorse
+                      </option>
                     </optgroup>
                   </select>
                 </div>
-                <p className="text-xs text-gray-600 mt-1">Choose the AI model for this conversation. Your preference will be saved.</p>
+                <p className="text-xs text-gray-600 mt-1">
+                  Choose the AI model for this conversation. Your preference
+                  will be saved.
+                </p>
               </div>
             )}
 
@@ -925,7 +964,9 @@ export default function ChatRoomPage() {
                 <div className="flex justify-center items-center py-3 mb-2">
                   <div className="flex items-center gap-2 px-4 py-2 bg-white/40 backdrop-blur-sm rounded-full">
                     <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                    <span className="text-sm text-gray-700">Loading more messages...</span>
+                    <span className="text-sm text-gray-700">
+                      Loading more messages...
+                    </span>
                   </div>
                 </div>
               )}
@@ -965,9 +1006,9 @@ export default function ChatRoomPage() {
                     value={editText}
                     onChange={(e) => setEditText(e.target.value)}
                     onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
+                      if (e.key === "Enter") {
                         saveEditMessage();
-                      } else if (e.key === 'Escape') {
+                      } else if (e.key === "Escape") {
                         cancelEditMessage();
                       }
                     }}
