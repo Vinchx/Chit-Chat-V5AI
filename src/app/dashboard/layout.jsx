@@ -7,8 +7,38 @@ import Image from "next/image";
 import { useUser } from "@/contexts/UserContext";
 import AddFriendModal from "../components/AddFriendModal";
 import NotificationModal from "../components/NotificationModal";
+import Dock from "../../components/Dock";
+import {
+  VscHome,
+  VscArchive,
+  VscAccount,
+  VscSettingsGear,
+} from "react-icons/vsc";
 
 export default function DashboardLayout({ children }) {
+  const items = [
+    {
+      icon: <VscHome size={24} color="black" />,
+      label: "Home",
+      onClick: () => alert("Home!"),
+    },
+    {
+      icon: <VscArchive size={24} color="black" />,
+      label: "Archive",
+      onClick: () => alert("Archive!"),
+    },
+    {
+      icon: <VscAccount size={24} color="black" />,
+      label: "Profile",
+      onClick: () => router.push("/profile"),
+    },
+    {
+      icon: <VscSettingsGear size={24} color="black" />,
+      label: "Settings",
+      onClick: () => alert("Settings!"),
+    },
+  ];
+
   const router = useRouter();
   const { data: session, status } = useSession();
   const { user: currentUser } = useUser();
@@ -36,16 +66,16 @@ export default function DashboardLayout({ children }) {
 
   // Helper function untuk normalize avatar path
   const normalizeAvatar = (avatar) => {
-    return avatar ? avatar.replace(/\\/g, '/') : null;
+    return avatar ? avatar.replace(/\\/g, "/") : null;
   };
 
   // Helper function untuk get initials
   const getInitials = (name) => {
-    if (!name) return 'U';
+    if (!name) return "U";
     return name
-      .split(' ')
-      .map(word => word[0])
-      .join('')
+      .split(" ")
+      .map((word) => word[0])
+      .join("")
       .toUpperCase()
       .slice(0, 2);
   };
@@ -79,23 +109,23 @@ export default function DashboardLayout({ children }) {
   const loadAllData = async () => {
     if (isLoadingRef.current) return;
     isLoadingRef.current = true;
-    
+
     try {
       // Load rooms and friends data in parallel
       const [roomsRes, friendsRes] = await Promise.all([
         fetch("/api/rooms"),
-        fetch("/api/friends")
+        fetch("/api/friends"),
       ]);
-      
+
       const [roomsData, friendsData] = await Promise.all([
         roomsRes.json(),
-        friendsRes.json()
+        friendsRes.json(),
       ]);
-      
+
       if (roomsData.success) {
         setRooms(roomsData.data.rooms);
       }
-      
+
       if (friendsData.success) {
         setFriends(friendsData.data.friends || []);
         setFriendRequests(friendsData.data.pendingReceived || []);
@@ -164,7 +194,7 @@ export default function DashboardLayout({ children }) {
     setSelectedMembers((prev) =>
       prev.includes(userId)
         ? prev.filter((id) => id !== userId)
-        : [...prev, userId]
+        : [...prev, userId],
     );
   };
 
@@ -229,9 +259,9 @@ export default function DashboardLayout({ children }) {
   };
 
   const updateAvatar = (newAvatar) => {
-    setUser(prevUser => ({
+    setUser((prevUser) => ({
       ...prevUser,
-      avatar: newAvatar
+      avatar: newAvatar,
     }));
   };
 
@@ -383,8 +413,8 @@ export default function DashboardLayout({ children }) {
                             {room.type === "private"
                               ? "👤"
                               : room.type === "group"
-                              ? "👥"
-                              : "🤖"}
+                                ? "👥"
+                                : "🤖"}
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
@@ -444,7 +474,7 @@ export default function DashboardLayout({ children }) {
                                     type: "private",
                                     memberIds: [friend.userId],
                                   }),
-                                }
+                                },
                               );
 
                               const result = await response.json();
@@ -453,11 +483,11 @@ export default function DashboardLayout({ children }) {
                                 // Redirect ke room yang baru dibuat menggunakan slug dari response
                                 if (result.room && result.room.slug) {
                                   router.push(
-                                    `/dashboard/chat/${result.room.slug}`
+                                    `/dashboard/chat/${result.room.slug}`,
                                   );
                                 } else {
                                   alert(
-                                    "Room berhasil dibuat tetapi slug tidak ditemukan"
+                                    "Room berhasil dibuat tetapi slug tidak ditemukan",
                                   );
                                 }
                               } else if (result.existingRoom) {
@@ -469,20 +499,20 @@ export default function DashboardLayout({ children }) {
                                   // Cari room yang sudah ada
                                   const existingRoom =
                                     roomsData.data.rooms.find(
-                                      (r) => r.id === result.existingRoom.id
+                                      (r) => r.id === result.existingRoom.id,
                                     );
                                   if (existingRoom && existingRoom.slug) {
                                     router.push(
-                                      `/dashboard/chat/${existingRoom.slug}`
+                                      `/dashboard/chat/${existingRoom.slug}`,
                                     );
                                   } else {
                                     alert(
-                                      `Room dengan ${friend.displayName} sudah ada!`
+                                      `Room dengan ${friend.displayName} sudah ada!`,
                                     );
                                   }
                                 } else {
                                   alert(
-                                    `Room dengan ${friend.displayName} sudah ada!`
+                                    `Room dengan ${friend.displayName} sudah ada!`,
                                   );
                                 }
                               } else {
@@ -552,15 +582,14 @@ export default function DashboardLayout({ children }) {
             )}
           </div>
 
-          {/* Footer dengan tombol profil */}
+          {/* Footer dengan Dock navigation */}
           <div className="p-4 border-t border-white/20 bg-white/5">
-            <button
-              onClick={() => router.push("/profile")}
-              className="w-full p-3 bg-gradient-to-r from-purple-400 to-blue-400 text-white rounded-lg hover:from-purple-500 hover:to-blue-500 transition-all text-sm font-medium flex items-center justify-center space-x-2"
-            >
-              <span>👤</span>
-              <span>Profil Saya</span>
-            </button>
+            <Dock
+              items={items}
+              panelHeight={40}
+              baseItemSize={40}
+              magnification={70}
+            />
           </div>
         </div>
 
@@ -696,7 +725,7 @@ export default function DashboardLayout({ children }) {
                       type="button"
                       onClick={() => {
                         alert(
-                          "Untuk room private, gunakan tombol 'Chat' di daftar teman"
+                          "Untuk room private, gunakan tombol 'Chat' di daftar teman",
                         );
                       }}
                       className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${

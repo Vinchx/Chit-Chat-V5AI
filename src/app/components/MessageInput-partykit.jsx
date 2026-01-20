@@ -60,9 +60,9 @@ export default function MessageInput({
     if (!file) return;
 
     // Validate file size
-    const isImage = file.type.startsWith('image/');
+    const isImage = file.type.startsWith("image/");
     const maxSize = isImage ? 5 * 1024 * 1024 : 10 * 1024 * 1024;
-    
+
     if (file.size > maxSize) {
       const maxSizeMB = maxSize / (1024 * 1024);
       alert(`File terlalu besar! Maksimal ${maxSizeMB}MB`);
@@ -87,7 +87,7 @@ export default function MessageInput({
     setSelectedFile(null);
     setFilePreview(null);
     if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      fileInputRef.current.value = "";
     }
   };
 
@@ -112,26 +112,26 @@ export default function MessageInput({
       setIsUploading(true);
       try {
         const formData = new FormData();
-        formData.append('file', selectedFile);
-        formData.append('roomId', roomId);
+        formData.append("file", selectedFile);
+        formData.append("roomId", roomId);
 
-        const response = await fetch('/api/upload/chat', {
-          method: 'POST',
+        const response = await fetch("/api/upload/chat", {
+          method: "POST",
           body: formData,
         });
 
         const data = await response.json();
-        
+
         if (data.success) {
           attachment = data.data;
         } else {
-          alert('Gagal upload file: ' + data.message);
+          alert("Gagal upload file: " + data.message);
           setIsUploading(false);
           return;
         }
       } catch (error) {
-        console.error('Error uploading file:', error);
-        alert('Terjadi kesalahan saat upload file');
+        console.error("Error uploading file:", error);
+        alert("Terjadi kesalahan saat upload file");
         setIsUploading(false);
         return;
       }
@@ -145,7 +145,7 @@ export default function MessageInput({
 
     setNewMessage("");
     handleRemoveFile();
-    
+
     // Clear reply mode after sending
     if (onCancelReply) {
       onCancelReply();
@@ -172,11 +172,11 @@ export default function MessageInput({
               <div className="flex items-center gap-2">
                 {replyingTo.attachment && (
                   <span className="text-sm">
-                    {replyingTo.attachment.type === 'image' ? '🖼️' : '📎'}
+                    {replyingTo.attachment.type === "image" ? "🖼️" : "📎"}
                   </span>
                 )}
                 <p className="text-sm text-gray-700 truncate">
-                  {replyingTo.text || '[Attachment]'}
+                  {replyingTo.text || "[Attachment]"}
                 </p>
               </div>
             </div>
@@ -185,8 +185,18 @@ export default function MessageInput({
               className="p-1 hover:bg-red-100 rounded-full transition-colors"
               title="Cancel reply"
             >
-              <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="w-4 h-4 text-red-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
@@ -209,21 +219,45 @@ export default function MessageInput({
               </div>
             ) : (
               <div className="w-20 h-20 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                <svg className="w-10 h-10 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                <svg
+                  className="w-10 h-10 text-blue-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                  />
                 </svg>
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-800 truncate">{selectedFile.name}</p>
-              <p className="text-xs text-gray-600">{(selectedFile.size / 1024).toFixed(1)} KB</p>
+              <p className="text-sm font-medium text-gray-800 truncate">
+                {selectedFile.name}
+              </p>
+              <p className="text-xs text-gray-600">
+                {(selectedFile.size / 1024).toFixed(1)} KB
+              </p>
             </div>
             <button
               onClick={handleRemoveFile}
               className="p-1 hover:bg-red-100 rounded-full transition-colors"
             >
-              <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="w-5 h-5 text-red-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
@@ -239,8 +273,18 @@ export default function MessageInput({
           className="p-2 bg-white/30 backdrop-blur-sm border border-white/50 rounded-full hover:bg-white/40 transition-colors disabled:opacity-50"
           title="Attach file"
         >
-          <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+          <svg
+            className="w-6 h-6 text-gray-700"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+            />
           </svg>
         </button>
         <input
@@ -268,7 +312,7 @@ export default function MessageInput({
           disabled={isUploading || (newMessage.trim() === "" && !selectedFile)}
           className="px-6 py-2 bg-gradient-to-r from-blue-400 to-purple-400 text-white rounded-full hover:from-blue-500 hover:to-purple-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isUploading ? 'Uploading...' : 'Send'}
+          {isUploading ? "Uploading..." : "Send"}
         </button>
       </div>
     </div>
