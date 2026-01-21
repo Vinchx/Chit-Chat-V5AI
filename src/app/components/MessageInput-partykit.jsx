@@ -165,9 +165,9 @@ export default function MessageInput({
       greenOffset={10}
       blueOffset={20}
       borderWidth={0.07}
-      className="!p-0 !rounded-none"
+      className="!p-0 !rounded-none !items-stretch !justify-start"
     >
-      <div className="py-3 sm:py-4 pb-safe">
+      <div className="w-full px-3 sm:px-4 py-3 sm:py-4 pb-safe">
         {/* Reply Preview */}
         {replyingTo && (
           <div className="mb-2 sm:mb-3 p-2 sm:p-3 bg-blue-100/60 dark:bg-blue-500/20 rounded-xl border border-blue-300/50 dark:border-blue-400/30 backdrop-blur-sm">
@@ -308,7 +308,7 @@ export default function MessageInput({
             onKeyPress={handleKeyPress}
             placeholder="Type a message..."
             disabled={isUploading}
-            className="flex-1 w-[1400px] px-3 sm:px-4 md:px-5 py-2.5 sm:py-3 md:py-4 bg-white/95 dark:bg-black/65 backdrop-blur-sm border border-gray-300/50 dark:border-white/20 rounded-full focus:outline-none focus:ring-2 focus:ring-white-400/50 focus:border-transparent text-sm sm:text-base text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 disabled:opacity-50 transition-all"
+            className="flex-1 min-w-0 px-3 sm:px-4 md:px-5 py-2.5 sm:py-3 md:py-4 bg-white/95 dark:bg-black/65 backdrop-blur-sm border border-gray-300/50 dark:border-white/20 rounded-full focus:outline-none focus:ring-2 focus:ring-white-400/50 focus:border-transparent text-sm sm:text-base text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 disabled:opacity-50 transition-all"
           />
 
           {/* Send Button */}

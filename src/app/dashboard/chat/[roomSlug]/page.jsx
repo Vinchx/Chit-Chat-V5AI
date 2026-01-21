@@ -1026,7 +1026,7 @@ export default function ChatRoomPage() {
             )}
 
             <div
-              className="flex-1 p-4 pb-32 overflow-y-auto scroll-smooth"
+              className="flex-1 p-4 pt-20 pb-32 overflow-y-auto scroll-smooth"
               onScroll={handleScroll}
             >
               {/* Loading indicator for load more messages */}
