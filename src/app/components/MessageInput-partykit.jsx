@@ -275,7 +275,7 @@ export default function MessageInput({
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading}
-            className="p-2.5 sm:p-3 md:p-4 bg-white/70 dark:bg-white/10 backdrop-blur-sm border border-gray-300/50 dark:border-white/20 rounded-full hover:bg-white/90 dark:hover:bg-white/20 transition-all disabled:opacity-50 hover:scale-105 flex-shrink-0"
+            className="p-2.5 sm:p-3 md:p-4 bg-white/95 dark:bg-black/65 backdrop-blur-sm border border-gray-300/50 dark:border-white/20 rounded-full hover:bg-white/90 dark:hover:bg-white/20 transition-all disabled:opacity-50 hover:scale-105 flex-shrink-0"
             title="Attach file"
           >
             <svg
@@ -308,7 +308,7 @@ export default function MessageInput({
             onKeyPress={handleKeyPress}
             placeholder="Type a message..."
             disabled={isUploading}
-            className="flex-1 w-[1400px] px-3 sm:px-4 md:px-5 py-2.5 sm:py-3 md:py-4 bg-white/95 dark:bg-white/10 backdrop-blur-sm border border-gray-300/50 dark:border-white/20 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-transparent text-sm sm:text-base text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 disabled:opacity-50 transition-all"
+            className="flex-1 w-[1400px] px-3 sm:px-4 md:px-5 py-2.5 sm:py-3 md:py-4 bg-white/95 dark:bg-black/65 backdrop-blur-sm border border-gray-300/50 dark:border-white/20 rounded-full focus:outline-none focus:ring-2 focus:ring-white-400/50 focus:border-transparent text-sm sm:text-base text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 disabled:opacity-50 transition-all"
           />
 
           {/* Send Button */}
@@ -317,7 +317,7 @@ export default function MessageInput({
             disabled={
               isUploading || (newMessage.trim() === "" && !selectedFile)
             }
-            className="px-4 sm:px-5 md:px-6 py-2.5 sm:py-3 md:py-4 bg-white/95 dark:bg-white/10 backdrop-blur-sm border border-gray-300/50 dark:border-white/20 rounded-full hover:bg-white dark:hover:bg-white/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 shadow-lg flex-shrink-0 text-xs sm:text-sm md:text-base font-medium text-gray-900 dark:text-gray-100"
+            className="px-4 sm:px-5 md:px-6 py-2.5 sm:py-3 md:py-4 bg-white/95 dark:bg-black/65 backdrop-blur-sm border border-gray-300/50 dark:border-white/20 rounded-full hover:bg-white dark:hover:bg-white/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 shadow-lg flex-shrink-0 text-xs sm:text-sm md:text-base font-medium text-gray-900 dark:text-gray-100"
           >
             {isUploading ? (
               <span className="flex items-center gap-1.5 sm:gap-2">
