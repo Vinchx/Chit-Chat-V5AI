@@ -219,7 +219,7 @@ function FlowingRoomItem({
 
               {/* Landscape Banner Image */}
               <div
-                className="w-[125px] h-[55px] rounded-4xl bg-cover bg-center flex-shrink-0 shadow-md"
+                className="w-[125px] h-[50px] rounded-4xl bg-cover bg-center flex-shrink-0 shadow-md"
                 style={getBannerStyle()}
               >
                 {!avatarUrl && (

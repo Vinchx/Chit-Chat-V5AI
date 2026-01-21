@@ -14,22 +14,24 @@ import { VscHome, VscAdd, VscAccount, VscSettingsGear } from "react-icons/vsc";
 export default function DashboardLayout({ children }) {
   const items = [
     {
-      icon: <VscHome size={24} color="white" />,
+      icon: <VscHome size={24} className="text-gray-800 dark:text-white" />,
       label: "Home",
       onClick: () => alert("Home!"),
     },
     {
-      icon: <VscAdd size={24} color="white" />,
+      icon: <VscAdd size={24} className="text-gray-800 dark:text-white" />,
       label: "Create Room",
       onClick: () => setShowCreateRoomModal(true),
     },
     {
-      icon: <VscAccount size={24} color="white" />,
+      icon: <VscAccount size={24} className="text-gray-800 dark:text-white" />,
       label: "Profile",
       onClick: () => router.push("/profile"),
     },
     {
-      icon: <VscSettingsGear size={24} color="white" />,
+      icon: (
+        <VscSettingsGear size={24} className="text-gray-800 dark:text-white" />
+      ),
       label: "Settings",
       onClick: () => alert("Settings!"),
     },

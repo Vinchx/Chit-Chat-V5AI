@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import Image from "next/image";
+import GlassSurface from "@/components/GlassSurface";
 
 export default function MessageInput({
   onSendMessage,
@@ -24,20 +25,16 @@ export default function MessageInput({
     const value = e.target.value;
     setNewMessage(value);
 
-    // Typing indicator
     if (socket) {
-      // Kirim typing event HANYA jika belum typing dan ada text
       if (!isTyping && value.length > 0 && onTyping) {
         setIsTyping(true);
         onTyping();
       }
 
-      // Clear timer lama
       if (typingTimerRef.current) {
         clearTimeout(typingTimerRef.current);
       }
 
-      // Set timer baru untuk auto-stop typing
       if (value.length > 0) {
         typingTimerRef.current = setTimeout(() => {
           setIsTyping(false);
@@ -46,7 +43,6 @@ export default function MessageInput({
           }
         }, 2000);
       } else {
-        // Jika input kosong, langsung stop
         setIsTyping(false);
         if (onStopTyping) {
           onStopTyping();
@@ -59,7 +55,6 @@ export default function MessageInput({
     const file = e.target.files[0];
     if (!file) return;
 
-    // Validate file size
     const isImage = file.type.startsWith("image/");
     const maxSize = isImage ? 5 * 1024 * 1024 : 10 * 1024 * 1024;
 
@@ -71,7 +66,6 @@ export default function MessageInput({
 
     setSelectedFile(file);
 
-    // Create preview for images
     if (isImage) {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -96,7 +90,6 @@ export default function MessageInput({
       return;
     }
 
-    // Stop typing indicator saat kirim pesan
     setIsTyping(false);
     if (onStopTyping) {
       onStopTyping();
@@ -107,7 +100,6 @@ export default function MessageInput({
 
     let attachment = null;
 
-    // Upload file if selected
     if (selectedFile) {
       setIsUploading(true);
       try {
@@ -138,7 +130,6 @@ export default function MessageInput({
       setIsUploading(false);
     }
 
-    // Kirim message via callback (Partykit handled di parent)
     if (onSendMessage) {
       await onSendMessage(newMessage, attachment, replyingTo);
     }
@@ -146,7 +137,6 @@ export default function MessageInput({
     setNewMessage("");
     handleRemoveFile();
 
-    // Clear reply mode after sending
     if (onCancelReply) {
       onCancelReply();
     }
@@ -160,67 +150,50 @@ export default function MessageInput({
   };
 
   return (
-    <div className="p-4 border-t border-white/30 backdrop-blur-lg bg-white/20">
-      {/* Reply Preview */}
-      {replyingTo && (
-        <div className="mb-3 p-3 bg-blue-50 rounded-lg border-l-4 border-blue-400">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <p className="text-xs font-semibold text-blue-700 mb-1">
-                Replying to {replyingTo.sender}
-              </p>
-              <div className="flex items-center gap-2">
-                {replyingTo.attachment && (
-                  <span className="text-sm">
-                    {replyingTo.attachment.type === "image" ? "🖼️" : "📎"}
-                  </span>
-                )}
-                <p className="text-sm text-gray-700 truncate">
-                  {replyingTo.text || "[Attachment]"}
+    <GlassSurface
+      width="100%"
+      height="80px"
+      borderRadius={0}
+      backgroundOpacity={0.1}
+      blur={50}
+      saturation={0.5}
+      brightness={50}
+      opacity={0.93}
+      displace={0.3}
+      distortionScale={30}
+      redOffset={0}
+      greenOffset={10}
+      blueOffset={20}
+      borderWidth={0.07}
+      className="!p-0 !rounded-none"
+    >
+      <div className="px-2 py-4 bg-gradient-to-t from-black/20 to-transparent backdrop-blur-xl">
+        {/* Reply Preview */}
+        {replyingTo && (
+          <div className="mb-3 p-3 bg-blue-500/20 dark:bg-blue-400/10 rounded-xl border border-blue-400/30 backdrop-blur-sm">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <p className="text-xs font-semibold text-blue-300 mb-1">
+                  Replying to {replyingTo.sender}
                 </p>
+                <div className="flex items-center gap-2">
+                  {replyingTo.attachment && (
+                    <span className="text-sm">
+                      {replyingTo.attachment.type === "image" ? "🖼️" : "📎"}
+                    </span>
+                  )}
+                  <p className="text-sm text-gray-300 truncate">
+                    {replyingTo.text || "[Attachment]"}
+                  </p>
+                </div>
               </div>
-            </div>
-            <button
-              onClick={onCancelReply}
-              className="p-1 hover:bg-red-100 rounded-full transition-colors"
-              title="Cancel reply"
-            >
-              <svg
-                className="w-4 h-4 text-red-500"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+              <button
+                onClick={onCancelReply}
+                className="p-1 hover:bg-red-500/20 rounded-full transition-colors"
+                title="Cancel reply"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* File Preview */}
-      {selectedFile && (
-        <div className="mb-3 p-3 bg-white/30 rounded-lg backdrop-blur-sm">
-          <div className="flex items-start space-x-3">
-            {filePreview ? (
-              <div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
-                <Image
-                  src={filePreview}
-                  alt="Preview"
-                  fill
-                  className="object-cover"
-                  sizes="80px"
-                />
-              </div>
-            ) : (
-              <div className="w-20 h-20 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
                 <svg
-                  className="w-10 h-10 text-blue-500"
+                  className="w-4 h-4 text-red-400"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -229,92 +202,151 @@ export default function MessageInput({
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                    d="M6 18L18 6M6 6l12 12"
                   />
                 </svg>
-              </div>
-            )}
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-800 truncate">
-                {selectedFile.name}
-              </p>
-              <p className="text-xs text-gray-600">
-                {(selectedFile.size / 1024).toFixed(1)} KB
-              </p>
+              </button>
             </div>
-            <button
-              onClick={handleRemoveFile}
-              className="p-1 hover:bg-red-100 rounded-full transition-colors"
-            >
-              <svg
-                className="w-5 h-5 text-red-500"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Input Area */}
-      <div className="flex space-x-3">
-        {/* File Attach Button */}
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          disabled={isUploading}
-          className="p-2 bg-white/30 backdrop-blur-sm border border-white/50 rounded-full hover:bg-white/40 transition-colors disabled:opacity-50"
-          title="Attach file"
-        >
-          <svg
-            className="w-6 h-6 text-gray-700"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+        {/* File Preview */}
+        {selectedFile && (
+          <div className="mb-3 p-3 bg-white/10 dark:bg-gray-700/20 rounded-xl backdrop-blur-sm border border-white/20">
+            <div className="flex items-start space-x-3">
+              {filePreview ? (
+                <div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
+                  <Image
+                    src={filePreview}
+                    alt="Preview"
+                    fill
+                    className="object-cover"
+                    sizes="80px"
+                  />
+                </div>
+              ) : (
+                <div className="w-20 h-20 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <svg
+                    className="w-10 h-10 text-blue-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                    />
+                  </svg>
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-200 truncate">
+                  {selectedFile.name}
+                </p>
+                <p className="text-xs text-gray-400">
+                  {(selectedFile.size / 1024).toFixed(1)} KB
+                </p>
+              </div>
+              <button
+                onClick={handleRemoveFile}
+                className="p-1 hover:bg-red-500/20 rounded-full transition-colors"
+              >
+                <svg
+                  className="w-5 h-5 text-red-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Input Area */}
+        <div className="flex space-x-5">
+          {/* File Attach Button */}
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
+            className="p-2.5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full hover:bg-white/20 transition-all disabled:opacity-50 hover:scale-105"
+            title="Attach file"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
-            />
-          </svg>
-        </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          onChange={handleFileSelect}
-          accept="image/*,.pdf,.doc,.docx,.txt,.zip"
-          className="hidden"
-        />
+            <svg
+              className="w-5 h-5 text-gray-200"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+              />
+            </svg>
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            onChange={handleFileSelect}
+            accept="image/*,.pdf,.doc,.docx,.txt,.zip"
+            className="hidden"
+          />
 
-        {/* Text Input */}
-        <input
-          type="text"
-          value={newMessage}
-          onChange={handleInputChange}
-          onKeyPress={handleKeyPress}
-          placeholder="Type a message..."
-          disabled={isUploading}
-          className="flex-1 px-4 py-2 bg-white/30 backdrop-blur-sm border border-white/50 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-300 text-gray-800 placeholder-gray-600 disabled:opacity-50"
-        />
+          {/* Text Input */}
+          <input
+            type="text"
+            value={newMessage}
+            onChange={handleInputChange}
+            onKeyPress={handleKeyPress}
+            placeholder="Type a message..."
+            disabled={isUploading}
+            className="flex-1 px-5 py-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-transparent text-gray-100 placeholder-gray-400 disabled:opacity-50 transition-all w-[400px]"
+          />
 
-        {/* Send Button */}
-        <button
-          onClick={handleSendMessage}
-          disabled={isUploading || (newMessage.trim() === "" && !selectedFile)}
-          className="px-6 py-2 bg-gradient-to-r from-blue-400 to-purple-400 text-white rounded-full hover:from-blue-500 hover:to-purple-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isUploading ? "Uploading..." : "Send"}
-        </button>
+          {/* Send Button */}
+          <button
+            onClick={handleSendMessage}
+            disabled={
+              isUploading || (newMessage.trim() === "" && !selectedFile)
+            }
+            className="px-5 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-full hover:from-blue-600 hover:to-purple-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 shadow-lg shadow-blue-500/30"
+          >
+            {isUploading ? (
+              <span className="flex items-center gap-2">
+                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    fill="none"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                Uploading...
+              </span>
+            ) : (
+              "Send"
+            )}
+          </button>
+        </div>
       </div>
-    </div>
+    </GlassSurface>
   );
 }

@@ -902,7 +902,16 @@ export default function ChatRoomPage() {
       <div className="absolute bottom-20 right-20 w-72 h-72 bg-purple-200 dark:bg-purple-900 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse delay-1000"></div>
 
       <div className="flex h-screen relative z-10">
-        <div className="flex-1 backdrop-blur-lg bg-white/10 dark:bg-gray-900/40 flex flex-col messages-container">
+        <div className="flex-1 backdrop-blur-lg bg-gradient-to-br from-gray-100/90 via-gray-50/70 to-gray-100/90 dark:from-gray-950/80 dark:via-gray-900/60 dark:to-gray-950/80 flex flex-col messages-container relative overflow-hidden">
+          {/* Subtle pattern overlay */}
+          <div
+            className="absolute inset-0 opacity-5 pointer-events-none"
+            style={{
+              backgroundImage:
+                "radial-gradient(circle at 2px 2px, white 1px, transparent 0)",
+              backgroundSize: "40px 40px",
+            }}
+          ></div>
           <div className="flex flex-col h-full relative">
             <ChatHeader
               selectedRoom={selectedRoom}
@@ -956,7 +965,7 @@ export default function ChatRoomPage() {
             )}
 
             <div
-              className="flex-1 p-4 overflow-y-auto scroll-smooth"
+              className="flex-1 p-4 pb-32 overflow-y-auto scroll-smooth"
               onScroll={handleScroll}
             >
               {/* Loading indicator for load more messages */}
@@ -1032,16 +1041,21 @@ export default function ChatRoomPage() {
               </div>
             )}
 
+            {/* Input Chat - Fixed Overlay with Glass Effect */}
             {!editingMessage && (
-              <MessageInput
-                onSendMessage={handleSendMessage}
-                socket={socket}
-                onTyping={() => socket && sendTyping(socket)}
-                onStopTyping={() => socket && sendStopTyping(socket)}
-                roomId={selectedRoom.id}
-                replyingTo={replyingTo}
-                onCancelReply={handleCancelReply}
-              />
+              <div className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none">
+                <div className="pointer-events-auto">
+                  <MessageInput
+                    onSendMessage={handleSendMessage}
+                    socket={socket}
+                    onTyping={() => socket && sendTyping(socket)}
+                    onStopTyping={() => socket && sendStopTyping(socket)}
+                    roomId={selectedRoom.id}
+                    replyingTo={replyingTo}
+                    onCancelReply={handleCancelReply}
+                  />
+                </div>
+              </div>
             )}
           </div>
         </div>
