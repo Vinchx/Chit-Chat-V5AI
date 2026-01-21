@@ -5,9 +5,12 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import AvatarUpload from "./AvatarUpload";
 import EditProfileModal from "./EditProfileModal";
+import ChangePasswordModal from "./ChangePasswordModal";
 
 const ProfileClient = ({ user, isOwnProfile }) => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] =
+    useState(false);
   const [copiedUsername, setCopiedUsername] = useState(false);
 
   const copyUsername = () => {
@@ -354,6 +357,25 @@ const ProfileClient = ({ user, isOwnProfile }) => {
                       </svg>
                       Edit Profile
                     </button>
+                    <button
+                      onClick={() => setIsChangePasswordModalOpen(true)}
+                      className="w-full flex items-center justify-center px-4 py-3 backdrop-blur-md bg-orange-500/20 dark:bg-orange-600/30 hover:bg-orange-500/30 dark:hover:bg-orange-600/40 text-orange-700 dark:text-orange-400 border border-orange-400/30 rounded-xl font-medium transition-all transform hover:scale-105"
+                    >
+                      <svg
+                        className="w-5 h-5 mr-2"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+                        />
+                      </svg>
+                      Ganti Password
+                    </button>
                     <Link
                       href="/dashboard"
                       className="w-full flex items-center justify-center px-4 py-3 backdrop-blur-md bg-white/40 dark:bg-gray-800/50 hover:bg-white/60 dark:hover:bg-gray-800/70 text-gray-800 dark:text-white rounded-xl font-medium transition-all"
@@ -416,6 +438,14 @@ const ProfileClient = ({ user, isOwnProfile }) => {
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
       />
+
+      {/* Change Password Modal */}
+      {isOwnProfile && (
+        <ChangePasswordModal
+          isOpen={isChangePasswordModalOpen}
+          onClose={() => setIsChangePasswordModalOpen(false)}
+        />
+      )}
     </>
   );
 };

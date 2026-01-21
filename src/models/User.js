@@ -51,6 +51,14 @@ const UserSchema = new mongoose.Schema({
     type: Date,
     default: null,
   },
+  resetPasswordOtp: {
+    type: String,
+    default: null,
+  },
+  resetPasswordExpires: {
+    type: Date,
+    default: null,
+  },
 });
 
 // Prevent model overwrite upon initial compilation
