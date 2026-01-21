@@ -947,21 +947,21 @@ export default function ChatRoomPage() {
 
             {/* Model Selector & AI Toggle - Only for AI rooms */}
             {selectedRoom?.type === "ai" && (
-              <div className="px-4 py-3 bg-white/20 dark:bg-gray-800/50 backdrop-blur-sm border-b border-white/20 dark:border-gray-700">
+              <div className="px-3 sm:px-4 py-3 bg-white/30 dark:bg-gray-800/60 backdrop-blur-md border-b border-white/30 dark:border-gray-700">
                 {/* AI Toggle Switch */}
-                <div className="flex items-center justify-between mb-3 pb-3 border-b border-white/20 dark:border-gray-600">
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl">
+                <div className="flex items-center justify-between mb-3 pb-3 border-b border-white/30 dark:border-gray-600">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <span className="text-xl sm:text-2xl flex-shrink-0">
                       {isAIEnabled ? "🤖" : "💤"}
                     </span>
-                    <div>
-                      <div className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">
                         AI Assistant
                       </div>
-                      <div className="text-xs text-gray-600 dark:text-gray-400">
+                      <div className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 truncate">
                         {isAIEnabled
-                          ? "Aktif - AI akan merespons pesan Anda"
-                          : "Nonaktif - AI tidak akan merespons"}
+                          ? "Aktif - AI akan merespons"
+                          : "Nonaktif - AI tidak merespons"}
                       </div>
                     </div>
                   </div>
@@ -969,7 +969,7 @@ export default function ChatRoomPage() {
                   {/* Toggle Switch */}
                   <button
                     onClick={handleAIToggle}
-                    className={`relative inline-flex h-8 w-14 items-center rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                    className={`relative inline-flex h-7 w-12 sm:h-8 sm:w-14 items-center rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 flex-shrink-0 ml-2 ${
                       isAIEnabled
                         ? "bg-gradient-to-r from-green-400 to-green-600 focus:ring-green-500"
                         : "bg-gray-300 dark:bg-gray-600 focus:ring-gray-400"
@@ -981,12 +981,14 @@ export default function ChatRoomPage() {
                     }
                   >
                     <span
-                      className={`inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform duration-300 ${
-                        isAIEnabled ? "translate-x-7" : "translate-x-1"
+                      className={`inline-block h-5 w-5 sm:h-6 sm:w-6 transform rounded-full bg-white shadow-lg transition-transform duration-300 ${
+                        isAIEnabled
+                          ? "translate-x-6 sm:translate-x-7"
+                          : "translate-x-1"
                       }`}
                     >
                       {isAIEnabled && (
-                        <span className="flex items-center justify-center h-full w-full text-xs">
+                        <span className="flex items-center justify-center h-full w-full text-[10px] sm:text-xs">
                           ✓
                         </span>
                       )}
@@ -997,44 +999,26 @@ export default function ChatRoomPage() {
                 {/* Model Selector - Only shown when AI is enabled */}
                 {isAIEnabled && (
                   <>
-                    <div className="flex items-center gap-3">
-                      <label className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                      <label className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 flex-shrink-0">
                         AI Model:
                       </label>
                       <select
                         value={selectedModel}
                         onChange={(e) => handleModelChange(e.target.value)}
-                        className="flex-1 px-3 py-2 bg-white/60 dark:bg-gray-700 dark:text-white backdrop-blur-sm border border-white/40 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                        className="w-full sm:flex-1 px-3 py-2 bg-white/70 dark:bg-gray-700 dark:text-white backdrop-blur-sm border border-white/50 dark:border-gray-600 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all shadow-sm"
                       >
-                        <optgroup label="Latest (Gemini 3)">
-                          <option value="gemini-3-flash-preview">
-                            ⚡ Gemini 3 Flash - Fast & Vision
-                          </option>
-                          <option value="gemini-3-pro-preview">
-                            🧠 Gemini 3 Pro - Most Intelligent
-                          </option>
-                        </optgroup>
-                        <optgroup label="Stable (Gemini 2.5)">
-                          <option value="gemini-2.5-flash">
-                            🚀 Gemini 2.5 Flash - Balanced
-                          </option>
-                          <option value="gemini-2.5-pro">
-                            💎 Gemini 2.5 Pro - Advanced Thinking
-                          </option>
-                          <option value="gemini-2.5-flash-lite">
-                            ⚡⚡ Gemini 2.5 Flash Lite - Ultra Fast
-                          </option>
-                        </optgroup>
-                        <optgroup label="Previous Gen (Gemini 2.0)">
-                          <option value="gemini-2.0-flash">
-                            📦 Gemini 2.0 Flash - Workhorse
-                          </option>
-                        </optgroup>
+                        <option value="gemini-3-flash-preview">
+                          ⚡ Gemini 3 Flash - Latest & Fast
+                        </option>
+                        <option value="gemini-2.5-flash">
+                          🚀 Gemini 2.5 Flash - Stable & Balanced
+                        </option>
                       </select>
                     </div>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-                      Choose the AI model for this conversation. Your preference
-                      will be saved.
+                    <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 mt-2">
+                      Choose your preferred AI model. Your selection will be
+                      saved automatically.
                     </p>
                   </>
                 )}
@@ -1120,18 +1104,16 @@ export default function ChatRoomPage() {
 
             {/* Input Chat - Fixed Overlay with Glass Effect */}
             {!editingMessage && (
-              <div className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none">
-                <div className="pointer-events-auto">
-                  <MessageInput
-                    onSendMessage={handleSendMessage}
-                    socket={socket}
-                    onTyping={() => socket && sendTyping(socket)}
-                    onStopTyping={() => socket && sendStopTyping(socket)}
-                    roomId={selectedRoom.id}
-                    replyingTo={replyingTo}
-                    onCancelReply={handleCancelReply}
-                  />
-                </div>
+              <div className="fixed bottom-0 left-0 right-0 z-[100] pb-16 sm:pb-0">
+                <MessageInput
+                  onSendMessage={handleSendMessage}
+                  socket={socket}
+                  onTyping={() => socket && sendTyping(socket)}
+                  onStopTyping={() => socket && sendStopTyping(socket)}
+                  roomId={selectedRoom.id}
+                  replyingTo={replyingTo}
+                  onCancelReply={handleCancelReply}
+                />
               </div>
             )}
           </div>

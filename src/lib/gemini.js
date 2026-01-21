@@ -99,6 +99,66 @@ export async function* generateStreamingResponse(prompt) {
 }
 
 /**
+ * Generate image using Nano Banana (Gemini's native image generation)
+ * @param {string} prompt - Text prompt for image generation
+ * @param {string} modelName - Image generation model (gemini-2.5-flash-image or gemini-3-pro-image-preview)
+ * @returns {Promise<{imageData: string, text?: string}>} - Base64 image data and optional text response
+ */
+export async function generateImage(prompt, modelName = "gemini-2.5-flash-image") {
+    try {
+        // Check if API key is available
+        if (!process.env.GEMINI_API_KEY) {
+            throw new Error("GEMINI_API_KEY is not configured");
+        }
+
+        // Generate image using Nano Banana
+        const response = await genAI.models.generateContent({
+            model: modelName,
+            contents: prompt,
+        });
+
+        // Extract image and text from response
+        let imageData = null;
+        let responseText = null;
+
+        for (const part of response.candidates[0].content.parts) {
+            if (part.text) {
+                responseText = part.text;
+            } else if (part.inlineData) {
+                imageData = part.inlineData.data;
+            }
+        }
+
+        if (!imageData) {
+            throw new Error("Tidak ada gambar yang dihasilkan dari AI");
+        }
+
+        return {
+            imageData: imageData,
+            text: responseText || "Gambar berhasil dibuat",
+        };
+    } catch (error) {
+        console.error("❌ Error generating image:", error);
+        console.error("❌ Error message:", error.message);
+
+        // Handle specific error cases
+        if (error.message?.includes('API_KEY') || error.message?.includes('API key')) {
+            throw new Error("API key Gemini tidak valid atau tidak ditemukan");
+        }
+
+        if (error.message?.includes('quota') || error.message?.includes('RESOURCE_EXHAUSTED')) {
+            throw new Error("Quota API Gemini habis. Silakan coba lagi nanti");
+        }
+
+        if (error.message?.includes('SAFETY') || error.message?.includes('BLOCKED')) {
+            throw new Error("Prompt Anda mengandung konten yang tidak aman");
+        }
+
+        throw new Error(error.message || "Gagal generate gambar. Silakan coba lagi");
+    }
+}
+
+/**
  * Create AI assistant system prompt
  * @returns {string} - System prompt for AI
  */

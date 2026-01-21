@@ -38,25 +38,13 @@ export async function POST(request) {
 
         // Validate and select model
         const allowedModels = [
-            // Gemini 3 (Latest)
-            'gemini-3-pro-preview',
-            'gemini-3-flash-preview',
-            'gemini-3-pro-image-preview',
-
-            // Gemini 2.5 (Stable & Recommended)
-            'gemini-2.5-flash',
-            'gemini-2.5-flash-lite',
-            'gemini-2.5-pro',
-            'gemini-2.5-flash-image',
-
-            // Gemini 2.0 (Previous Gen)
-            'gemini-2.0-flash',
-            'gemini-2.0-flash-lite',
+            'gemini-3-flash-preview',   // Latest & Fast
+            'gemini-2.5-flash',          // Stable & Balanced
         ];
 
         const selectedModel = model && allowedModels.includes(model)
             ? model
-            : 'gemini-3-flash-preview'; // Default fallback
+            : 'gemini-3-flash-preview'; // Default to latest
 
         // Validate message - allow empty if there's an attachment (image-only messages)
         if ((!message || message.trim() === "") && !attachment) {
@@ -130,7 +118,9 @@ export async function POST(request) {
 
         // 5. Generate AI response with selected model
         let aiResponse;
+
         try {
+            // Generate text/vision response
             aiResponse = await generateAIResponse(fullPrompt, imageAttachments, selectedModel);
         } catch (aiError) {
             console.error("❌ AI Generation Error:", aiError);

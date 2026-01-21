@@ -386,8 +386,8 @@ export default function DashboardLayout({ children }) {
               onClick={() => setActiveTab("requests")}
               className={`flex-1 py-3 text-sm font-medium transition-colors relative ${
                 activeTab === "requests"
-                  ? "text-blue-600 border-b-2 border-blue-600 bg-white/10"
-                  : "text-gray-600 hover:bg-white/5"
+                  ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-white/10 dark:bg-gray-700/50"
+                  : "text-gray-600 dark:text-gray-300 hover:bg-white/5 dark:hover:bg-gray-700/30"
               }`}
             >
               Requests
@@ -528,24 +528,24 @@ export default function DashboardLayout({ children }) {
             ) : (
               <div className="p-4 space-y-2">
                 {friendRequests.length === 0 ? (
-                  <div className="text-center text-gray-500 mt-8">
+                  <div className="text-center text-gray-500 dark:text-gray-400 mt-8">
                     <p>Tidak ada permintaan pertemanan</p>
                   </div>
                 ) : (
                   friendRequests.map((request) => (
                     <div
                       key={request.friendshipId}
-                      className="p-3 rounded-lg bg-white/10"
+                      className="p-3 rounded-lg bg-white/10 dark:bg-white/5"
                     >
                       <div className="flex items-center space-x-3 mb-3">
                         <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-400 rounded-full flex items-center justify-center text-white font-bold">
                           {request.displayName.charAt(0).toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-gray-800 truncate">
+                          <h4 className="font-medium text-gray-800 dark:text-gray-100 truncate">
                             {request.displayName}
                           </h4>
-                          <p className="text-sm text-gray-600 truncate">
+                          <p className="text-sm text-gray-600 dark:text-gray-300 truncate">
                             @{request.username}
                           </p>
                         </div>
@@ -555,7 +555,7 @@ export default function DashboardLayout({ children }) {
                           onClick={() =>
                             handleAcceptRequest(request.friendshipId)
                           }
-                          className="flex-1 py-1.5 bg-green-400/20 hover:bg-green-400/30 text-green-700 rounded-lg transition-colors text-sm font-medium"
+                          className="flex-1 py-1.5 bg-green-400/20 hover:bg-green-400/30 dark:bg-green-500/20 dark:hover:bg-green-500/30 text-green-700 dark:text-green-400 rounded-lg transition-colors text-sm font-medium"
                         >
                           Terima
                         </button>
@@ -563,7 +563,7 @@ export default function DashboardLayout({ children }) {
                           onClick={() =>
                             handleDeclineRequest(request.friendshipId)
                           }
-                          className="flex-1 py-1.5 bg-red-400/20 hover:bg-red-400/30 text-red-700 rounded-lg transition-colors text-sm font-medium"
+                          className="flex-1 py-1.5 bg-red-400/20 hover:bg-red-400/30 dark:bg-red-500/20 dark:hover:bg-red-500/30 text-red-700 dark:text-red-400 rounded-lg transition-colors text-sm font-medium"
                         >
                           Tolak
                         </button>
@@ -576,7 +576,7 @@ export default function DashboardLayout({ children }) {
           </div>
 
           {/* Footer dengan Dock navigation */}
-          <div className="p-2 border-t border-white/20 dark:border-gray-700 h-20 flex items-end justify-center relative">
+          <div className="p-2 border-t border-white/20 dark:border-gray-700 h-[106px] flex items-end justify-center relative">
             <Dock
               items={items}
               panelHeight={60}
