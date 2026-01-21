@@ -48,6 +48,9 @@ export default function ChatRoomPage() {
   // AI Model selection
   const [selectedModel, setSelectedModel] = useState("gemini-3-flash-preview");
 
+  // AI Enable/Disable state
+  const [isAIEnabled, setIsAIEnabled] = useState(true);
+
   // Initialize message cache hook
   const {
     loadFromCache,
@@ -57,18 +60,41 @@ export default function ChatRoomPage() {
     clearCache,
   } = useMessageCache();
 
-  // Load model preference from localStorage
+  // Load AI preferences from localStorage
   useEffect(() => {
     const savedModel = localStorage.getItem("ai-model-preference");
     if (savedModel) {
       setSelectedModel(savedModel);
     }
-  }, []);
+
+    // Load AI enabled state (per room)
+    if (selectedRoom?.id) {
+      const savedAIState = localStorage.getItem(
+        `ai-enabled-${selectedRoom.id}`,
+      );
+      if (savedAIState !== null) {
+        setIsAIEnabled(savedAIState === "true");
+      }
+    }
+  }, [selectedRoom?.id]);
 
   // Handle model change
   const handleModelChange = (model) => {
     setSelectedModel(model);
     localStorage.setItem("ai-model-preference", model);
+  };
+
+  // Handle AI toggle
+  const handleAIToggle = () => {
+    const newState = !isAIEnabled;
+    setIsAIEnabled(newState);
+    // Save to localStorage per room
+    if (selectedRoom?.id) {
+      localStorage.setItem(
+        `ai-enabled-${selectedRoom.id}`,
+        newState.toString(),
+      );
+    }
   };
 
   // Helper function to ensure no duplicate messages - ROBUST VERSION
@@ -648,7 +674,7 @@ export default function ChatRoomPage() {
         }
 
         // 🤖 AI INTEGRATION: If this is an AI room, get AI response
-        if (selectedRoom.type === "ai") {
+        if (selectedRoom.type === "ai" && isAIEnabled) {
           // Show AI typing indicator
           setTypingUsers((prev) => new Set(prev).add("AI Assistant"));
 
@@ -902,7 +928,7 @@ export default function ChatRoomPage() {
       <div className="absolute bottom-20 right-20 w-72 h-72 bg-purple-200 dark:bg-purple-900 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse delay-1000"></div>
 
       <div className="flex h-screen relative z-10">
-        <div className="flex-1 backdrop-blur-lg bg-gradient-to-br from-gray-100/90 via-gray-50/70 to-gray-100/90 dark:from-gray-950/80 dark:via-gray-900/60 dark:to-gray-950/80 flex flex-col messages-container relative overflow-hidden">
+        <div className="flex-1 backdrop-blur-xl bg-gradient-to-br from-blue-200/40 via-purple-200/30 to-indigo-200/40 dark:backdrop-blur-lg dark:bg-gradient-to-br dark:from-gray-950/80 dark:via-gray-900/60 dark:to-gray-950/80 flex flex-col messages-container relative overflow-hidden">
           {/* Subtle pattern overlay */}
           <div
             className="absolute inset-0 opacity-5 pointer-events-none"
@@ -919,48 +945,99 @@ export default function ChatRoomPage() {
               onInfoClick={() => setShowProfileSidebar(true)}
             />
 
-            {/* Model Selector - Only for AI rooms */}
+            {/* Model Selector & AI Toggle - Only for AI rooms */}
             {selectedRoom?.type === "ai" && (
               <div className="px-4 py-3 bg-white/20 dark:bg-gray-800/50 backdrop-blur-sm border-b border-white/20 dark:border-gray-700">
-                <div className="flex items-center gap-3">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-200">
-                    AI Model:
-                  </label>
-                  <select
-                    value={selectedModel}
-                    onChange={(e) => handleModelChange(e.target.value)}
-                    className="flex-1 px-3 py-2 bg-white/60 dark:bg-gray-700 dark:text-white backdrop-blur-sm border border-white/40 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                {/* AI Toggle Switch */}
+                <div className="flex items-center justify-between mb-3 pb-3 border-b border-white/20 dark:border-gray-600">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">
+                      {isAIEnabled ? "🤖" : "💤"}
+                    </span>
+                    <div>
+                      <div className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                        AI Assistant
+                      </div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">
+                        {isAIEnabled
+                          ? "Aktif - AI akan merespons pesan Anda"
+                          : "Nonaktif - AI tidak akan merespons"}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Toggle Switch */}
+                  <button
+                    onClick={handleAIToggle}
+                    className={`relative inline-flex h-8 w-14 items-center rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                      isAIEnabled
+                        ? "bg-gradient-to-r from-green-400 to-green-600 focus:ring-green-500"
+                        : "bg-gray-300 dark:bg-gray-600 focus:ring-gray-400"
+                    }`}
+                    title={
+                      isAIEnabled
+                        ? "Klik untuk menonaktifkan AI"
+                        : "Klik untuk mengaktifkan AI"
+                    }
                   >
-                    <optgroup label="Latest (Gemini 3)">
-                      <option value="gemini-3-flash-preview">
-                        ⚡ Gemini 3 Flash - Fast & Vision
-                      </option>
-                      <option value="gemini-3-pro-preview">
-                        🧠 Gemini 3 Pro - Most Intelligent
-                      </option>
-                    </optgroup>
-                    <optgroup label="Stable (Gemini 2.5)">
-                      <option value="gemini-2.5-flash">
-                        🚀 Gemini 2.5 Flash - Balanced
-                      </option>
-                      <option value="gemini-2.5-pro">
-                        💎 Gemini 2.5 Pro - Advanced Thinking
-                      </option>
-                      <option value="gemini-2.5-flash-lite">
-                        ⚡⚡ Gemini 2.5 Flash Lite - Ultra Fast
-                      </option>
-                    </optgroup>
-                    <optgroup label="Previous Gen (Gemini 2.0)">
-                      <option value="gemini-2.0-flash">
-                        📦 Gemini 2.0 Flash - Workhorse
-                      </option>
-                    </optgroup>
-                  </select>
+                    <span
+                      className={`inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform duration-300 ${
+                        isAIEnabled ? "translate-x-7" : "translate-x-1"
+                      }`}
+                    >
+                      {isAIEnabled && (
+                        <span className="flex items-center justify-center h-full w-full text-xs">
+                          ✓
+                        </span>
+                      )}
+                    </span>
+                  </button>
                 </div>
-                <p className="text-xs text-gray-600 mt-1">
-                  Choose the AI model for this conversation. Your preference
-                  will be saved.
-                </p>
+
+                {/* Model Selector - Only shown when AI is enabled */}
+                {isAIEnabled && (
+                  <>
+                    <div className="flex items-center gap-3">
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                        AI Model:
+                      </label>
+                      <select
+                        value={selectedModel}
+                        onChange={(e) => handleModelChange(e.target.value)}
+                        className="flex-1 px-3 py-2 bg-white/60 dark:bg-gray-700 dark:text-white backdrop-blur-sm border border-white/40 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                      >
+                        <optgroup label="Latest (Gemini 3)">
+                          <option value="gemini-3-flash-preview">
+                            ⚡ Gemini 3 Flash - Fast & Vision
+                          </option>
+                          <option value="gemini-3-pro-preview">
+                            🧠 Gemini 3 Pro - Most Intelligent
+                          </option>
+                        </optgroup>
+                        <optgroup label="Stable (Gemini 2.5)">
+                          <option value="gemini-2.5-flash">
+                            🚀 Gemini 2.5 Flash - Balanced
+                          </option>
+                          <option value="gemini-2.5-pro">
+                            💎 Gemini 2.5 Pro - Advanced Thinking
+                          </option>
+                          <option value="gemini-2.5-flash-lite">
+                            ⚡⚡ Gemini 2.5 Flash Lite - Ultra Fast
+                          </option>
+                        </optgroup>
+                        <optgroup label="Previous Gen (Gemini 2.0)">
+                          <option value="gemini-2.0-flash">
+                            📦 Gemini 2.0 Flash - Workhorse
+                          </option>
+                        </optgroup>
+                      </select>
+                    </div>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+                      Choose the AI model for this conversation. Your preference
+                      will be saved.
+                    </p>
+                  </>
+                )}
               </div>
             )}
 

@@ -154,7 +154,7 @@ export default function MessageInput({
       width="100%"
       height="80px"
       borderRadius={0}
-      backgroundOpacity={0.1}
+      backgroundOpacity={0}
       blur={50}
       saturation={0.5}
       brightness={50}
@@ -167,13 +167,13 @@ export default function MessageInput({
       borderWidth={0.07}
       className="!p-0 !rounded-none"
     >
-      <div className="px-2 py-4 bg-gradient-to-t from-black/20 to-transparent backdrop-blur-xl">
+      <div className="px-2 py-4">
         {/* Reply Preview */}
         {replyingTo && (
-          <div className="mb-3 p-3 bg-blue-500/20 dark:bg-blue-400/10 rounded-xl border border-blue-400/30 backdrop-blur-sm">
+          <div className="mb-3 p-3 bg-blue-100/60 dark:bg-blue-500/20 rounded-xl border border-blue-300/50 dark:border-blue-400/30 backdrop-blur-sm">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <p className="text-xs font-semibold text-blue-300 mb-1">
+                <p className="text-xs font-semibold text-blue-600 dark:text-blue-300 mb-1">
                   Replying to {replyingTo.sender}
                 </p>
                 <div className="flex items-center gap-2">
@@ -182,7 +182,7 @@ export default function MessageInput({
                       {replyingTo.attachment.type === "image" ? "🖼️" : "📎"}
                     </span>
                   )}
-                  <p className="text-sm text-gray-300 truncate">
+                  <p className="text-sm text-gray-600 dark:text-gray-300 truncate">
                     {replyingTo.text || "[Attachment]"}
                   </p>
                 </div>
@@ -277,11 +277,11 @@ export default function MessageInput({
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading}
-            className="p-2.5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full hover:bg-white/20 transition-all disabled:opacity-50 hover:scale-105"
+            className="p-2.5 bg-white/70 dark:bg-white/10 backdrop-blur-sm border border-gray-300/50 dark:border-white/20 rounded-full hover:bg-white/90 dark:hover:bg-white/20 transition-all disabled:opacity-50 hover:scale-105"
             title="Attach file"
           >
             <svg
-              className="w-5 h-5 text-gray-200"
+              className="w-5 h-5 text-gray-700 dark:text-gray-200"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -310,7 +310,7 @@ export default function MessageInput({
             onKeyPress={handleKeyPress}
             placeholder="Type a message..."
             disabled={isUploading}
-            className="flex-1 px-5 py-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-transparent text-gray-100 placeholder-gray-400 disabled:opacity-50 transition-all w-[400px]"
+            className="flex-1 px-5 py-4 bg-white/95 dark:bg-white/10 backdrop-blur-sm border border-gray-300/50 dark:border-white/20 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-transparent text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 disabled:opacity-50 transition-all w-[400px]"
           />
 
           {/* Send Button */}
