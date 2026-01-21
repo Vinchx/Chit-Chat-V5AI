@@ -1,36 +1,116 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# 💬 ChitChat V5.1 AI
 
-## Getting Started
+A real-time chat application with AI integration, built with Next.js 16, PartyKit, and MongoDB.
 
-First, run the development server:
+![Version](https://img.shields.io/badge/version-5.1.1-blue)
+![Next.js](https://img.shields.io/badge/Next.js-16-black)
+![License](https://img.shields.io/badge/license-MIT-green)
+
+---
+
+## ✨ Features
+
+- **Real-time Messaging** - Instant message delivery via Socket.IO & PartyKit
+- **AI Chat** - Integrated Google Gemini AI for smart conversations
+- **Image Generation** - Generate images with Nano Banana models
+- **Typing Indicators** - See when others are typing
+- **Online Presence** - Know who's online
+- **Friend System** - Add friends and manage requests
+- **Group Chats** - Create multi-user chat rooms
+- **Dark Mode** - Full theme support
+- **Glassmorphism UI** - Modern, premium design
+
+---
+
+## 🚀 Quick Start
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Install dependencies
+npm install
+
+# Start development servers
+npm run dev:fast      # Next.js (port 1630)
+npm run dev:partykit  # PartyKit (port 1999)
+
+# Open in browser
+http://localhost:1630
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+📖 See [Getting Started Guide](./docs/GETTING_STARTED.md) for full setup instructions.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 📁 Project Structure
 
-## Learn More
+```
+├── src/
+│   ├── app/              # Next.js app router
+│   │   ├── api/          # REST API endpoints
+│   │   ├── dashboard/    # Main app pages
+│   │   └── components/   # React components
+│   ├── models/           # MongoDB schemas
+│   └── auth.js           # NextAuth configuration
+├── party/                # PartyKit server
+├── docs/                 # Documentation
+└── server.js             # Custom server with Socket.IO
+```
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 📚 Documentation
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Document                                     | Description              |
+| -------------------------------------------- | ------------------------ |
+| [Getting Started](./docs/GETTING_STARTED.md) | Setup and installation   |
+| [Architecture](./docs/ARCHITECTURE.md)       | Technical overview & ERD |
+| [API Reference](./docs/API_REFERENCE.md)     | API endpoints            |
+| [Troubleshooting](./docs/TROUBLESHOOTING.md) | Common issues & fixes    |
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🛠️ Tech Stack
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Frontend**: Next.js 16, React 18, Tailwind CSS 4
+- **Backend**: Node.js, Socket.IO, PartyKit
+- **Database**: MongoDB, Mongoose
+- **Auth**: NextAuth 5 (JWT)
+- **AI**: Google Gemini API
+
+---
+
+## 📋 Available Scripts
+
+| Script                 | Description                  |
+| ---------------------- | ---------------------------- |
+| `npm run dev:fast`     | Start Next.js with Turbopack |
+| `npm run dev:partykit` | Start PartyKit dev server    |
+| `npm run dev`          | Start custom server          |
+| `npm run build`        | Build for production         |
+| `npm start`            | Start production server      |
+
+---
+
+## 🌐 Deployment
+
+### Vercel (Next.js)
+
+```bash
+vercel deploy --prod
+```
+
+### PartyKit
+
+```bash
+npx partykit login
+npx partykit deploy
+```
+
+---
+
+## 📄 License
+
+MIT License - see [LICENSE](./LICENSE) for details.
+
+---
+
+**Made with ❤️ using Next.js, PartyKit, and Google Gemini**

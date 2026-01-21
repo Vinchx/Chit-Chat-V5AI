@@ -1,6 +1,6 @@
 {
   "name": "chit-chat-v5.1-ai",
-  "version": "5.1.1",
+  "version": "5.1.2",
   "private": true,
   "scripts": {
     "dev": "node server.js",
