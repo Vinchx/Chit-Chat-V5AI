@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 
 export default function AddFriendModal({ isOpen, onClose, onAddFriend }) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -31,12 +32,12 @@ export default function AddFriendModal({ isOpen, onClose, onAddFriend }) {
         console.log("Hasil pencarian:", data.data.results);
       } else {
         console.log("Error search:", data.message);
-        alert("Error: " + data.message);
+        toast.error(data.message);
         setSearchResults([]);
       }
     } catch (error) {
       console.log("Error search:", error);
-      alert("Gagal mencari user. Coba lagi.");
+      toast.error("Gagal mencari user. Coba lagi.");
       setSearchResults([]);
     }
 
@@ -70,17 +71,17 @@ export default function AddFriendModal({ isOpen, onClose, onAddFriend }) {
       console.log("Response data:", data);
 
       if (data.success) {
-        alert(`Friend request berhasil dikirim ke ${user.displayName}!`);
+        toast.success(`Friend request dikirim ke ${user.displayName}!`);
         // Hapus user dari hasil pencarian
         setSearchResults((prevResults) =>
-          prevResults.filter((result) => result.userId !== user.userId)
+          prevResults.filter((result) => result.userId !== user.userId),
         );
       } else {
-        alert("Error: " + data.message);
+        toast.error(data.message);
       }
     } catch (error) {
       console.log("Error add friend:", error);
-      alert("Gagal mengirim friend request. Coba lagi.");
+      toast.error("Gagal mengirim friend request. Coba lagi.");
     }
 
     setAddingFriend(null);

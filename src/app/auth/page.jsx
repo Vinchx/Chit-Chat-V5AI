@@ -262,8 +262,8 @@ export default function AuthPage() {
               )}
 
               <input
-                title="cok"
                 type="text"
+                title="Username"
                 name="username"
                 placeholder="Username"
                 value={formData.username}
@@ -275,6 +275,7 @@ export default function AuthPage() {
 
               <input
                 type="text"
+                title="Display Name"
                 name="displayName"
                 placeholder="Display Name"
                 value={formData.displayName}
@@ -286,6 +287,7 @@ export default function AuthPage() {
 
               <input
                 type="email"
+                title="Email"
                 name="email"
                 placeholder="Email"
                 value={formData.email}
@@ -297,6 +299,7 @@ export default function AuthPage() {
 
               <input
                 type="password"
+                title="Password"
                 name="password"
                 placeholder="Password (min. 8 karakter)"
                 value={formData.password}
@@ -308,6 +311,7 @@ export default function AuthPage() {
 
               <input
                 type="password"
+                title="Confirm Password"
                 name="confirmPassword"
                 placeholder="Confirm Password"
                 value={formData.confirmPassword}

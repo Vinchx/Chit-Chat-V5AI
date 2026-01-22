@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
+import { toast } from "sonner";
 import {
   createChatSocket,
   sendMessage,
@@ -783,11 +784,11 @@ export default function ChatRoomPage() {
         }
       } else {
         console.error("Error saving message to DB:", result.message);
-        alert("Gagal mengirim pesan: " + result.message);
+        toast.error("Gagal mengirim pesan: " + result.message);
       }
     } catch (error) {
       console.error("Error saving message to DB:", error);
-      alert("Terjadi kesalahan saat mengirim pesan");
+      toast.error("Terjadi kesalahan saat mengirim pesan");
     }
   };
 
@@ -847,11 +848,11 @@ export default function ChatRoomPage() {
         setEditText("");
       } else {
         console.error("Gagal mengedit pesan:", result.message);
-        alert("Gagal mengedit pesan: " + result.message);
+        toast.error("Gagal mengedit pesan: " + result.message);
       }
     } catch (error) {
       console.error("Error saat mengedit pesan:", error);
-      alert("Terjadi kesalahan saat mengedit pesan");
+      toast.error("Terjadi kesalahan saat mengedit pesan");
     }
   };
 
@@ -899,11 +900,11 @@ export default function ChatRoomPage() {
       } else {
         console.error("Gagal menghapus pesan:", result.message);
         // Tampilkan pesan error yang lebih deskriptif
-        alert("Gagal menghapus pesan: " + result.message);
+        toast.error("Gagal menghapus pesan: " + result.message);
       }
     } catch (error) {
       console.error("Error saat menghapus pesan:", error);
-      alert("Terjadi kesalahan saat menghapus pesan. Silakan coba lagi.");
+      toast.error("Terjadi kesalahan saat menghapus pesan");
     }
   };
 
@@ -919,25 +920,9 @@ export default function ChatRoomPage() {
     typingUsers.size > 0 ? Array.from(typingUsers).join(", ") : "";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-purple-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 relative overflow-hidden">
-      <div className="absolute inset-0 opacity-30 dark:opacity-20">
-        <div className="h-full w-full bg-[radial-gradient(circle,_rgba(139,_69,_195,_0.1)_1px,_transparent_1px)] bg-[length:20px_20px]"></div>
-      </div>
-
-      <div className="absolute top-20 left-20 w-64 h-64 bg-blue-200 dark:bg-blue-900 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse"></div>
-      <div className="absolute bottom-20 right-20 w-72 h-72 bg-purple-200 dark:bg-purple-900 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse delay-1000"></div>
-
-      <div className="flex h-screen relative z-10">
-        <div className="flex-1 backdrop-blur-xl bg-gradient-to-br from-blue-200/40 via-purple-200/30 to-indigo-200/40 dark:backdrop-blur-lg dark:bg-gradient-to-br dark:from-gray-950/80 dark:via-gray-900/60 dark:to-gray-950/80 flex flex-col messages-container relative overflow-hidden">
-          {/* Subtle pattern overlay */}
-          <div
-            className="absolute inset-0 opacity-5 pointer-events-none"
-            style={{
-              backgroundImage:
-                "radial-gradient(circle at 2px 2px, white 1px, transparent 0)",
-              backgroundSize: "40px 40px",
-            }}
-          ></div>
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-950">
+      <div className="flex h-screen">
+        <div className="flex-1 bg-gray-100 dark:bg-slate-900 flex flex-col messages-container overflow-hidden">
           <div className="flex flex-col h-full relative">
             <ChatHeader
               selectedRoom={selectedRoom}

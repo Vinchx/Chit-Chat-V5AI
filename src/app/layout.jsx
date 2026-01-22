@@ -1,5 +1,6 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Toaster } from "sonner";
 import "./globals.css";
 import { Providers } from "./providers";
 
@@ -26,6 +27,18 @@ export default function RootLayout({ children }) {
       >
         <Providers>
           {children}
+          <Toaster
+            position="top-center"
+            richColors
+            theme="dark"
+            toastOptions={{
+              style: {
+                background: "rgba(30, 30, 40, 0.95)",
+                backdropFilter: "blur(10px)",
+                border: "1px solid rgba(255, 255, 255, 0.1)",
+              },
+            }}
+          />
           <SpeedInsights />
         </Providers>
       </body>

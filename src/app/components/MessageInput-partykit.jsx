@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { toast } from "sonner";
 import Image from "next/image";
 import GlassSurface from "@/components/GlassSurface";
 
@@ -60,7 +61,7 @@ export default function MessageInput({
 
     if (file.size > maxSize) {
       const maxSizeMB = maxSize / (1024 * 1024);
-      alert(`File terlalu besar! Maksimal ${maxSizeMB}MB`);
+      toast.error(`File terlalu besar! Maksimal ${maxSizeMB}MB`);
       return;
     }
 
@@ -117,13 +118,13 @@ export default function MessageInput({
         if (data.success) {
           attachment = data.data;
         } else {
-          alert("Gagal upload file: " + data.message);
+          toast.error("Gagal upload file: " + data.message);
           setIsUploading(false);
           return;
         }
       } catch (error) {
         console.error("Error uploading file:", error);
-        alert("Terjadi kesalahan saat upload file");
+        toast.error("Terjadi kesalahan saat upload file");
         setIsUploading(false);
         return;
       }

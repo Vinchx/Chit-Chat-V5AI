@@ -1,0 +1,504 @@
+{
+  "info": {
+    "_postman_id": "chitchat-v5.1-2026",
+    "name": "ChitChat V5.1 AI - Complete API Collection",
+    "description": "🚀 **COMPLETE POSTMAN COLLECTION** - ChitChat V5.1 AI\n\n**Last Updated:** January 2026\n\n**📋 FEATURES:**\n- 🔐 Authentication (Register, NextAuth)\n- 👥 Friends Management\n- 🏠 Rooms (Private, Group, AI)\n- 💬 Messages with Attachments\n- 🤖 AI Chat Integration\n- 👤 Profile Management\n- 🔒 Password Management\n- 📤 File Uploads\n\n**🔧 HOW TO USE:**\n1. Import this collection to Postman\n2. Run **Register** to create new user\n3. Set environment variables:\n   - `user_id`: your userId from register\n   - `api_key`: secretbet\n4. All other requests use auto-headers\n\n**🔐 AUTHENTICATION:**\nHeaders (auto-added for all requests except Register):\n- `x-api-key: {{api_key}}`\n- `x-user-id: {{user_id}}`\n\n**📍 BASE URL:** http://localhost:1630",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:1630",
+      "type": "string"
+    },
+    {
+      "key": "api_key",
+      "value": "secretbet",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "user001",
+      "type": "string"
+    },
+    {
+      "key": "last_room_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "friend_user_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.request.url.path.includes('register')) {",
+          "    pm.request.headers.upsert({",
+          "        key: 'x-api-key',",
+          "        value: pm.collectionVariables.get('api_key') || 'secretbet',",
+          "        type: 'text'",
+          "    });",
+          "    pm.request.headers.upsert({",
+          "        key: 'x-user-id',",
+          "        value: pm.collectionVariables.get('user_id') || 'user001',",
+          "        type: 'text'",
+          "    });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "🔐 Authentication",
+      "item": [
+        {
+          "name": "Register User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.success && response.userId) {",
+                  "    pm.collectionVariables.set('user_id', response.userId);",
+                  "    console.log('✅ User ID saved:', response.userId);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"testuser{{$randomInt}}\",\n  \"email\": \"test{{$randomInt}}@example.com\",\n  \"password\": \"password123\",\n  \"displayName\": \"Test User\"\n}"
+            },
+            "url": "{{base_url}}/api/register"
+          }
+        },
+        {
+          "name": "Resend Verification Email",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\"\n}"
+            },
+            "url": "{{base_url}}/api/auth/resend-verification"
+          }
+        },
+        {
+          "name": "Forgot Password - Send OTP",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\"\n}"
+            },
+            "url": "{{base_url}}/api/auth/send-otp"
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"otp\": \"123456\",\n  \"newPassword\": \"newpassword123\"\n}"
+            },
+            "url": "{{base_url}}/api/auth/reset-password"
+          }
+        }
+      ]
+    },
+    {
+      "name": "👤 Profile Management",
+      "item": [
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"displayName\": \"New Display Name\",\n  \"bio\": \"Hello, I'm using ChitChat!\"\n}"
+            },
+            "url": "{{base_url}}/api/profile/update"
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"password123\",\n  \"newPassword\": \"newpassword123\"\n}"
+            },
+            "url": "{{base_url}}/api/profile/change-password"
+          }
+        },
+        {
+          "name": "Upload Avatar",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "avatar",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "url": "{{base_url}}/api/profile/upload-avatar"
+          }
+        }
+      ]
+    },
+    {
+      "name": "👥 Friends",
+      "item": [
+        {
+          "name": "Get Friends List",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/friends"
+          }
+        },
+        {
+          "name": "Get Pending Requests",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/friends/requests"
+          }
+        },
+        {
+          "name": "Add Friend",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"testuser\"\n}"
+            },
+            "url": "{{base_url}}/api/friends/add"
+          }
+        },
+        {
+          "name": "Respond to Request",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"friendshipId\": \"friend001\",\n  \"action\": \"accept\"\n}"
+            },
+            "url": "{{base_url}}/api/friends/respond"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🏠 Rooms",
+      "item": [
+        {
+          "name": "Get All Rooms",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/rooms"
+          }
+        },
+        {
+          "name": "Get Room by Slug",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/rooms/by-slug/john"
+          }
+        },
+        {
+          "name": "Get Room by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/rooms/{{last_room_id}}"
+          }
+        },
+        {
+          "name": "Get Room Info",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/rooms/{{last_room_id}}/info"
+          }
+        },
+        {
+          "name": "Get Room Members",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/rooms/{{last_room_id}}/members"
+          }
+        },
+        {
+          "name": "Create Private Room",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.success && response.room) {",
+                  "    pm.collectionVariables.set('last_room_id', response.room.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"private\",\n  \"memberIds\": [\"{{friend_user_id}}\"]\n}"
+            },
+            "url": "{{base_url}}/api/rooms/create"
+          }
+        },
+        {
+          "name": "Create Group Room",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.success && response.room) {",
+                  "    pm.collectionVariables.set('last_room_id', response.room.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"group\",\n  \"name\": \"My Group Chat\",\n  \"memberIds\": [\"{{friend_user_id}}\"]\n}"
+            },
+            "url": "{{base_url}}/api/rooms/create"
+          }
+        },
+        {
+          "name": "Create AI Room",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.success && response.room) {",
+                  "    pm.collectionVariables.set('last_room_id', response.room.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"ai\"\n}"
+            },
+            "url": "{{base_url}}/api/rooms/create"
+          }
+        },
+        {
+          "name": "Leave Room",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/rooms/{{last_room_id}}/leave"
+          }
+        }
+      ]
+    },
+    {
+      "name": "💬 Messages",
+      "item": [
+        {
+          "name": "Send Message",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roomId\": \"{{last_room_id}}\",\n  \"message\": \"Hello from Postman! 🚀\",\n  \"messageType\": \"text\"\n}"
+            },
+            "url": "{{base_url}}/api/messages"
+          }
+        },
+        {
+          "name": "Get Messages from Room",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/messages/room/{{last_room_id}}?limit=30",
+              "host": ["{{base_url}}"],
+              "path": ["api", "messages", "room", "{{last_room_id}}"],
+              "query": [{ "key": "limit", "value": "30" }]
+            }
+          }
+        },
+        {
+          "name": "Get Messages with Pagination",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/messages/room/{{last_room_id}}?limit=10&before=2026-01-21T00:00:00.000Z",
+              "host": ["{{base_url}}"],
+              "path": ["api", "messages", "room", "{{last_room_id}}"],
+              "query": [
+                { "key": "limit", "value": "10" },
+                { "key": "before", "value": "2026-01-21T00:00:00.000Z" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Room Media",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/messages/room/{{last_room_id}}/media"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🤖 AI Chat",
+      "item": [
+        {
+          "name": "Send AI Chat Message",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roomId\": \"{{last_room_id}}\",\n  \"message\": \"Hello AI! Tell me a joke.\",\n  \"model\": \"gemini-2.5-flash-preview\",\n  \"conversationHistory\": []\n}"
+            },
+            "url": "{{base_url}}/api/ai/chat"
+          }
+        },
+        {
+          "name": "AI Image Generation",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roomId\": \"{{last_room_id}}\",\n  \"message\": \"Generate an image of a sunset over mountains\",\n  \"model\": \"gemini-2.5-flash-image\",\n  \"conversationHistory\": []\n}"
+            },
+            "url": "{{base_url}}/api/ai/chat"
+          }
+        }
+      ]
+    },
+    {
+      "name": "📤 File Uploads",
+      "item": [
+        {
+          "name": "Upload Chat Attachment",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": "" },
+                { "key": "roomId", "value": "{{last_room_id}}", "type": "text" }
+              ]
+            },
+            "url": "{{base_url}}/api/upload/chat"
+          }
+        },
+        {
+          "name": "Upload Avatar",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [{ "key": "avatar", "type": "file", "src": "" }]
+            },
+            "url": "{{base_url}}/api/upload/avatar"
+          }
+        },
+        {
+          "name": "Delete Avatar",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/api/upload/avatar/delete"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔍 Users & Search",
+      "item": [
+        {
+          "name": "Search Users",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/users/search?q=test",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "search"],
+              "query": [{ "key": "q", "value": "test" }]
+            }
+          }
+        },
+        {
+          "name": "Get User by Username",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/users/testuser"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🛠️ Utility",
+      "item": [
+        {
+          "name": "Test Database Connection",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/test-db"
+          }
+        },
+        {
+          "name": "Test Email Service",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/test-email"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { toast } from "sonner";
 
 export default function AIChatButton() {
   const router = useRouter();
@@ -13,12 +14,12 @@ export default function AIChatButton() {
       // Create or navigate to AI chat room
       // We'll use a special room ID for AI: "ai-assistant"
       const aiRoomId = "ai-assistant";
-      
+
       // Navigate to AI chat room
       router.push(`/dashboard/chat/${aiRoomId}`);
     } catch (error) {
       console.error("Error starting AI chat:", error);
-      alert("Gagal memulai chat dengan AI");
+      toast.error("Gagal memulai chat dengan AI");
     } finally {
       setIsLoading(false);
     }
@@ -38,17 +39,17 @@ export default function AIChatButton() {
           {isLoading ? "Memuat..." : "Chat dengan ChitChat AI"}
         </div>
       </div>
-      <svg 
-        className="w-5 h-5" 
-        fill="none" 
-        stroke="currentColor" 
+      <svg
+        className="w-5 h-5"
+        fill="none"
+        stroke="currentColor"
         viewBox="0 0 24 24"
       >
-        <path 
-          strokeLinecap="round" 
-          strokeLinejoin="round" 
-          strokeWidth={2} 
-          d="M9 5l7 7-7 7" 
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M9 5l7 7-7 7"
         />
       </svg>
     </button>

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { toast } from "sonner";
 import { useUser } from "@/contexts/UserContext";
 import AddFriendModal from "../components/AddFriendModal";
 import NotificationModal from "../components/NotificationModal";
@@ -16,7 +17,7 @@ export default function DashboardLayout({ children }) {
     {
       icon: <VscHome size={24} className="text-gray-800 dark:text-white" />,
       label: "Home",
-      onClick: () => alert("Home!"),
+      onClick: () => router.push("/dashboard"),
     },
     {
       icon: <VscAdd size={24} className="text-gray-800 dark:text-white" />,
@@ -33,7 +34,7 @@ export default function DashboardLayout({ children }) {
         <VscSettingsGear size={24} className="text-gray-800 dark:text-white" />
       ),
       label: "Settings",
-      onClick: () => alert("Settings!"),
+      onClick: () => toast.info("Settings coming soon!"),
     },
   ];
 
@@ -171,7 +172,7 @@ export default function DashboardLayout({ children }) {
 
   const createRoom = async () => {
     if (newRoomType === "group" && !newRoomName.trim()) {
-      alert("Nama group harus diisi!");
+      toast.error("Nama group harus diisi!");
       return;
     }
 
@@ -202,11 +203,11 @@ export default function DashboardLayout({ children }) {
         setSelectedMembers([]);
         router.push(`/dashboard/chat/${result.existingRoom.slug}`);
       } else {
-        alert("Gagal membuat room: " + result.message);
+        toast.error("Gagal membuat room: " + result.message);
       }
     } catch (error) {
       console.error("Error creating room:", error);
-      alert("Terjadi kesalahan saat membuat room");
+      toast.error("Terjadi kesalahan saat membuat room");
     }
   };
 
@@ -242,13 +243,13 @@ export default function DashboardLayout({ children }) {
       const data = await response.json();
       if (data.success) {
         loadFriendsData();
-        alert("✅ Permintaan pertemanan diterima!");
+        toast.success("Permintaan pertemanan diterima!");
       } else {
-        alert("❌ Gagal menerima permintaan: " + data.message);
+        toast.error("Gagal menerima permintaan: " + data.message);
       }
     } catch (error) {
       console.log("Error accepting friend request:", error);
-      alert("❌ Terjadi error saat menerima permintaan");
+      toast.error("Terjadi error saat menerima permintaan");
     }
   };
 
@@ -263,13 +264,13 @@ export default function DashboardLayout({ children }) {
       const data = await response.json();
       if (data.success) {
         loadFriendsData();
-        alert("❌ Permintaan pertemanan ditolak");
+        toast.info("Permintaan pertemanan ditolak");
       } else {
-        alert("❌ Gagal menolak permintaan: " + data.message);
+        toast.error("Gagal menolak permintaan: " + data.message);
       }
     } catch (error) {
       console.log("Error declining friend request:", error);
-      alert("❌ Terjadi error saat menolak permintaan");
+      toast.error("Terjadi error saat menolak permintaan");
     }
   };
 
@@ -297,17 +298,10 @@ export default function DashboardLayout({ children }) {
   const userAvatar = normalizeAvatar(currentUser?.avatar);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-purple-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 relative overflow-hidden">
-      {/* Background effects */}
-      <div className="absolute inset-0 opacity-30 dark:opacity-20">
-        <div className="h-full w-full bg-[radial-gradient(circle,_rgba(139,_69,_195,_0.1)_1px,_transparent_1px)] dark:bg-[radial-gradient(circle,_rgba(139,_69,_195,_0.2)_1px,_transparent_1px)] bg-[length:20px_20px]"></div>
-      </div>
-      <div className="absolute top-20 left-20 w-64 h-64 bg-blue-200 dark:bg-blue-900 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse"></div>
-      <div className="absolute bottom-20 right-20 w-72 h-72 bg-purple-200 dark:bg-purple-900 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse delay-1000"></div>
-
-      <div className="flex h-screen relative z-10">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-950">
+      <div className="flex h-screen">
         {/* Sidebar */}
-        <div className="w-80 backdrop-blur-lg bg-white/10 dark:bg-gray-900/40 border-r border-white/20 dark:border-gray-700 flex flex-col">
+        <div className="w-80 bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-800 flex flex-col">
           {/* Header */}
           <div className="p-4 border-b border-white/20 dark:border-gray-700 bg-white/5 dark:bg-gray-800/50">
             <div className="flex items-center justify-between mb-4">
@@ -479,7 +473,7 @@ export default function DashboardLayout({ children }) {
                                     `/dashboard/chat/${result.room.slug}`,
                                   );
                                 } else {
-                                  alert(
+                                  toast.error(
                                     "Room berhasil dibuat tetapi slug tidak ditemukan",
                                   );
                                 }
@@ -499,21 +493,25 @@ export default function DashboardLayout({ children }) {
                                       `/dashboard/chat/${existingRoom.slug}`,
                                     );
                                   } else {
-                                    alert(
+                                    toast.info(
                                       `Room dengan ${friend.displayName} sudah ada!`,
                                     );
                                   }
                                 } else {
-                                  alert(
+                                  toast.info(
                                     `Room dengan ${friend.displayName} sudah ada!`,
                                   );
                                 }
                               } else {
-                                alert("Gagal membuat room: " + result.message);
+                                toast.error(
+                                  "Gagal membuat room: " + result.message,
+                                );
                               }
                             } catch (error) {
                               console.error("Error creating room:", error);
-                              alert("Terjadi kesalahan saat membuat room");
+                              toast.error(
+                                "Terjadi kesalahan saat membuat room",
+                              );
                             }
                           }}
                           className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm transition-colors"
@@ -717,7 +715,7 @@ export default function DashboardLayout({ children }) {
                     <button
                       type="button"
                       onClick={() => {
-                        alert(
+                        toast.info(
                           "Untuk room private, gunakan tombol 'Chat' di daftar teman",
                         );
                       }}
