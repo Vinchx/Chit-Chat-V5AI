@@ -328,7 +328,7 @@ export default function AuthPage() {
                 className={`w-full py-2.5 font-semibold rounded-lg transition-all duration-300 text-sm ${
                   isLoading
                     ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-gradient-to-r from-blue-400 to-purple-400 text-white hover:from-blue-500 hover:to-purple-500 shadow-lg hover:shadow-xl"
+                    : "bg-gradient-to-r from-blue-300 to-purple-400 text-white hover:from-blue-500 hover:to-purple-500 shadow-lg hover:shadow-xl"
                 }`}
               >
                 {isLoading ? (
