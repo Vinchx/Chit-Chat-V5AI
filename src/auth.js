@@ -99,4 +99,5 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     error: "/auth",
   },
   secret: process.env.NEXTAUTH_SECRET,
+  trustHost: true, // Ini memungkinkan NextAuth bekerja dengan localhost dan ngrok
 });

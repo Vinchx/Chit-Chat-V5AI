@@ -243,13 +243,13 @@ export default function DashboardLayout({ children }) {
       const data = await response.json();
       if (data.success) {
         loadFriendsData();
-        toast.success("Permintaan pertemanan diterima!");
+        alert("✅ Permintaan pertemanan diterima!");
       } else {
-        toast.error("Gagal menerima permintaan: " + data.message);
+        alert("❌ Gagal menerima permintaan: " + data.message);
       }
     } catch (error) {
       console.log("Error accepting friend request:", error);
-      toast.error("Terjadi error saat menerima permintaan");
+      alert("❌ Terjadi error saat menerima permintaan");
     }
   };
 
@@ -264,19 +264,21 @@ export default function DashboardLayout({ children }) {
       const data = await response.json();
       if (data.success) {
         loadFriendsData();
-        toast.info("Permintaan pertemanan ditolak");
+        alert("❌ Permintaan pertemanan ditolak");
       } else {
-        toast.error("Gagal menolak permintaan: " + data.message);
+        alert("❌ Gagal menolak permintaan: " + data.message);
       }
     } catch (error) {
       console.log("Error declining friend request:", error);
-      toast.error("Terjadi error saat menolak permintaan");
+      alert("❌ Terjadi error saat menolak permintaan");
     }
   };
 
   const handleLogout = async () => {
-    await signOut({ callbackUrl: "/auth" });
-    // Tidak perlu router.push karena signOut akan menangani redirect
+    // Gunakan redirect: false agar tidak pakai NEXTAUTH_URL dari .env
+    await signOut({ redirect: false });
+    // Manual redirect ke /auth di origin yang sama (localhost atau ngrok)
+    router.push("/auth");
   };
 
   const updateAvatar = (newAvatar) => {
@@ -298,10 +300,17 @@ export default function DashboardLayout({ children }) {
   const userAvatar = normalizeAvatar(currentUser?.avatar);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-950">
-      <div className="flex h-screen">
+    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-purple-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 relative overflow-hidden">
+      {/* Background effects */}
+      <div className="absolute inset-0 opacity-30 dark:opacity-20">
+        <div className="h-full w-full bg-[radial-gradient(circle,_rgba(139,_69,_195,_0.1)_1px,_transparent_1px)] dark:bg-[radial-gradient(circle,_rgba(139,_69,_195,_0.2)_1px,_transparent_1px)] bg-[length:20px_20px]"></div>
+      </div>
+      <div className="absolute top-20 left-20 w-64 h-64 bg-blue-200 dark:bg-blue-900 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse"></div>
+      <div className="absolute bottom-20 right-20 w-72 h-72 bg-purple-200 dark:bg-purple-900 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse delay-1000"></div>
+
+      <div className="flex h-screen relative z-10">
         {/* Sidebar */}
-        <div className="w-80 bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-800 flex flex-col">
+        <div className="w-80 backdrop-blur-lg bg-white/10 dark:bg-gray-900/40 border-r border-white/20 dark:border-gray-700 flex flex-col">
           {/* Header */}
           <div className="p-4 border-b border-white/20 dark:border-gray-700 bg-white/5 dark:bg-gray-800/50">
             <div className="flex items-center justify-between mb-4">
@@ -418,109 +427,129 @@ export default function DashboardLayout({ children }) {
                 )}
               </div>
             ) : activeTab === "friends" ? (
-              <div className="p-4 space-y-2">
+              <div className="p-4 space-y-3">
+                {/* Add Friend Button - Clean monochrome style */}
                 <button
                   onClick={() => setShowAddFriendModal(true)}
-                  className="w-full p-3 border-2 border-dashed border-blue-300 rounded-lg hover:bg-white/10 transition-colors text-blue-600 font-medium"
+                  className="w-full p-4 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 text-gray-700 dark:text-gray-200 font-medium flex items-center justify-center gap-2 bg-white dark:bg-gray-900"
                 >
-                  + Tambah Teman Baru
+                  <span className="text-xl">+</span>
+                  <span>Tambah Teman Baru</span>
                 </button>
+
                 {friends.length === 0 ? (
-                  <div className="text-center text-gray-500 mt-8">
-                    <p>Belum ada teman</p>
+                  <div className="text-center text-gray-400 dark:text-gray-500 mt-8 py-8">
+                    <div className="text-4xl mb-3">👥</div>
+                    <p className="font-medium">Belum ada teman</p>
+                    <p className="text-sm mt-1">Mulai tambah teman baru!</p>
                   </div>
                 ) : (
-                  friends.map((friend) => (
-                    <div
-                      key={friend.userId}
-                      className="p-3 rounded-lg bg-white/10"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-blue-400 rounded-full flex items-center justify-center text-white font-bold">
-                          {friend.displayName.charAt(0).toUpperCase()}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-gray-800 truncate">
-                            {friend.displayName}
-                          </h4>
-                          <p className="text-sm text-gray-600 truncate">
-                            @{friend.username}
-                          </p>
-                        </div>
-                        <button
-                          onClick={async () => {
-                            try {
-                              const response = await fetch(
-                                "/api/rooms/create",
-                                {
-                                  method: "POST",
-                                  headers: {
-                                    "Content-Type": "application/json",
+                  <div className="space-y-2">
+                    {friends.map((friend) => (
+                      <div
+                        key={friend.userId}
+                        className="p-4 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:border-gray-600 transition-all duration-200"
+                      >
+                        <div className="flex items-center space-x-3">
+                          {/* Avatar - Show image if available */}
+                          {friend.avatar ? (
+                            <div className="relative w-11 h-11 rounded-full overflow-hidden flex-shrink-0">
+                              <Image
+                                src={normalizeAvatar(friend.avatar)}
+                                alt={friend.displayName}
+                                fill
+                                className="object-cover"
+                                sizes="44px"
+                              />
+                            </div>
+                          ) : (
+                            <div className="w-11 h-11 bg-gradient-to-br from-gray-700 to-gray-900 dark:from-gray-300 dark:to-gray-100 rounded-full flex items-center justify-center text-white dark:text-gray-900 font-bold text-lg flex-shrink-0">
+                              {friend.displayName.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold text-gray-900 dark:text-white truncate">
+                              {friend.displayName}
+                            </h4>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                              @{friend.username}
+                            </p>
+                          </div>
+                          {/* Chat Button - Clean monochrome */}
+                          <button
+                            onClick={async () => {
+                              try {
+                                const response = await fetch(
+                                  "/api/rooms/create",
+                                  {
+                                    method: "POST",
+                                    headers: {
+                                      "Content-Type": "application/json",
+                                    },
+                                    body: JSON.stringify({
+                                      type: "private",
+                                      memberIds: [friend.userId],
+                                    }),
                                   },
-                                  body: JSON.stringify({
-                                    type: "private",
-                                    memberIds: [friend.userId],
-                                  }),
-                                },
-                              );
+                                );
 
-                              const result = await response.json();
+                                const result = await response.json();
 
-                              if (result.success) {
-                                // Redirect ke room yang baru dibuat menggunakan slug dari response
-                                if (result.room && result.room.slug) {
-                                  router.push(
-                                    `/dashboard/chat/${result.room.slug}`,
-                                  );
-                                } else {
-                                  toast.error(
-                                    "Room berhasil dibuat tetapi slug tidak ditemukan",
-                                  );
-                                }
-                              } else if (result.existingRoom) {
-                                // Ambil daftar room untuk mendapatkan slug dari room yang sudah ada
-                                const roomsResponse = await fetch("/api/rooms");
-                                const roomsData = await roomsResponse.json();
-
-                                if (roomsData.success) {
-                                  // Cari room yang sudah ada
-                                  const existingRoom =
-                                    roomsData.data.rooms.find(
-                                      (r) => r.id === result.existingRoom.id,
-                                    );
-                                  if (existingRoom && existingRoom.slug) {
+                                if (result.success) {
+                                  // Redirect ke room yang baru dibuat menggunakan slug dari response
+                                  if (result.room && result.room.slug) {
                                     router.push(
-                                      `/dashboard/chat/${existingRoom.slug}`,
+                                      `/dashboard/chat/${result.room.slug}`,
                                     );
                                   } else {
-                                    toast.info(
+                                    alert(
+                                      "Room berhasil dibuat tetapi slug tidak ditemukan",
+                                    );
+                                  }
+                                } else if (result.existingRoom) {
+                                  // Ambil daftar room untuk mendapatkan slug dari room yang sudah ada
+                                  const roomsResponse =
+                                    await fetch("/api/rooms");
+                                  const roomsData = await roomsResponse.json();
+
+                                  if (roomsData.success) {
+                                    // Cari room yang sudah ada
+                                    const existingRoom =
+                                      roomsData.data.rooms.find(
+                                        (r) => r.id === result.existingRoom.id,
+                                      );
+                                    if (existingRoom && existingRoom.slug) {
+                                      router.push(
+                                        `/dashboard/chat/${existingRoom.slug}`,
+                                      );
+                                    } else {
+                                      alert(
+                                        `Room dengan ${friend.displayName} sudah ada!`,
+                                      );
+                                    }
+                                  } else {
+                                    alert(
                                       `Room dengan ${friend.displayName} sudah ada!`,
                                     );
                                   }
                                 } else {
-                                  toast.info(
-                                    `Room dengan ${friend.displayName} sudah ada!`,
+                                  alert(
+                                    "Gagal membuat room: " + result.message,
                                   );
                                 }
-                              } else {
-                                toast.error(
-                                  "Gagal membuat room: " + result.message,
-                                );
+                              } catch (error) {
+                                console.error("Error creating room:", error);
+                                alert("Terjadi kesalahan saat membuat room");
                               }
-                            } catch (error) {
-                              console.error("Error creating room:", error);
-                              toast.error(
-                                "Terjadi kesalahan saat membuat room",
-                              );
-                            }
-                          }}
-                          className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm transition-colors"
-                        >
-                          Chat
-                        </button>
+                            }}
+                            className="px-4 py-2 bg-gray-900 hover:bg-gray-800 dark:bg-white dark:hover:bg-gray-100 text-white dark:text-gray-900 rounded-lg text-sm font-medium transition-all duration-200 shadow-sm"
+                          >
+                            Chat
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    ))}
+                  </div>
                 )}
               </div>
             ) : (
@@ -715,7 +744,7 @@ export default function DashboardLayout({ children }) {
                     <button
                       type="button"
                       onClick={() => {
-                        toast.info(
+                        alert(
                           "Untuk room private, gunakan tombol 'Chat' di daftar teman",
                         );
                       }}

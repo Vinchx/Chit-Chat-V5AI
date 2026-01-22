@@ -48,11 +48,11 @@ export async function POST(request) {
             );
         }
 
-        // Validasi ukuran file (max 5MB)
-        if (file.size > 5 * 1024 * 1024) {
+        // Validasi ukuran file (max 10MB)
+        if (file.size > 10 * 1024 * 1024) {
             console.log('[Upload Avatar] File too large:', file.size);
             return NextResponse.json(
-                { error: 'Ukuran file terlalu besar. Maksimal 5MB.' },
+                { error: 'Ukuran file terlalu besar. Maksimal 10MB.' },
                 { status: 400 }
             );
         }

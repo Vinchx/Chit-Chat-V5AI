@@ -10,7 +10,7 @@ await fs.mkdir(UPLOAD_DIR, { recursive: true });
 
 // Ekstensi file yang diizinkan
 const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 export async function uploadFile(fileBuffer, originalFilename, userId = null) {
   try {
@@ -29,7 +29,7 @@ export async function uploadFile(fileBuffer, originalFilename, userId = null) {
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 10);
     const uniqueFilename = `${timestamp}_${randomString}${fileExtension}`;
-    
+
     // Tambahkan folder user jika disediakan
     const userDir = userId ? path.join(UPLOAD_DIR, userId) : UPLOAD_DIR;
     await fs.mkdir(userDir, { recursive: true });
@@ -42,7 +42,7 @@ export async function uploadFile(fileBuffer, originalFilename, userId = null) {
 
     // Kembalikan path file yang bisa diakses
     const relativePath = path.join('/uploads', userId ? userId : '', uniqueFilename);
-    
+
     return {
       success: true,
       filename: uniqueFilename,
@@ -74,7 +74,7 @@ export async function deleteFile(filePath) {
 // Fungsi untuk memvalidasi file sebelum upload
 export function validateFile(fileBuffer, originalFilename) {
   const fileExtension = path.extname(originalFilename).toLowerCase();
-  
+
   if (!ALLOWED_EXTENSIONS.includes(fileExtension)) {
     return {
       valid: false,
