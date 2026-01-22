@@ -4,9 +4,13 @@ import User from '@/models/User';
 import EmailService from '@/lib/EmailService';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
+import connectToDatabase from '@/lib/mongodb';
 
 export async function POST(request) {
   try {
+    // Connect to MongoDB first (critical for Vercel serverless)
+    await connectToDatabase();
+
     console.log('[REGISTER] Starting registration process...');
     const { username, email, password, displayName } = await request.json();
     console.log('[REGISTER] Received data:', { username, email, displayName });
