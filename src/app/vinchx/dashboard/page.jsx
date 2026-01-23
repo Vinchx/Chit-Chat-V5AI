@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { clearAdminToken } from "@/lib/admin-session";
 import { isAdmin } from "@/lib/admin-config";
+import { clearAllCookies } from "@/lib/cookie-utils";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -146,6 +147,38 @@ export default function AdminDashboard() {
                     <div className="font-medium">Logout Admin dan User</div>
                     <div className="text-xs text-gray-400">
                       Logout sepenuhnya
+                    </div>
+                  </div>
+                </button>
+
+                {/* New: Clear All Cookies & Logout Button */}
+                <button
+                  onClick={() => {
+                    setShowLogoutMenu(false);
+                    // Clear ALL cookies, localStorage, sessionStorage
+                    clearAllCookies();
+                    // Then logout
+                    signOut({ callbackUrl: "/auth" });
+                  }}
+                  className="w-full px-4 py-3 text-left hover:bg-yellow-500/10 transition-colors flex items-center gap-3 text-yellow-300"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                    />
+                  </svg>
+                  <div>
+                    <div className="font-medium">Clear All & Logout</div>
+                    <div className="text-xs text-gray-400">
+                      Hapus semua cookies (dev mode)
                     </div>
                   </div>
                 </button>
