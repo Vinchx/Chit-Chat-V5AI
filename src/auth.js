@@ -22,6 +22,29 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         await connectDB();
 
+        // Check if this is a passkey authentication
+        // Format: __PASSKEY_AUTH__:userId
+        if (credentials.password.startsWith("__PASSKEY_AUTH__:")) {
+          const userId = credentials.password.replace("__PASSKEY_AUTH__:", "");
+
+          // Get user by ID (passkey auth already verified)
+          const user = await User.findById(userId);
+
+          if (!user) {
+            throw new Error("User tidak ditemukan");
+          }
+
+          // Return user object for passkey auth
+          return {
+            id: user._id.toString(),
+            username: user.username,
+            email: user.email,
+            displayName: user.displayName,
+            avatar: user.avatar || null,
+          };
+        }
+
+        // Regular password authentication
         // Cari user berdasarkan username atau email
         const user = await User.findOne({
           $or: [

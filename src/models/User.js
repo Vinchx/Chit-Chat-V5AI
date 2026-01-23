@@ -59,6 +59,37 @@ const UserSchema = new mongoose.Schema({
     type: Date,
     default: null,
   },
+  // Passkey credentials for WebAuthn
+  passkeys: [{
+    credentialID: {
+      type: String, // Changed from Buffer to String (base64url) to avoid encoding issues
+      required: true,
+    },
+    publicKey: {
+      type: String, // Changed from Buffer to String (base64) to avoid encoding issues
+      required: true,
+    },
+    counter: {
+      type: Number,
+      required: true,
+    },
+    deviceType: {
+      type: String,
+      default: 'unknown',
+    },
+    backedUp: {
+      type: Boolean,
+      default: false,
+    },
+    transports: {
+      type: [String],
+      default: [],
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now,
+    },
+  }],
 });
 
 // Prevent model overwrite upon initial compilation
