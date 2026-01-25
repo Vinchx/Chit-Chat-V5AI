@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { toast } from "sonner";
+import { toast, Toaster } from "sonner";
 import { useUser } from "@/contexts/UserContext";
 import AddFriendModal from "../components/AddFriendModal";
 import NotificationModal from "../components/NotificationModal";
@@ -62,6 +62,12 @@ export default function DashboardLayout({ children }) {
     message: "",
   });
   const [showLogoutMenu, setShowLogoutMenu] = useState(false);
+
+  // Friend search states for unified modal
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [addingFriend, setAddingFriend] = useState(null);
 
   // Refs to prevent duplicate API calls
   const isLoadingRef = useRef(false);
@@ -309,6 +315,104 @@ export default function DashboardLayout({ children }) {
     }));
   };
 
+  // Friend search functions for unified modal
+  const handleFriendSearch = async () => {
+    if (searchQuery.trim() === "") return;
+    setIsSearching(true);
+    setSearchResults([]);
+
+    try {
+      const response = await fetch(`/api/users/search?q=${searchQuery}`);
+      const data = await response.json();
+
+      if (data.success) {
+        setSearchResults(data.data.results);
+      } else {
+        toast.error(data.message);
+        setSearchResults([]);
+      }
+    } catch (error) {
+      toast.error("Gagal mencari user");
+      setSearchResults([]);
+    }
+
+    setIsSearching(false);
+  };
+
+  const handleAddFriendInModal = async (user) => {
+    setAddingFriend(user.userId);
+
+    try {
+      const response = await fetch("/api/friends/add", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identifier: user.username }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success(`Friend request dikirim ke ${user.displayName}!`);
+        setSearchResults((prev) =>
+          prev.filter((r) => r.userId !== user.userId),
+        );
+        loadFriendsData();
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      toast.error("Gagal mengirim friend request");
+    }
+
+    setAddingFriend(null);
+  };
+
+  const resetModalState = () => {
+    setShowCreateRoomModal(false);
+    setNewRoomType("group");
+    setNewRoomName("");
+    setSelectedMembers([]);
+    setSearchQuery("");
+    setSearchResults([]);
+  };
+
+  // Create private chat with friend
+  const startPrivateChat = async (friend) => {
+    try {
+      const response = await fetch("/api/rooms/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "private",
+          memberIds: [friend.userId],
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success && result.room?.slug) {
+        resetModalState();
+        router.push(`/dashboard/chat/${result.room.slug}`);
+      } else if (result.existingRoom) {
+        const roomsResponse = await fetch("/api/rooms");
+        const roomsData = await roomsResponse.json();
+        if (roomsData.success) {
+          const existingRoom = roomsData.data.rooms.find(
+            (r) => r.id === result.existingRoom.id,
+          );
+          if (existingRoom?.slug) {
+            resetModalState();
+            router.push(`/dashboard/chat/${existingRoom.slug}`);
+          }
+        }
+      } else {
+        toast.error("Gagal membuat room");
+      }
+    } catch (error) {
+      toast.error("Terjadi kesalahan");
+    }
+  };
+
   if (status === "loading" || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-purple-50 to-indigo-100">
@@ -476,17 +580,6 @@ export default function DashboardLayout({ children }) {
               </div>
             ) : activeTab === "friends" ? (
               <div>
-                {/* Add Friend Button */}
-                <div className="p-4 pb-2">
-                  <button
-                    onClick={() => setShowAddFriendModal(true)}
-                    className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 text-gray-700 dark:text-gray-200 font-medium flex items-center justify-center gap-2 bg-white/50 dark:bg-gray-900/50"
-                  >
-                    <span className="text-xl">+</span>
-                    <span>Tambah Teman Baru</span>
-                  </button>
-                </div>
-
                 {friends.length === 0 ? (
                   <div className="text-center text-gray-500 dark:text-gray-400 mt-8 py-8">
                     <div className="text-4xl mb-3">👥</div>
@@ -701,193 +794,319 @@ export default function DashboardLayout({ children }) {
         }}
       />
 
-      {/* Create Room Modal */}
+      {/* Unified Chat Modal - WhatsApp Style */}
       {showCreateRoomModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold text-gray-800">
-                  Buat Room Baru
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="glass-card dark:glass-card-dark rounded-3xl w-full max-w-md max-h-[85vh] overflow-hidden shadow-2xl animate-slide-up flex flex-col">
+            {/* Header */}
+            <div className="p-4 border-b border-gray-200/50 dark:border-gray-700/50">
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent dark:from-purple-400 dark:to-pink-400">
+                  Chat Baru
                 </h3>
                 <button
-                  onClick={() => {
-                    setShowCreateRoomModal(false);
-                    setNewRoomType("group");
-                    setNewRoomName("");
-                    setSelectedMembers([]);
-                  }}
-                  className="text-gray-500 hover:text-gray-700"
+                  onClick={resetModalState}
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/50 rounded-full p-2 transition-all duration-200 hover:rotate-90"
                 >
-                  ✕
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
                 </button>
               </div>
 
-              <div className="space-y-6">
-                {/* Room Type Selection */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Jenis Room
-                  </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setNewRoomType("group")}
-                      className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-                        newRoomType === "group"
-                          ? "bg-blue-500 text-white"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      }`}
+              {/* Search Bar */}
+              <div className="relative">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleFriendSearch()}
+                  className="w-full pl-10 pr-4 py-2.5 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none transition-all duration-300 bg-white/50 dark:bg-gray-800/50 text-gray-800 dark:text-gray-100 input-glow text-sm"
+                  placeholder="Cari nama atau username..."
+                />
+                <svg
+                  className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+                {searchQuery && (
+                  <button
+                    onClick={handleFriendSearch}
+                    disabled={isSearching}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 gradient-primary text-white rounded-lg text-xs font-medium transition-all duration-200 hover:opacity-90 disabled:opacity-50"
+                  >
+                    {isSearching ? "..." : "Cari"}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Content - Scrollable */}
+            <div className="flex-1 overflow-y-auto scrollbar-elegant">
+              {/* Search Results */}
+              {searchResults.length > 0 && (
+                <div className="p-3 border-b border-gray-200/50 dark:border-gray-700/50">
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 px-1">
+                    Hasil Pencarian
+                  </p>
+                  {searchResults.map((result) => (
+                    <div
+                      key={result.userId}
+                      className="flex items-center p-3 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700/30 transition-all duration-200 cursor-pointer"
                     >
-                      Group
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setNewRoomType("ai")}
-                      className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-                        newRoomType === "ai"
-                          ? "bg-blue-500 text-white"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      }`}
-                    >
-                      AI
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        alert(
-                          "Untuk room private, gunakan tombol 'Chat' di daftar teman",
-                        );
-                      }}
-                      className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-                        newRoomType === "private"
-                          ? "bg-blue-500 text-white"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      }`}
-                    >
-                      Private
-                    </button>
+                      <div className="w-12 h-12 gradient-cool rounded-full flex items-center justify-center text-white font-bold text-lg mr-3 shadow-md">
+                        {result.displayName?.charAt(0).toUpperCase() || "?"}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-gray-800 dark:text-gray-100 truncate">
+                          {result.displayName}
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                          @{result.username}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleAddFriendInModal(result)}
+                        disabled={addingFriend === result.userId}
+                        className="px-3 py-1.5 gradient-success text-white rounded-lg text-xs font-semibold transition-all duration-200 hover:opacity-90 disabled:opacity-50"
+                      >
+                        {addingFriend === result.userId ? "..." : "+ Add"}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Quick Actions */}
+              <div className="p-3">
+                {/* New Group */}
+                <div
+                  onClick={() =>
+                    setNewRoomType(newRoomType === "group" ? "" : "group")
+                  }
+                  className={`flex items-center p-3 rounded-xl cursor-pointer transition-all duration-200 mb-2 ${
+                    newRoomType === "group"
+                      ? "glass-card dark:glass-card-dark shadow-md"
+                      : "hover:bg-gray-100 dark:hover:bg-gray-700/30"
+                  }`}
+                >
+                  <div className="w-12 h-12 gradient-primary rounded-full flex items-center justify-center text-white text-xl mr-3 shadow-md">
+                    👥
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-gray-800 dark:text-gray-100">
+                      Grup Baru
+                    </p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      Buat grup dengan teman-temanmu
+                    </p>
+                  </div>
+                  <div
+                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
+                      newRoomType === "group"
+                        ? "gradient-primary border-transparent"
+                        : "border-gray-300 dark:border-gray-600"
+                    }`}
+                  >
+                    {newRoomType === "group" && (
+                      <svg
+                        className="w-4 h-4 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="3"
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                    )}
                   </div>
                 </div>
 
-                {/* Room Name (only for group) */}
+                {/* AI Chat */}
+                <div
+                  onClick={() =>
+                    setNewRoomType(newRoomType === "ai" ? "" : "ai")
+                  }
+                  className={`flex items-center p-3 rounded-xl cursor-pointer transition-all duration-200 mb-2 ${
+                    newRoomType === "ai"
+                      ? "glass-card dark:glass-card-dark shadow-md"
+                      : "hover:bg-gray-100 dark:hover:bg-gray-700/30"
+                  }`}
+                >
+                  <div className="w-12 h-12 gradient-success rounded-full flex items-center justify-center text-white text-xl mr-3 shadow-md">
+                    🤖
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-gray-800 dark:text-gray-100">
+                      Chat AI
+                    </p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      Ngobrol dengan AI asisten
+                    </p>
+                  </div>
+                  <div
+                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
+                      newRoomType === "ai"
+                        ? "gradient-success border-transparent"
+                        : "border-gray-300 dark:border-gray-600"
+                    }`}
+                  >
+                    {newRoomType === "ai" && (
+                      <svg
+                        className="w-4 h-4 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="3"
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+
+                {/* Group Details (if group selected) */}
                 {newRoomType === "group" && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Nama Group
-                    </label>
+                  <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl animate-slide-down">
                     <input
                       type="text"
                       value={newRoomName}
                       onChange={(e) => setNewRoomName(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Masukkan nama group..."
+                      className="w-full px-4 py-2.5 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none transition-all duration-300 bg-white/80 dark:bg-gray-700/50 text-gray-800 dark:text-gray-100 input-glow text-sm mb-3"
+                      placeholder="Nama grup..."
                     />
-                  </div>
-                )}
-
-                {/* Members Selection (only for group) */}
-                {newRoomType === "group" && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Tambah Anggota
-                    </label>
-                    <div className="max-h-60 overflow-y-auto border border-gray-200 rounded-lg p-2">
-                      {friends.length === 0 ? (
-                        <div className="text-center py-4">
-                          <p className="text-gray-500 mb-3">
-                            Tidak ada teman ditemukan
-                          </p>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setShowCreateRoomModal(false);
-                              setShowAddFriendModal(true);
-                            }}
-                            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors"
-                          >
-                            + Tambah Teman Baru
-                          </button>
-                        </div>
-                      ) : (
-                        friends.map((friend) => (
-                          <div
-                            key={friend.userId}
-                            className={`flex items-center p-2 rounded cursor-pointer hover:bg-gray-100 ${
-                              selectedMembers.includes(friend.userId)
-                                ? "bg-blue-100"
-                                : ""
-                            }`}
-                            onClick={() => toggleMemberSelection(friend.userId)}
-                          >
-                            <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-blue-400 rounded-full flex items-center justify-center text-white font-bold text-sm mr-3">
-                              {friend.displayName.charAt(0).toUpperCase()}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-gray-800 truncate">
-                                {friend.displayName}
-                              </p>
-                              <p className="text-xs text-gray-600 truncate">
-                                @{friend.username}
-                              </p>
-                            </div>
-                            <div
-                              className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                                selectedMembers.includes(friend.userId)
-                                  ? "bg-blue-500 border-blue-500"
-                                  : "border-gray-300"
-                              }`}
-                            >
-                              {selectedMembers.includes(friend.userId) && (
-                                <svg
-                                  className="w-3 h-3 text-white"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth="2"
-                                    d="M5 13l4 4L19 7"
-                                  ></path>
-                                </svg>
-                              )}
-                            </div>
+                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">
+                      Pilih anggota:
+                    </p>
+                    <div className="max-h-32 overflow-y-auto scrollbar-elegant">
+                      {friends.map((friend) => (
+                        <div
+                          key={friend.userId}
+                          className={`flex items-center p-2 rounded-lg cursor-pointer transition-all duration-200 mb-1 ${
+                            selectedMembers.includes(friend.userId)
+                              ? "bg-purple-100 dark:bg-purple-900/30"
+                              : "hover:bg-gray-100 dark:hover:bg-gray-700/30"
+                          }`}
+                          onClick={() => toggleMemberSelection(friend.userId)}
+                        >
+                          <div className="w-8 h-8 gradient-warm rounded-full flex items-center justify-center text-white font-bold text-xs mr-2">
+                            {friend.displayName?.charAt(0).toUpperCase()}
                           </div>
-                        ))
-                      )}
+                          <span className="flex-1 text-sm text-gray-800 dark:text-gray-200 truncate">
+                            {friend.displayName}
+                          </span>
+                          <div
+                            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                              selectedMembers.includes(friend.userId)
+                                ? "gradient-primary border-transparent"
+                                : "border-gray-300 dark:border-gray-600"
+                            }`}
+                          >
+                            {selectedMembers.includes(friend.userId) && (
+                              <svg
+                                className="w-3 h-3 text-white"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth="3"
+                                  d="M5 13l4 4L19 7"
+                                />
+                              </svg>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                     {selectedMembers.length > 0 && (
-                      <p className="text-sm text-gray-600 mt-2">
+                      <p className="text-xs text-purple-600 dark:text-purple-400 mt-2 font-medium">
                         {selectedMembers.length} anggota dipilih
                       </p>
                     )}
                   </div>
                 )}
+              </div>
 
-                {/* Create Button */}
-                <div className="flex space-x-3 pt-4">
-                  <button
-                    onClick={() => {
-                      setShowCreateRoomModal(false);
-                      setNewRoomType("group");
-                      setNewRoomName("");
-                      setSelectedMembers([]);
-                    }}
-                    className="flex-1 py-2.5 bg-gray-200 text-gray-800 rounded-lg font-medium hover:bg-gray-300 transition-colors"
-                  >
-                    Batal
-                  </button>
-                  <button
-                    onClick={createRoom}
-                    className="flex-1 py-2.5 bg-gradient-to-r from-blue-400 to-purple-400 text-white rounded-lg font-medium hover:from-blue-500 hover:to-purple-500 transition-all"
-                  >
-                    Buat Room
-                  </button>
-                </div>
+              {/* Separator */}
+              <div className="px-4 py-2">
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                  Kontak di Chit-Chat
+                </p>
+              </div>
+
+              {/* Friends List */}
+              <div className="px-3 pb-3">
+                {friends.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="text-4xl mb-3">👋</div>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">
+                      Belum ada teman. Cari teman baru di atas!
+                    </p>
+                  </div>
+                ) : (
+                  friends.map((friend) => (
+                    <div
+                      key={friend.userId}
+                      onClick={() => startPrivateChat(friend)}
+                      className="flex items-center p-3 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700/30 transition-all duration-200 cursor-pointer mb-1"
+                    >
+                      <div className="w-12 h-12 gradient-warm rounded-full flex items-center justify-center text-white font-bold text-lg mr-3 shadow-md">
+                        {friend.displayName?.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-gray-800 dark:text-gray-100 truncate">
+                          {friend.displayName}
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                          @{friend.username}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
+
+            {/* Footer - Create Button (only for group/ai) */}
+            {(newRoomType === "group" || newRoomType === "ai") && (
+              <div className="p-4 border-t border-gray-200/50 dark:border-gray-700/50">
+                <button
+                  onClick={createRoom}
+                  className="w-full py-3 gradient-primary text-white rounded-xl font-semibold transition-all duration-300 btn-hover-lift btn-hover-glow shadow-lg shadow-purple-500/50 hover:shadow-purple-500/70"
+                >
+                  {newRoomType === "group" ? "Buat Grup" : "Mulai Chat AI"}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

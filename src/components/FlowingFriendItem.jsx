@@ -133,7 +133,7 @@ function FlowingFriendItem({
       onClick={onClick}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      className="relative p-3 cursor-pointer transition-colors overflow-hidden group"
+      className="relative p-3 cursor-pointer transition-all duration-300 overflow-hidden group hover:bg-white/30 dark:hover:bg-gray-800/40 rounded-xl"
     >
       {/* Normal State Content */}
       <div className="normal-content flex items-center space-x-3 relative z-10 transition-opacity duration-100">
@@ -149,7 +149,7 @@ function FlowingFriendItem({
             />
           </div>
         ) : (
-          <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-blue-400 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+          <div className="w-10 h-10 gradient-warm rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0 shadow-md">
             {getInitials(displayName)}
           </div>
         )}
