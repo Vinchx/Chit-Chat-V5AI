@@ -358,7 +358,15 @@ export default function DashboardLayout({ children }) {
         );
         loadFriendsData();
       } else {
-        toast.error(data.message);
+        // Use warning toast for pending requests, error for actual errors
+        if (
+          data.message.includes("pending") ||
+          data.message.includes("sabar")
+        ) {
+          toast.warning(data.message);
+        } else {
+          toast.error(data.message);
+        }
       }
     } catch (error) {
       toast.error("Gagal mengirim friend request");
@@ -796,12 +804,12 @@ export default function DashboardLayout({ children }) {
 
       {/* Unified Chat Modal - WhatsApp Style */}
       {showCreateRoomModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="glass-card dark:glass-card-dark rounded-3xl w-full max-w-md max-h-[85vh] overflow-hidden shadow-2xl animate-slide-up flex flex-col">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="bg-white/95 dark:bg-gray-600/30 backdrop-blur-xl rounded-3xl w-full max-w-md max-h-[85vh] overflow-hidden shadow-2xl animate-slide-up flex flex-col border border-gray-200/30 dark:border-gray-700/50">
             {/* Header */}
             <div className="p-4 border-b border-gray-200/50 dark:border-gray-700/50">
               <div className="flex justify-between items-center mb-3">
-                <h3 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent dark:from-purple-400 dark:to-pink-400">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">
                   Chat Baru
                 </h3>
                 <button
@@ -831,7 +839,7 @@ export default function DashboardLayout({ children }) {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleFriendSearch()}
-                  className="w-full pl-10 pr-4 py-2.5 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none transition-all duration-300 bg-white/50 dark:bg-gray-800/50 text-gray-800 dark:text-gray-100 input-glow text-sm"
+                  className="w-full pl-10 pr-4 py-2.5 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none transition-all duration-300 bg-white/50 dark:bg-gray-700/80 text-gray-800 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-400 input-glow text-sm"
                   placeholder="Cari nama atau username..."
                 />
                 <svg
@@ -861,42 +869,55 @@ export default function DashboardLayout({ children }) {
 
             {/* Content - Scrollable */}
             <div className="flex-1 overflow-y-auto scrollbar-elegant">
-              {/* Search Results */}
-              {searchResults.length > 0 && (
-                <div className="p-3 border-b border-gray-200/50 dark:border-gray-700/50">
-                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 px-1">
-                    Hasil Pencarian
-                  </p>
-                  {searchResults.map((result) => (
-                    <div
-                      key={result.userId}
-                      className="flex items-center p-3 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700/30 transition-all duration-200 cursor-pointer"
-                    >
-                      <div className="w-12 h-12 gradient-cool rounded-full flex items-center justify-center text-white font-bold text-lg mr-3 shadow-md">
-                        {result.displayName?.charAt(0).toUpperCase() || "?"}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-gray-800 dark:text-gray-100 truncate">
-                          {result.displayName}
-                        </p>
-                        <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
-                          @{result.username}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => handleAddFriendInModal(result)}
-                        disabled={addingFriend === result.userId}
-                        className="px-3 py-1.5 gradient-success text-white rounded-lg text-xs font-semibold transition-all duration-200 hover:opacity-90 disabled:opacity-50"
-                      >
-                        {addingFriend === result.userId ? "..." : "+ Add"}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
               {/* Quick Actions */}
               <div className="p-3">
+                {/* Add Friend */}
+                <div
+                  onClick={() =>
+                    setNewRoomType(newRoomType === "friend" ? "" : "friend")
+                  }
+                  className={`flex items-center p-3 rounded-xl cursor-pointer transition-all duration-200 mb-2 ${
+                    newRoomType === "friend"
+                      ? "bg-gray-100 dark:bg-gray-700/50 shadow-md"
+                      : "hover:bg-gray-100 dark:hover:bg-gray-700/30"
+                  }`}
+                >
+                  <div className="w-12 h-12 bg-gray-700 dark:bg-gray-600 rounded-full flex items-center justify-center text-white text-xl mr-3 shadow-md">
+                    👤
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-gray-900 dark:text-white">
+                      Add Friend
+                    </p>
+                    <p className="text-xs text-gray-600 dark:text-gray-300">
+                      Cari dan tambahkan teman baru
+                    </p>
+                  </div>
+                  <div
+                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
+                      newRoomType === "friend"
+                        ? "bg-gray-700 dark:bg-gray-600 border-transparent"
+                        : "border-gray-300 dark:border-gray-600"
+                    }`}
+                  >
+                    {newRoomType === "friend" && (
+                      <svg
+                        className="w-4 h-4 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="3"
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+
                 {/* New Group */}
                 <div
                   onClick={() =>
@@ -904,25 +925,25 @@ export default function DashboardLayout({ children }) {
                   }
                   className={`flex items-center p-3 rounded-xl cursor-pointer transition-all duration-200 mb-2 ${
                     newRoomType === "group"
-                      ? "glass-card dark:glass-card-dark shadow-md"
+                      ? "bg-gray-100 dark:bg-gray-700/50 shadow-md"
                       : "hover:bg-gray-100 dark:hover:bg-gray-700/30"
                   }`}
                 >
-                  <div className="w-12 h-12 gradient-primary rounded-full flex items-center justify-center text-white text-xl mr-3 shadow-md">
+                  <div className="w-12 h-12 bg-gray-700 dark:bg-gray-600 rounded-full flex items-center justify-center text-white text-xl mr-3 shadow-md">
                     👥
                   </div>
                   <div className="flex-1">
-                    <p className="font-semibold text-gray-800 dark:text-gray-100">
+                    <p className="font-semibold text-gray-900 dark:text-white">
                       Grup Baru
                     </p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                    <p className="text-xs text-gray-600 dark:text-gray-300">
                       Buat grup dengan teman-temanmu
                     </p>
                   </div>
                   <div
                     className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
                       newRoomType === "group"
-                        ? "gradient-primary border-transparent"
+                        ? "bg-gray-700 dark:bg-gray-600 border-transparent"
                         : "border-gray-300 dark:border-gray-600"
                     }`}
                   >
@@ -951,25 +972,25 @@ export default function DashboardLayout({ children }) {
                   }
                   className={`flex items-center p-3 rounded-xl cursor-pointer transition-all duration-200 mb-2 ${
                     newRoomType === "ai"
-                      ? "glass-card dark:glass-card-dark shadow-md"
+                      ? "bg-gray-100 dark:bg-gray-700/50 shadow-md"
                       : "hover:bg-gray-100 dark:hover:bg-gray-700/30"
                   }`}
                 >
-                  <div className="w-12 h-12 gradient-success rounded-full flex items-center justify-center text-white text-xl mr-3 shadow-md">
+                  <div className="w-12 h-12 bg-gray-700 dark:bg-gray-600 rounded-full flex items-center justify-center text-white text-xl mr-3 shadow-md">
                     🤖
                   </div>
                   <div className="flex-1">
-                    <p className="font-semibold text-gray-800 dark:text-gray-100">
+                    <p className="font-semibold text-gray-900 dark:text-white">
                       Chat AI
                     </p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                    <p className="text-xs text-gray-600 dark:text-gray-300">
                       Ngobrol dengan AI asisten
                     </p>
                   </div>
                   <div
                     className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
                       newRoomType === "ai"
-                        ? "gradient-success border-transparent"
+                        ? "bg-gray-700 dark:bg-gray-600 border-transparent"
                         : "border-gray-300 dark:border-gray-600"
                     }`}
                   >
@@ -991,6 +1012,53 @@ export default function DashboardLayout({ children }) {
                   </div>
                 </div>
 
+                {/* Add Friend Details (if friend selected) */}
+                {newRoomType === "friend" && (
+                  <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-600/50 rounded-xl animate-slide-down">
+                    <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-2">
+                      Cari pengguna untuk ditambahkan sebagai teman:
+                    </p>
+
+                    {/* Search Results inside Add Friend */}
+                    {searchResults.length > 0 ? (
+                      <div className="space-y-2">
+                        {searchResults.map((result) => (
+                          <div
+                            key={result.userId}
+                            className="flex items-center p-3 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700/30 transition-all duration-200 cursor-pointer bg-white dark:bg-gray-700/50"
+                          >
+                            <div className="w-10 h-10 bg-gray-500 dark:bg-gray-600 rounded-full flex items-center justify-center text-white font-bold text-sm mr-3">
+                              {result.displayName?.charAt(0).toUpperCase() ||
+                                "?"}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-bold text-gray-900 dark:text-white truncate text-sm">
+                                {result.displayName}
+                              </p>
+                              <p className="text-xs text-gray-600 dark:text-gray-300 truncate">
+                                @{result.username}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => handleAddFriendInModal(result)}
+                              disabled={addingFriend === result.userId}
+                              className="px-3 py-1.5 bg-gray-700 dark:bg-gray-600 text-white rounded-lg text-xs font-semibold transition-all duration-200 hover:opacity-90 disabled:opacity-50"
+                            >
+                              {addingFriend === result.userId ? "..." : "+ Add"}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-4">
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Gunakan kolom pencarian di atas untuk mencari teman
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Group Details (if group selected) */}
                 {newRoomType === "group" && (
                   <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl animate-slide-down">
@@ -998,10 +1066,10 @@ export default function DashboardLayout({ children }) {
                       type="text"
                       value={newRoomName}
                       onChange={(e) => setNewRoomName(e.target.value)}
-                      className="w-full px-4 py-2.5 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none transition-all duration-300 bg-white/80 dark:bg-gray-700/50 text-gray-800 dark:text-gray-100 input-glow text-sm mb-3"
+                      className="w-full px-4 py-2.5 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none transition-all duration-300 bg-white/80 dark:bg-gray-700/80 text-gray-800 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-400 input-glow text-sm mb-3"
                       placeholder="Nama grup..."
                     />
-                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">
+                    <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-2">
                       Pilih anggota:
                     </p>
                     <div className="max-h-32 overflow-y-auto scrollbar-elegant">
@@ -1015,16 +1083,16 @@ export default function DashboardLayout({ children }) {
                           }`}
                           onClick={() => toggleMemberSelection(friend.userId)}
                         >
-                          <div className="w-8 h-8 gradient-warm rounded-full flex items-center justify-center text-white font-bold text-xs mr-2">
+                          <div className="w-8 h-8 bg-gray-600 dark:bg-gray-500 rounded-full flex items-center justify-center text-white font-bold text-xs mr-2">
                             {friend.displayName?.charAt(0).toUpperCase()}
                           </div>
-                          <span className="flex-1 text-sm text-gray-800 dark:text-gray-200 truncate">
+                          <span className="flex-1 text-sm text-gray-900 dark:text-white truncate font-semibold">
                             {friend.displayName}
                           </span>
                           <div
                             className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
                               selectedMembers.includes(friend.userId)
-                                ? "gradient-primary border-transparent"
+                                ? "bg-gray-700 dark:bg-gray-600 border-transparent"
                                 : "border-gray-300 dark:border-gray-600"
                             }`}
                           >
@@ -1048,7 +1116,7 @@ export default function DashboardLayout({ children }) {
                       ))}
                     </div>
                     {selectedMembers.length > 0 && (
-                      <p className="text-xs text-purple-600 dark:text-purple-400 mt-2 font-medium">
+                      <p className="text-xs text-gray-600 dark:text-gray-300 mt-2 font-medium">
                         {selectedMembers.length} anggota dipilih
                       </p>
                     )}
@@ -1058,7 +1126,7 @@ export default function DashboardLayout({ children }) {
 
               {/* Separator */}
               <div className="px-4 py-2">
-                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                <p className="text-xs font-semibold text-gray-600 dark:text-gray-300">
                   Kontak di Chit-Chat
                 </p>
               </div>
@@ -1079,14 +1147,14 @@ export default function DashboardLayout({ children }) {
                       onClick={() => startPrivateChat(friend)}
                       className="flex items-center p-3 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700/30 transition-all duration-200 cursor-pointer mb-1"
                     >
-                      <div className="w-12 h-12 gradient-warm rounded-full flex items-center justify-center text-white font-bold text-lg mr-3 shadow-md">
+                      <div className="w-12 h-12 bg-gray-600 dark:bg-gray-500 rounded-full flex items-center justify-center text-white font-bold text-lg mr-3 shadow-md">
                         {friend.displayName?.charAt(0).toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-gray-800 dark:text-gray-100 truncate">
+                        <p className="font-bold text-gray-900 dark:text-white truncate">
                           {friend.displayName}
                         </p>
-                        <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                        <p className="text-xs text-gray-600 dark:text-gray-300 truncate">
                           @{friend.username}
                         </p>
                       </div>
@@ -1101,7 +1169,7 @@ export default function DashboardLayout({ children }) {
               <div className="p-4 border-t border-gray-200/50 dark:border-gray-700/50">
                 <button
                   onClick={createRoom}
-                  className="w-full py-3 gradient-primary text-white rounded-xl font-semibold transition-all duration-300 btn-hover-lift btn-hover-glow shadow-lg shadow-purple-500/50 hover:shadow-purple-500/70"
+                  className="w-full py-3 bg-gray-200 text-gray-700 rounded-xl font-semibold transition-all duration-300 [box-shadow:0_10px_0_black] hover:shadow-purple-500/70 hover:[box-shadow:0_5px_0_black] hover:translate-y-[5px] "
                 >
                   {newRoomType === "group" ? "Buat Grup" : "Mulai Chat AI"}
                 </button>

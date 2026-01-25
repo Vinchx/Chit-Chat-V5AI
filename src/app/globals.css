@@ -205,10 +205,10 @@
 @keyframes glow {
   0%,
   100% {
-    box-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
+    box-shadow: 0 0 10px rgba(200, 200, 200, 0.3);
   }
   50% {
-    box-shadow: 0 0 20px rgba(139, 92, 246, 0.6);
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.6);
   }
 }
 
@@ -294,31 +294,31 @@
 }
 
 /* ========================================
-   GRADIENT UTILITIES
+   GRADIENT UTILITIES - MONOCHROME
    ======================================== */
 
 .gradient-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #2d2d2d 0%, #5a5a5a 100%);
 }
 
 .gradient-accent {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  background: linear-gradient(135deg, #3a3a3a 0%, #6a6a6a 100%);
 }
 
 .gradient-success {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  background: linear-gradient(135deg, #404040 0%, #737373 100%);
 }
 
 .gradient-warm {
-  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+  background: linear-gradient(135deg, #4a4a4a 0%, #808080 100%);
 }
 
 .gradient-cool {
-  background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+  background: linear-gradient(135deg, #353535 0%, #656565 100%);
 }
 
 .gradient-sunset {
-  background: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%);
+  background: linear-gradient(135deg, #454545 0%, #757575 100%);
 }
 
 /* ========================================
@@ -340,7 +340,11 @@
 }
 
 .btn-hover-glow:hover {
-  box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+}
+
+.dark .btn-hover-glow:hover {
+  box-shadow: 0 0 20px rgba(100, 100, 100, 0.5);
 }
 
 .btn-ripple {

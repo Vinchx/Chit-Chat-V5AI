@@ -133,7 +133,7 @@ function FlowingFriendItem({
       onClick={onClick}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      className="relative p-3 cursor-pointer transition-all duration-300 overflow-hidden group hover:bg-white/30 dark:hover:bg-gray-800/40 rounded-xl"
+      className="relative p-3 cursor-pointer transition-all duration-300 overflow-hidden group hover:bg-white/30 dark:hover:bg-gray-800/40"
     >
       {/* Normal State Content */}
       <div className="normal-content flex items-center space-x-3 relative z-10 transition-opacity duration-100">
