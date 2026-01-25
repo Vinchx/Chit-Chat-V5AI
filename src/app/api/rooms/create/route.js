@@ -150,14 +150,14 @@ export async function POST(request) {
             const friendId = memberIds[0];
             const friendData = await usersCollection.findOne({ _id: friendId });
             console.log('[STEP 6] Friend data:', friendData ? `Found (${friendData.displayName})` : 'Not found');
-            roomName = `Chat dengan ${friendData.displayName}`;
+            roomName = friendData.displayName; // Store friend name directly without "Chat dengan" prefix
             members = [currentUserId, friendId];
         } else if (type === "group") {
             console.log('[STEP 6] Setting up group room...');
             members = [currentUserId, ...memberIds];
         } else if (type === "ai") {
             console.log('[STEP 6] Setting up AI room...');
-            roomName = "Chat dengan AI";
+            roomName = "AI Assistant"; // Simplified AI room name
             members = [currentUserId];
         }
 

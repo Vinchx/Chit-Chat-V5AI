@@ -153,16 +153,31 @@ export default function DashboardLayout({ children }) {
     isLoadingRef.current = true;
 
     try {
-      // Load rooms and friends data in parallel
-      const [roomsRes, friendsRes] = await Promise.all([
-        fetch("/api/rooms"),
-        fetch("/api/friends"),
-      ]);
+      // Load user profile, rooms and friends data in parallel
+      const userId = session?.user?.id;
+      const requests = [fetch("/api/rooms"), fetch("/api/friends")];
 
-      const [roomsData, friendsData] = await Promise.all([
-        roomsRes.json(),
-        friendsRes.json(),
-      ]);
+      // Only fetch user profile if we have a user ID
+      if (userId) {
+        requests.unshift(fetch(`/api/users/${userId}`));
+      }
+
+      const responses = await Promise.all(requests);
+      const dataPromises = responses.map((res) => res.json());
+      const allData = await Promise.all(dataPromises);
+
+      let dataIndex = 0;
+
+      // Update user profile from API if we fetched it
+      if (userId) {
+        const userData = allData[dataIndex++];
+        if (userData.success && userData.data) {
+          setUser(userData.data);
+        }
+      }
+
+      const roomsData = allData[dataIndex++];
+      const friendsData = allData[dataIndex++];
 
       if (roomsData.success) {
         setRooms(roomsData.data.rooms);
@@ -264,13 +279,13 @@ export default function DashboardLayout({ children }) {
       const data = await response.json();
       if (data.success) {
         loadFriendsData();
-        alert("✅ Permintaan pertemanan diterima!");
+        toast.success(" Permintaan pertemanan diterima!");
       } else {
-        alert("❌ Gagal menerima permintaan: " + data.message);
+        toast.error(" Gagal menerima permintaan: " + data.message);
       }
     } catch (error) {
       console.log("Error accepting friend request:", error);
-      alert("❌ Terjadi error saat menerima permintaan");
+      toast.error(" Terjadi error saat menerima permintaan");
     }
   };
 
@@ -285,13 +300,13 @@ export default function DashboardLayout({ children }) {
       const data = await response.json();
       if (data.success) {
         loadFriendsData();
-        alert("❌ Permintaan pertemanan ditolak");
+        toast.error("❌ Permintaan pertemanan ditolak");
       } else {
-        alert("❌ Gagal menolak permintaan: " + data.message);
+        toast.error("❌ Gagal menolak permintaan: " + data.message);
       }
     } catch (error) {
       console.log("Error declining friend request:", error);
-      alert("❌ Terjadi error saat menolak permintaan");
+      toast.error("❌ Terjadi error saat menolak permintaan");
     }
   };
 
@@ -429,8 +444,11 @@ export default function DashboardLayout({ children }) {
     );
   }
 
-  // Get avatar from UserContext (which has the latest data from session)
-  const userAvatar = normalizeAvatar(currentUser?.avatar);
+  // Get avatar from multiple sources for reliability
+  // Priority: 1. session.user.image (NextAuth), 2. currentUser (UserContext), 3. user state
+  const userAvatar = normalizeAvatar(
+    session?.user?.image || currentUser?.avatar || user?.avatar,
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-purple-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 relative overflow-hidden">
@@ -496,19 +514,23 @@ export default function DashboardLayout({ children }) {
               </div>
             </div>
             <div className="flex items-center space-x-3">
-              {/* Avatar with Image or Initials fallback */}
+              {/* Avatar with Image or Initials fallback - matching GroupInfoSidebar pattern */}
               <div className="relative w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
                 {userAvatar ? (
                   <Image
                     src={userAvatar}
-                    alt={user?.displayName || "User"}
+                    alt={
+                      currentUser?.displayName || session?.user?.name || "User"
+                    }
                     fill
                     className="object-cover"
                     sizes="40px"
                   />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-blue-400 to-purple-400 flex items-center justify-center text-white font-bold text-sm">
-                    {getInitials(user?.displayName || "User")}
+                    {getInitials(
+                      currentUser?.displayName || session?.user?.name || "User",
+                    )}
                   </div>
                 )}
               </div>
@@ -677,8 +699,20 @@ export default function DashboardLayout({ children }) {
                       className="p-3 rounded-lg bg-white/10 dark:bg-white/5"
                     >
                       <div className="flex items-center space-x-3 mb-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-400 rounded-full flex items-center justify-center text-white font-bold">
-                          {request.displayName.charAt(0).toUpperCase()}
+                        <div className="relative w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
+                          {normalizeAvatar(request.avatar) ? (
+                            <Image
+                              src={normalizeAvatar(request.avatar)}
+                              alt={request.displayName}
+                              fill
+                              className="object-cover"
+                              sizes="40px"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-br from-yellow-400 to-orange-400 flex items-center justify-center text-white font-bold text-sm">
+                              {getInitials(request.displayName)}
+                            </div>
+                          )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <h4 className="font-medium text-gray-800 dark:text-gray-100 truncate">
@@ -831,40 +865,6 @@ export default function DashboardLayout({ children }) {
                   </svg>
                 </button>
               </div>
-
-              {/* Search Bar */}
-              <div className="relative">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleFriendSearch()}
-                  className="w-full pl-10 pr-4 py-2.5 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none transition-all duration-300 bg-white/50 dark:bg-gray-700/80 text-gray-800 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-400 input-glow text-sm"
-                  placeholder="Cari nama atau username..."
-                />
-                <svg
-                  className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-                {searchQuery && (
-                  <button
-                    onClick={handleFriendSearch}
-                    disabled={isSearching}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 gradient-primary text-white rounded-lg text-xs font-medium transition-all duration-200 hover:opacity-90 disabled:opacity-50"
-                  >
-                    {isSearching ? "..." : "Cari"}
-                  </button>
-                )}
-              </div>
             </div>
 
             {/* Content - Scrollable */}
@@ -882,7 +882,7 @@ export default function DashboardLayout({ children }) {
                       : "hover:bg-gray-100 dark:hover:bg-gray-700/30"
                   }`}
                 >
-                  <div className="w-12 h-12 bg-gray-700 dark:bg-gray-600 rounded-full flex items-center justify-center text-white text-xl mr-3 shadow-md">
+                  <div className="w-12 h-12 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center text-white text-xl mr-3 shadow-md">
                     👤
                   </div>
                   <div className="flex-1">
@@ -929,7 +929,7 @@ export default function DashboardLayout({ children }) {
                       : "hover:bg-gray-100 dark:hover:bg-gray-700/30"
                   }`}
                 >
-                  <div className="w-12 h-12 bg-gray-700 dark:bg-gray-600 rounded-full flex items-center justify-center text-white text-xl mr-3 shadow-md">
+                  <div className="w-12 h-12 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center text-white text-xl mr-3 shadow-md">
                     👥
                   </div>
                   <div className="flex-1">
@@ -976,7 +976,7 @@ export default function DashboardLayout({ children }) {
                       : "hover:bg-gray-100 dark:hover:bg-gray-700/30"
                   }`}
                 >
-                  <div className="w-12 h-12 bg-gray-700 dark:bg-gray-600 rounded-full flex items-center justify-center text-white text-xl mr-3 shadow-md">
+                  <div className="w-12 h-12 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center text-white text-xl mr-3 shadow-md">
                     🤖
                   </div>
                   <div className="flex-1">
@@ -1014,7 +1014,43 @@ export default function DashboardLayout({ children }) {
 
                 {/* Add Friend Details (if friend selected) */}
                 {newRoomType === "friend" && (
-                  <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-600/50 rounded-xl animate-slide-down">
+                  <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl animate-slide-down">
+                    {/* Search Bar - moved here */}
+                    <div className="relative mb-3">
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onKeyDown={(e) =>
+                          e.key === "Enter" && handleFriendSearch()
+                        }
+                        className="w-full pl-10 pr-20 py-2.5 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none transition-all duration-300 bg-white/80 dark:bg-gray-700/10 text-gray-800 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-400 input-glow text-sm"
+                        placeholder="Cari nama atau username..."
+                      />
+                      <svg
+                        className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                        />
+                      </svg>
+                      {searchQuery && (
+                        <button
+                          onClick={handleFriendSearch}
+                          disabled={isSearching}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 bg-gray-700 dark:bg-gray-600 text-white rounded-lg text-xs font-medium transition-all duration-200 hover:opacity-90 disabled:opacity-50"
+                        >
+                          {isSearching ? "..." : "Cari"}
+                        </button>
+                      )}
+                    </div>
+
                     <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-2">
                       Cari pengguna untuk ditambahkan sebagai teman:
                     </p>
@@ -1027,10 +1063,23 @@ export default function DashboardLayout({ children }) {
                             key={result.userId}
                             className="flex items-center p-3 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700/30 transition-all duration-200 cursor-pointer bg-white dark:bg-gray-700/50"
                           >
-                            <div className="w-10 h-10 bg-gray-500 dark:bg-gray-600 rounded-full flex items-center justify-center text-white font-bold text-sm mr-3">
-                              {result.displayName?.charAt(0).toUpperCase() ||
-                                "?"}
-                            </div>
+                            {/* Avatar with photo support */}
+                            {result.avatar ? (
+                              <div className="relative w-10 h-10 rounded-full overflow-hidden flex-shrink-0 mr-3">
+                                <Image
+                                  src={normalizeAvatar(result.avatar)}
+                                  alt={result.displayName || "User"}
+                                  fill
+                                  className="object-cover"
+                                  sizes="40px"
+                                />
+                              </div>
+                            ) : (
+                              <div className="w-10 h-10 bg-gray-500 dark:bg-gray-600 rounded-full flex items-center justify-center text-white font-bold text-sm mr-3">
+                                {result.displayName?.charAt(0).toUpperCase() ||
+                                  "?"}
+                              </div>
+                            )}
                             <div className="flex-1 min-w-0">
                               <p className="font-bold text-gray-900 dark:text-white truncate text-sm">
                                 {result.displayName}
@@ -1066,7 +1115,7 @@ export default function DashboardLayout({ children }) {
                       type="text"
                       value={newRoomName}
                       onChange={(e) => setNewRoomName(e.target.value)}
-                      className="w-full px-4 py-2.5 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none transition-all duration-300 bg-white/80 dark:bg-gray-700/80 text-gray-800 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-400 input-glow text-sm mb-3"
+                      className="w-full px-4 py-2.5 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none transition-all duration-300 bg-white/80 dark:bg-gray-700/10 text-gray-800 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-400 input-glow text-sm mb-3"
                       placeholder="Nama grup..."
                     />
                     <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-2">
@@ -1083,9 +1132,22 @@ export default function DashboardLayout({ children }) {
                           }`}
                           onClick={() => toggleMemberSelection(friend.userId)}
                         >
-                          <div className="w-8 h-8 bg-gray-600 dark:bg-gray-500 rounded-full flex items-center justify-center text-white font-bold text-xs mr-2">
-                            {friend.displayName?.charAt(0).toUpperCase()}
-                          </div>
+                          {/* Avatar with photo support */}
+                          {friend.avatar ? (
+                            <div className="relative w-8 h-8 rounded-full overflow-hidden flex-shrink-0 mr-2">
+                              <Image
+                                src={normalizeAvatar(friend.avatar)}
+                                alt={friend.displayName || "Friend"}
+                                fill
+                                className="object-cover"
+                                sizes="32px"
+                              />
+                            </div>
+                          ) : (
+                            <div className="w-8 h-8 bg-gray-600 dark:bg-gray-500 rounded-full flex items-center justify-center text-white font-bold text-xs mr-2">
+                              {friend.displayName?.charAt(0).toUpperCase()}
+                            </div>
+                          )}
                           <span className="flex-1 text-sm text-gray-900 dark:text-white truncate font-semibold">
                             {friend.displayName}
                           </span>
@@ -1147,9 +1209,22 @@ export default function DashboardLayout({ children }) {
                       onClick={() => startPrivateChat(friend)}
                       className="flex items-center p-3 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700/30 transition-all duration-200 cursor-pointer mb-1"
                     >
-                      <div className="w-12 h-12 bg-gray-600 dark:bg-gray-500 rounded-full flex items-center justify-center text-white font-bold text-lg mr-3 shadow-md">
-                        {friend.displayName?.charAt(0).toUpperCase()}
-                      </div>
+                      {/* Avatar with photo support */}
+                      {friend.avatar ? (
+                        <div className="relative w-12 h-12 rounded-full overflow-hidden flex-shrink-0 mr-3 shadow-md">
+                          <Image
+                            src={normalizeAvatar(friend.avatar)}
+                            alt={friend.displayName || "Friend"}
+                            fill
+                            className="object-cover"
+                            sizes="48px"
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-12 h-12 bg-gray-600 dark:bg-gray-500 rounded-full flex items-center justify-center text-white font-bold text-lg mr-3 shadow-md">
+                          {friend.displayName?.charAt(0).toUpperCase()}
+                        </div>
+                      )}
                       <div className="flex-1 min-w-0">
                         <p className="font-bold text-gray-900 dark:text-white truncate">
                           {friend.displayName}

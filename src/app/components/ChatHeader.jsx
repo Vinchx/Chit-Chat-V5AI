@@ -1,7 +1,42 @@
 // ChatHeader.jsx - Khusus buat header chat aja
 import GlassSurface from "@/components/GlassSurface";
+import Image from "next/image";
+
+// Helper functions
+const normalizeAvatar = (avatar) => {
+  return avatar ? avatar.replace(/\\/g, "/") : null;
+};
+
+const getInitials = (name) => {
+  if (!name) return "?";
+  return name
+    .split(" ")
+    .map((word) => word[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+};
 
 export default function ChatHeader({ selectedRoom, onlineCount, onInfoClick }) {
+  // Get avatar based on room type
+  const getAvatar = () => {
+    if (selectedRoom.type === "private" && selectedRoom.friend?.avatar) {
+      return normalizeAvatar(selectedRoom.friend.avatar);
+    }
+    if (selectedRoom.type === "group" && selectedRoom.groupAvatar) {
+      return normalizeAvatar(selectedRoom.groupAvatar);
+    }
+    return null;
+  };
+
+  const avatarUrl = getAvatar();
+
+  // For private chat, show friend's name directly, not room name
+  const displayName =
+    selectedRoom.type === "private" && selectedRoom.friend?.displayName
+      ? selectedRoom.friend.displayName
+      : selectedRoom.name || "User";
+
   return (
     <div className="fixed top-0 left-0 right-0 z-50">
       <GlassSurface
@@ -25,19 +60,31 @@ export default function ChatHeader({ selectedRoom, onlineCount, onInfoClick }) {
           <div className="p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                {/* Avatar */}
-                <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-blue-400 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                  {selectedRoom.type === "private"
-                    ? "👤"
-                    : selectedRoom.type === "group"
-                      ? "👥"
-                      : "🤖"}
+                {/* Avatar with photo support */}
+                <div className="relative w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
+                  {avatarUrl ? (
+                    <Image
+                      src={avatarUrl}
+                      alt={displayName}
+                      fill
+                      className="object-cover"
+                      sizes="40px"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center text-white font-bold text-sm">
+                      {selectedRoom.type === "private"
+                        ? getInitials(displayName)
+                        : selectedRoom.type === "group"
+                          ? getInitials(displayName)
+                          : "🤖"}
+                    </div>
+                  )}
                 </div>
 
                 {/* Info nama & status */}
                 <div>
                   <h3 className="font-semibold text-gray-800 dark:text-white">
-                    {selectedRoom.name}
+                    {displayName}
                   </h3>
                   <p className="text-sm text-gray-600 dark:text-gray-300">
                     {selectedRoom.type === "private"
