@@ -62,8 +62,16 @@ function FlowingRoomItem({
         marqueeInnerRef.current.querySelector(".marquee-part");
       if (!marqueeContent) return;
       const contentWidth = marqueeContent.offsetWidth;
+      if (contentWidth === 0) return; // Prevent division by zero
       const containerWidth = itemRef.current?.offsetWidth || 300;
       const needed = Math.ceil(containerWidth / contentWidth) + 2;
+
+      // Safety check to ensure needed is a finite number
+      if (!isFinite(needed) || isNaN(needed)) {
+        setRepetitions(4);
+        return;
+      }
+
       setRepetitions(Math.max(4, needed));
     };
 

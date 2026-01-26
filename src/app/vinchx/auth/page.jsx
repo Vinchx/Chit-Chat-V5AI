@@ -92,9 +92,11 @@ export default function AdminAuthPage() {
         localStorage.setItem("admin_token", JSON.stringify(tokenData.token));
       }
 
+      // Small delay to ensure localStorage is written before redirect
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
       // Redirect to admin dashboard
-      router.push("/vinchx/dashboard");
-      router.refresh();
+      window.location.href = "/vinchx/dashboard";
     } catch (err) {
       console.error("Passkey login error:", err);
       setError(
@@ -146,9 +148,11 @@ export default function AdminAuthPage() {
         localStorage.setItem("admin_token", JSON.stringify(tokenData.token));
       }
 
+      // Small delay to ensure localStorage is written before redirect
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
       // Redirect to admin dashboard
-      router.push("/vinchx/dashboard");
-      router.refresh();
+      window.location.href = "/vinchx/dashboard";
     } catch (err) {
       console.error("Password login error:", err);
       setError(err.message || "Login failed");

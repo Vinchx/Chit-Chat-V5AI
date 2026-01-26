@@ -45,7 +45,12 @@ export async function POST(request) {
 
         console.log('[Passkey Register] Existing passkeys count:', existingCredentials.length);
 
-        // Generate registration options
+        // Detect current domain from request
+        const { detectDomainFromRequest } = await import('@/lib/domain-utils');
+        const currentDomain = detectDomainFromRequest(request);
+        console.log('[Passkey Register] Detected domain:', currentDomain);
+
+        // Generate registration options with current domain
         const options = await generatePasskeyRegistrationOptions(
             {
                 id: user._id.toString(),
@@ -53,7 +58,8 @@ export async function POST(request) {
                 username: user.username,
                 displayName: user.displayName,
             },
-            existingCredentials
+            existingCredentials,
+            currentDomain
         );
 
         // Store challenge in session or temporary storage

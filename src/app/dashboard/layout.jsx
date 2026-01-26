@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useSession, signOut } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
 import { toast, Toaster } from "sonner";
 import { useUser } from "@/contexts/UserContext";
@@ -146,6 +146,11 @@ export default function DashboardLayout({ children }) {
       localStorage.setItem("theme", "light");
     }
   };
+
+  const pathname = usePathname();
+  // isMobileRoot: true jika user berada di /dashboard (halaman utama)
+  // Pada mobile: Tampilkan Sidebar, Sembunyikan Content
+  const isMobileRoot = pathname === "/dashboard";
 
   // Consolidated function to load all data in parallel (single batch)
   const loadAllData = async () => {
@@ -461,7 +466,11 @@ export default function DashboardLayout({ children }) {
 
       <div className="flex h-screen relative z-10">
         {/* Sidebar */}
-        <div className="w-80 backdrop-blur-lg bg-white/10 dark:bg-gray-900/40 border-r border-white/20 dark:border-gray-700 flex flex-col">
+        <div
+          className={`${
+            isMobileRoot ? "w-full md:w-80 flex" : "hidden md:flex md:w-80"
+          } backdrop-blur-lg bg-white/10 dark:bg-gray-900/40 border-r border-white/20 dark:border-gray-700 flex-col`}
+        >
           {/* Header */}
           <div className="p-4 border-b border-white/20 dark:border-gray-700 bg-white/5 dark:bg-gray-800/50">
             <div className="flex items-center justify-between mb-4">
@@ -760,7 +769,11 @@ export default function DashboardLayout({ children }) {
         </div>
 
         {/* Main content area */}
-        <div className="flex-1 flex flex-col pb-16 md:pb-0">
+        <div
+          className={`${
+            isMobileRoot ? "hidden md:flex" : "flex"
+          } flex-1 flex-col pb-16 md:pb-0`}
+        >
           {children}
 
           {/* Mobile footer navigation */}

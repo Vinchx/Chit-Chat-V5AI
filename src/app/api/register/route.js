@@ -81,6 +81,14 @@ export async function POST(request) {
     await newUser.save();
     console.log('[REGISTER] User saved successfully!');
 
+    // Tentukan base URL dari request origin untuk mendukung localhost dan ngrok
+    // Prioritaskan header proxy (ngrok) jika ada
+    const host = request.headers.get('x-forwarded-host') || request.headers.get('host');
+    const protocol = request.headers.get('x-forwarded-proto') || 'http';
+    const baseUrl = `${protocol}://${host}`;
+
+    console.log('[REGISTER] Using base URL for verification:', baseUrl);
+
     // Kirim email verifikasi
     try {
       console.log('[REGISTER] Initializing email service...');
@@ -96,14 +104,14 @@ export async function POST(request) {
             <p>Halo <strong>${displayName}</strong>,</p>
             <p>Terima kasih telah mendaftar di ChitChat V5.1 AI. Untuk mengaktifkan akun Anda, silakan klik tombol di bawah ini:</p>
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${process.env.NEXT_PUBLIC_SERVER_URL}/auth/verify/${verificationToken}"
+              <a href="${baseUrl}/auth/verify/${verificationToken}"
                  style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
                 Verifikasi Akun
               </a>
             </div>
             <p>Atau copy dan paste link berikut ke browser Anda:</p>
             <p style="word-break: break-all; background-color: #f5f5f5; padding: 10px; border-radius: 4px;">
-              ${process.env.NEXT_PUBLIC_SERVER_URL}/auth/verify/${verificationToken}
+              ${baseUrl}/auth/verify/${verificationToken}
             </p>
             <p>Link verifikasi ini akan kadaluarsa dalam 24 jam.</p>
             <p>Jika Anda tidak mendaftar di ChitChat, abaikan email ini.</p>

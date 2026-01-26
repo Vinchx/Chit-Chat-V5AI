@@ -3,9 +3,9 @@
 import React, { useState } from "react";
 import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { clearAdminToken } from "@/lib/admin-session";
-import { isAdmin } from "@/lib/admin-config";
 import { clearAllCookies } from "@/lib/cookie-utils";
 
 export default function AdminDashboard() {
@@ -39,8 +39,8 @@ export default function AdminDashboard() {
     );
   }
 
-  if (!session || !isAdmin(session.user.email)) {
-    return null;
+  if (!isAdminAuthed) {
+    return null; // useAdminAuth will handle redirect
   }
 
   return (
@@ -248,27 +248,48 @@ export default function AdminDashboard() {
             Recent Activity
           </h2>
           <div className="space-y-3">
-            {stats?.recentUsers?.slice(0, 5).map((user, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold">
-                    {user.displayName?.[0] || user.username?.[0] || "?"}
+            {stats?.recentUsers?.slice(0, 5).map((user, index) => {
+              // Helper to normalize avatar path
+              const normalizeAvatar = (avatar) => {
+                return avatar ? avatar.replace(/\\/g, "/") : null;
+              };
+
+              const userAvatar = normalizeAvatar(user.avatar);
+
+              return (
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="relative w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
+                      {userAvatar ? (
+                        <Image
+                          src={userAvatar}
+                          alt={user.displayName || user.username}
+                          fill
+                          className="object-cover"
+                          sizes="40px"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
+                          {user.displayName?.[0] || user.username?.[0] || "?"}
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-white font-medium">
+                        {user.displayName || user.username}
+                      </p>
+                      <p className="text-gray-400 text-sm">{user.email}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-white font-medium">
-                      {user.displayName || user.username}
-                    </p>
-                    <p className="text-gray-400 text-sm">{user.email}</p>
+                  <div className="text-gray-400 text-sm">
+                    {new Date(user.createdAt).toLocaleDateString()}
                   </div>
                 </div>
-                <div className="text-gray-400 text-sm">
-                  {new Date(user.createdAt).toLocaleDateString()}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>

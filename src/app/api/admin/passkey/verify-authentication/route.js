@@ -80,11 +80,17 @@ export async function POST(request) {
         // Format credential for verification
         const formattedCredential = formatCredentialForVerification(credential);
 
-        // Verify authentication response
+        // Detect current domain from request
+        const { detectDomainFromRequest } = await import('@/lib/domain-utils');
+        const currentDomain = detectDomainFromRequest(request);
+        console.log('[Passkey Verify Auth] Detected domain:', currentDomain);
+
+        // Verify authentication response with current domain
         const verification = await verifyPasskeyAuthentication(
             response,
             expectedChallenge,
-            formattedCredential
+            formattedCredential,
+            currentDomain
         );
 
         if (!verification.verified) {

@@ -1,0 +1,179 @@
+// Chit-Chat V5 AI - Database Schema
+// MongoDB Collections for dbdiagram.io
+// Created: 2026-01-26
+
+Project ChitChatV5AI {
+  database_type: 'MongoDB'
+  Note: 'Real-time chat application with AI assistant, friend system, and group chat features'
+}
+
+// ============================================
+// USERS COLLECTION
+// ============================================
+Table users {
+  _id String [pk, note: 'User ID (custom format: usr000001)']
+  username String [unique, not null, note: 'Unique username for login']
+  email String [unique, not null, note: 'User email address']
+  password String [not null, note: 'Hashed password']
+  displayName String [not null, note: 'Display name shown in UI']
+  avatar String [null, note: 'Avatar URL/path']
+  bio String [default: '', note: 'User biography']
+  isOnline Boolean [default: false, note: 'Online status']
+  createdAt timestamp [note: 'Account creation date']
+  
+  // Email verification
+  isVerified Boolean [default: false, note: 'Email verification status']
+  verificationToken String [null, note: 'Email verification token']
+  verifiedAt DateTime [null, note: 'Verification completion date']
+  
+  // Password reset
+  resetPasswordOtp String [null, note: 'OTP for password reset']
+  resetPasswordExpires DateTime [null, note: 'OTP expiration time']
+  
+  Note: 'Main user collection with authentication and profile data'
+  Indexes {
+    username [unique]
+    email [unique]
+    isOnline
+  }
+}
+
+// ============================================
+// PASSKEYS COLLECTION (WebAuthn)
+// ============================================
+Table passkeys {
+  credentialID String [pk, note: 'WebAuthn credential ID (base64url)']
+  user_id String [not null, note: 'Parent user reference']
+  publicKey String [not null, note: 'Public key for verification (base64)']
+  counter Number [not null, note: 'Signature counter for replay protection']
+  deviceType String [default: 'unknown', note: 'Device type (platform/cross-platform)']
+  backedUp Boolean [default: false, note: 'Whether credential is backed up']
+  transports String [note: 'Array of authenticator transports']
+  createdAt timestamp [note: 'Passkey creation date']
+  
+  Note: 'Passkey credentials for WebAuthn authentication'
+}
+
+// ============================================
+// FRIENDSHIPS COLLECTION
+// ============================================
+Table friendships {
+  _id String [pk, note: 'Friendship ID (format: friend001)']
+  senderId String [not null, note: 'User who sent friend request']
+  receiverId String [not null, note: 'User who received friend request']
+  status String [not null, note: 'Status: pending, accepted, rejected']
+  createdAt timestamp [note: 'Request creation date']
+  
+  Note: 'Friend requests and relationships between users'
+  Indexes {
+    (senderId, receiverId) [unique]
+    status
+  }
+}
+
+// ============================================
+// ROOMS COLLECTION
+// ============================================
+Table rooms {
+  _id String [pk, note: 'Room ID (format: room_timestamp_random)']
+  name String [not null, note: 'Room name (friend name for private, custom for group)']
+  type String [not null, note: 'Type: private, group, ai']
+  members String [note: 'Array of user IDs who are members']
+  createdBy String [not null, note: 'User who created the room']
+  createdAt timestamp [note: 'Room creation date']
+  lastMessage String [null, note: 'Preview of last message (50 chars)']
+  lastActivity timestamp [note: 'Last message/activity timestamp']
+  
+  // Group-specific fields
+  admins String [null, note: 'Array of admin user IDs (group only)']
+  description String [null, note: 'Group description']
+  groupAvatar String [null, note: 'Group avatar URL']
+  
+  // Group settings
+  settings_onlyAdminsCanPost Boolean [default: false]
+  settings_onlyAdminsCanAddMembers Boolean [default: true]
+  settings_onlyAdminsCanEditInfo Boolean [default: true]
+  
+  Note: 'Chat rooms: private (1-on-1), group, or AI assistant'
+  Indexes {
+    type
+    members
+    lastActivity
+    createdBy
+  }
+}
+
+// ============================================
+// MESSAGES COLLECTION
+// ============================================
+Table messages {
+  _id String [pk, note: 'Message ID (format: msg000001)']
+  roomId String [not null, note: 'Room where message was sent']
+  senderId String [not null, note: 'User ID or ai-assistant']
+  message String [not null, note: 'Message text content']
+  messageType String [default: 'text', note: 'Type: text, image, file, system']
+  timestamp timestamp [note: 'Message send time']
+  isEdited Boolean [default: false, note: 'Whether message was edited']
+  isDeleted Boolean [default: false, note: 'Soft delete flag']
+  editedAt DateTime [null, note: 'Last edit timestamp']
+  deletedAt DateTime [null, note: 'Deletion timestamp']
+  
+  // Attachment
+  attachment_type String [null, note: 'Attachment type: image, file']
+  attachment_url String [null, note: 'File URL']
+  attachment_filename String [null, note: 'Original filename']
+  attachment_size Number [null, note: 'File size in bytes']
+  attachment_mimeType String [null, note: 'MIME type']
+  
+  // Reply-to
+  replyTo_messageId String [null, note: 'ID of message being replied to']
+  replyTo_text String [null, note: 'Preview text of replied message']
+  replyTo_sender String [null, note: 'Sender of replied message']
+  replyTo_attachment String [null, note: 'Attachment info if any']
+  
+  Note: 'Chat messages with support for attachments and replies'
+  Indexes {
+    roomId
+    senderId
+    timestamp
+    isDeleted
+  }
+}
+
+// ============================================
+// RELATIONSHIPS
+// ============================================
+
+// Users -> Passkeys (1:N)
+// One user can have multiple passkeys
+Ref: passkeys.user_id > users._id
+
+// Users -> Friendships (senderId) (1:N)
+// One user can send many friend requests
+Ref: friendships.senderId > users._id
+
+// Users -> Friendships (receiverId) (1:N)
+// One user can receive many friend requests
+Ref: friendships.receiverId > users._id
+
+// Users -> Rooms (createdBy) (1:N)
+// One user can create many rooms
+Ref: rooms.createdBy > users._id
+
+// Rooms -> Messages (1:N)
+// One room can have many messages
+Ref: messages.roomId > rooms._id
+
+// Messages -> Messages (self-reference for reply)
+// One message can be replied by many messages
+Ref: messages.replyTo_messageId > messages._id
+
+// ============================================
+// NOTES ON MONGODB PATTERNS
+// ============================================
+// - Using custom String IDs instead of ObjectId for readability
+// - Array fields (members[], admins[], passkeys[]) represent embedded documents
+// - Many-to-many relationships (users <-> rooms via members[]) 
+//   are implemented using arrays in MongoDB, not junction tables
+// - Soft deletes using isDeleted flag
+// - Timestamps stored as DateTime (stored as ISODate in MongoDB)

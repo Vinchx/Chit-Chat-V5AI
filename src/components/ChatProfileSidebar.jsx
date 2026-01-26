@@ -12,14 +12,26 @@ const ChatProfileSidebar = ({ isOpen, onClose, userId, roomId }) => {
   const [sharedMedia, setSharedMedia] = useState([]);
   const [loadingMedia, setLoadingMedia] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [isAllMediaModalOpen, setIsAllMediaModalOpen] = useState(false);
 
   useEffect(() => {
     if (isOpen && userId) {
       console.log("ChatProfileSidebar opened with userId:", userId);
       loadUserProfile();
-      loadSharedMedia();
+      loadSharedMedia(9); // Always load 9 initially
     }
   }, [isOpen, userId]);
+
+  const openAllMediaModal = () => {
+    setIsAllMediaModalOpen(true);
+    loadSharedMedia(100); // Load more for modal
+  };
+
+  const closeAllMediaModal = () => {
+    setIsAllMediaModalOpen(false);
+    // Optional: Reset to 9 to save memory/keep state clean, but not strictly necessary
+    // loadSharedMedia(9);
+  };
 
   const loadUserProfile = async () => {
     // Don't load if userId is not available
@@ -31,26 +43,23 @@ const ChatProfileSidebar = ({ isOpen, onClose, userId, roomId }) => {
 
     try {
       setLoading(true);
-      console.log("=== ChatProfileSidebar Debug ===");
-      console.log("userId:", userId);
-      console.log("userId type:", typeof userId);
-      console.log("API URL:", `/api/users/${userId}`);
+      // console.log("=== ChatProfileSidebar Debug ===");
+      // console.log("userId:", userId);
+      // console.log("userId type:", typeof userId);
+      // console.log("API URL:", `/api/users/${userId}`);
 
       const response = await fetch(`/api/users/${userId}`);
-      console.log("Response status:", response.status);
-      console.log("Response ok:", response.ok);
+      // console.log("Response status:", response.status);
+      // console.log("Response ok:", response.ok);
 
       const data = await response.json();
-      console.log("Response data:", JSON.stringify(data, null, 2));
+      // console.log("Response data:", JSON.stringify(data, null, 2));
 
       if (data.success && data.user) {
-        console.log("User loaded successfully:", data.user.displayName);
+        // console.log("User loaded successfully:", data.user.displayName);
         setUser(data.user);
       } else {
         console.error("Failed to load user - API returned:", data);
-        console.error("data.success:", data.success);
-        console.error("data.user:", data.user);
-        console.error("data.message:", data.message);
         setUser(null);
       }
     } catch (error) {
@@ -61,7 +70,7 @@ const ChatProfileSidebar = ({ isOpen, onClose, userId, roomId }) => {
     }
   };
 
-  const loadSharedMedia = async () => {
+  const loadSharedMedia = async (limit = 9) => {
     if (!roomId) {
       console.warn("ChatProfileSidebar: roomId is not available for media");
       return;
@@ -70,7 +79,7 @@ const ChatProfileSidebar = ({ isOpen, onClose, userId, roomId }) => {
     try {
       setLoadingMedia(true);
       const response = await fetch(
-        `/api/messages/room/${roomId}/media?limit=9`,
+        `/api/messages/room/${roomId}/media?limit=${limit}`,
       );
       const data = await response.json();
 
@@ -101,6 +110,129 @@ const ChatProfileSidebar = ({ isOpen, onClose, userId, roomId }) => {
     return avatar ? avatar.replace(/\\/g, "/") : null;
   };
 
+  const isImage = (media) => {
+    if (media.type?.startsWith("image/")) return true;
+    const ext = media.filename?.split(".").pop()?.toLowerCase();
+    return ["jpg", "jpeg", "png", "gif", "webp", "bmp", "svg"].includes(ext);
+  };
+
+  const getFileStyle = (filename) => {
+    const ext = filename?.split(".").pop()?.toLowerCase();
+    switch (ext) {
+      case "pdf":
+        return {
+          bg: "bg-red-50",
+          text: "text-red-500",
+          icon: (
+            <svg
+              className="w-8 h-8"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M9 3v6h6M9 13h6M9 17h4"
+              />
+            </svg>
+          ),
+        };
+      case "doc":
+      case "docx":
+        return {
+          bg: "bg-blue-50",
+          text: "text-blue-500",
+          icon: (
+            <svg
+              className="w-8 h-8"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75"
+              />
+            </svg>
+          ),
+        };
+      case "xls":
+      case "xlsx":
+      case "csv":
+        return {
+          bg: "bg-green-50",
+          text: "text-green-500",
+          icon: (
+            <svg
+              className="w-8 h-8"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v13.5c0 .621.504 1.125 1.125 1.125h6.25a1.125 1.125 0 011.125 1.125v9.375m-8.25-3l1.5 1.5 3-3m-3 3l-1.5-1.5"
+              />
+            </svg>
+          ),
+        };
+      case "zip":
+      case "rar":
+      case "7z":
+        return {
+          bg: "bg-yellow-50",
+          text: "text-yellow-600",
+          icon: (
+            <svg
+              className="w-8 h-8"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"
+              />
+            </svg>
+          ),
+        };
+      default:
+        return {
+          bg: "bg-gray-100",
+          text: "text-gray-500",
+          icon: (
+            <svg
+              className="w-8 h-8"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
+              />
+            </svg>
+          ),
+        };
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -113,7 +245,7 @@ const ChatProfileSidebar = ({ isOpen, onClose, userId, roomId }) => {
 
       {/* Sidebar */}
       <div
-        className={`fixed md:relative top-0 right-0 h-full w-80 bg-white border-l border-gray-200 shadow-xl z-50 transform transition-transform duration-300 ${
+        className={`fixed md:relative top-0 right-0 h-full w-96 bg-white border-l border-gray-200 shadow-xl z-50 transform transition-transform duration-300 ${
           isOpen ? "translate-x-0" : "translate-x-full md:translate-x-0"
         } overflow-y-auto`}
       >
@@ -350,7 +482,10 @@ const ChatProfileSidebar = ({ isOpen, onClose, userId, roomId }) => {
                   {sharedMedia.length > 0 && `(${sharedMedia.length})`}
                 </h4>
                 {sharedMedia.length > 0 && (
-                  <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+                  <button
+                    onClick={openAllMediaModal}
+                    className="text-sm text-blue-600 hover:text-blue-700 font-medium focus:outline-none"
+                  >
                     Lihat Semua
                   </button>
                 )}
@@ -381,20 +516,26 @@ const ChatProfileSidebar = ({ isOpen, onClose, userId, roomId }) => {
                 </div>
               ) : (
                 <div className="grid grid-cols-3 gap-2">
-                  {sharedMedia.map((media) =>
-                    media.type === "image" ? (
+                  {sharedMedia.slice(0, 9).map((media) => {
+                    const isImg = isImage(media);
+                    const fileStyle = !isImg
+                      ? getFileStyle(media.filename)
+                      : null;
+
+                    return isImg ? (
                       <button
                         key={media.id}
                         onClick={() => setSelectedImage(media)}
-                        className="aspect-square relative rounded-lg overflow-hidden hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="aspect-square relative rounded-xl overflow-hidden group hover:shadow-lg transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
                         <Image
                           src={media.url}
                           alt={media.filename || "Shared media"}
                           fill
-                          className="object-cover"
+                          className="object-cover group-hover:scale-110 transition-transform duration-500"
                           sizes="100px"
                         />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300" />
                       </button>
                     ) : (
                       <a
@@ -402,28 +543,22 @@ const ChatProfileSidebar = ({ isOpen, onClose, userId, roomId }) => {
                         href={media.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="aspect-square relative rounded-lg overflow-hidden bg-gray-100 hover:bg-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 flex flex-col items-center justify-center p-2"
+                        className={`aspect-square relative rounded-xl overflow-hidden ${fileStyle.bg} hover:brightness-95 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 flex flex-col items-center justify-center p-2 group text-center border border-transparent hover:border-black/5 hover:shadow-sm`}
                       >
-                        <svg
-                          className="w-8 h-8 text-blue-500 mb-1"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
+                        <div
+                          className={`${fileStyle.text} mb-2 transform group-hover:scale-110 transition-transform duration-300`}
                         >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                          />
-                        </svg>
-                        <span className="text-[10px] text-gray-600 text-center truncate w-full">
+                          {fileStyle.icon}
+                        </div>
+                        <span
+                          className={`text-[10px] font-semibold opacity-70 truncate w-full ${fileStyle.text}`}
+                        >
                           {media.filename?.split(".").pop()?.toUpperCase() ||
                             "FILE"}
                         </span>
                       </a>
-                    ),
-                  )}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -471,6 +606,109 @@ const ChatProfileSidebar = ({ isOpen, onClose, userId, roomId }) => {
           </div>
         )}
       </div>
+
+      {/* All Media Modal */}
+      {isAllMediaModalOpen && (
+        <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+            {/* Modal Header */}
+            <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-white z-10">
+              <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                <svg
+                  className="w-5 h-5 text-blue-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+                Media Bersama ({sharedMedia.length})
+              </h3>
+              <button
+                onClick={closeAllMediaModal}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500 hover:text-gray-700"
+              >
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 overflow-y-auto bg-gray-50/50">
+              {loadingMedia && sharedMedia.length <= 9 ? (
+                <div className="flex items-center justify-center h-64">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                  {sharedMedia.map((media) => {
+                    const isImg = isImage(media);
+                    const fileStyle = !isImg
+                      ? getFileStyle(media.filename)
+                      : null;
+
+                    return isImg ? (
+                      <button
+                        key={media.id}
+                        onClick={() => setSelectedImage(media)}
+                        className="aspect-square relative rounded-xl overflow-hidden group hover:shadow-lg transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      >
+                        <Image
+                          src={media.url}
+                          alt={media.filename || "Shared media"}
+                          fill
+                          className="object-cover group-hover:scale-110 transition-transform duration-500"
+                          sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 20vw"
+                        />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300" />
+                      </button>
+                    ) : (
+                      <a
+                        key={media.id}
+                        href={media.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`aspect-square relative rounded-xl overflow-hidden ${fileStyle.bg} hover:brightness-95 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 flex flex-col items-center justify-center p-3 group text-center border border-transparent hover:border-black/5 hover:shadow-md`}
+                      >
+                        <div
+                          className={`${fileStyle.text} mb-3 transform group-hover:scale-110 transition-transform duration-300`}
+                        >
+                          {fileStyle.icon}
+                        </div>
+                        <span
+                          className={`text-xs font-semibold opacity-70 truncate w-full ${fileStyle.text}`}
+                        >
+                          {media.filename?.split(".").pop()?.toUpperCase() ||
+                            "FILE"}
+                        </span>
+                        <span className="text-[10px] text-gray-400 mt-1 truncate w-4/5">
+                          {media.filename}
+                        </span>
+                      </a>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Image Preview Modal */}
       {selectedImage && (

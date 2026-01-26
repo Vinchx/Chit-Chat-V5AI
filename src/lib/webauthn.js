@@ -5,15 +5,16 @@ import {
     generateAuthenticationOptions,
     verifyAuthenticationResponse,
 } from '@simplewebauthn/server';
-import { rpName, rpID, origin } from './admin-config';
+import { rpName, getRpID, getOrigin } from './admin-config';
 
 /**
  * Generate registration options for a new passkey
  * @param {Object} user - User object with id, email, username
  * @param {Array} existingCredentials - Array of existing passkey credentials
+ * @param {string} currentDomain - Current domain (e.g., 'localhost', 'xyz.ngrok-free.dev')
  * @returns {Promise<Object>} Registration options
  */
-export async function generatePasskeyRegistrationOptions(user, existingCredentials = []) {
+export async function generatePasskeyRegistrationOptions(user, existingCredentials = [], currentDomain = 'localhost') {
     // Convert user ID to Uint8Array as required by SimpleWebAuthn v10
     const userIdString = user.id || user._id.toString();
     const userIdBytes = new TextEncoder().encode(userIdString);
@@ -22,6 +23,8 @@ export async function generatePasskeyRegistrationOptions(user, existingCredentia
     // TODO: Re-enable after fixing the input.replace error 
     const formattedExcludeCredentials = []; // Empty for now
 
+    // Get dynamic rpID and origin based on current domain
+    const rpID = getRpID(currentDomain);
 
     const options = await generateRegistrationOptions({
         rpName,
@@ -47,14 +50,15 @@ export async function generatePasskeyRegistrationOptions(user, existingCredentia
  * Verify registration response from the client
  * @param {Object} response - Registration response from client
  * @param {String} expectedChallenge - Expected challenge
+ * @param {string} currentDomain - Current domain
  * @returns {Promise<Object>} Verification result
  */
-export async function verifyPasskeyRegistration(response, expectedChallenge) {
+export async function verifyPasskeyRegistration(response, expectedChallenge, currentDomain = 'localhost') {
     const verification = await verifyRegistrationResponse({
         response,
         expectedChallenge,
-        expectedOrigin: origin,
-        expectedRPID: rpID,
+        expectedOrigin: getOrigin(currentDomain),
+        expectedRPID: getRpID(currentDomain),
         requireUserVerification: true,
     });
 
@@ -64,9 +68,10 @@ export async function verifyPasskeyRegistration(response, expectedChallenge) {
 /**
  * Generate authentication options for passkey login
  * @param {Array} allowedCredentials - Array of allowed credentials for the user
+ * @param {string} currentDomain - Current domain
  * @returns {Promise<Object>} Authentication options
  */
-export async function generatePasskeyAuthenticationOptions(allowedCredentials = []) {
+export async function generatePasskeyAuthenticationOptions(allowedCredentials = [], currentDomain = 'localhost') {
     // Temporarily disable allowCredentials filtering to avoid input.replace error
     // TODO: Re-enable after fixing the credentialID format issue with SimpleWebAuthn v10
     // This makes authentication "user-initiated" where user selects from all their passkeys
@@ -100,7 +105,7 @@ export async function generatePasskeyAuthenticationOptions(allowedCredentials = 
     */
 
     const options = await generateAuthenticationOptions({
-        rpID,
+        rpID: getRpID(currentDomain),
         timeout: 60000,
         allowCredentials: formattedCredentials,
         userVerification: 'preferred',
@@ -114,14 +119,15 @@ export async function generatePasskeyAuthenticationOptions(allowedCredentials = 
  * @param {Object} response - Authentication response from client
  * @param {String} expectedChallenge - Expected challenge
  * @param {Object} credential - Stored credential from database
+ * @param {string} currentDomain - Current domain
  * @returns {Promise<Object>} Verification result
  */
-export async function verifyPasskeyAuthentication(response, expectedChallenge, credential) {
+export async function verifyPasskeyAuthentication(response, expectedChallenge, credential, currentDomain = 'localhost') {
     const verification = await verifyAuthenticationResponse({
         response,
         expectedChallenge,
-        expectedOrigin: origin,
-        expectedRPID: rpID,
+        expectedOrigin: getOrigin(currentDomain),
+        expectedRPID: getRpID(currentDomain),
         authenticator: {
             credentialID: credential.credentialID,
             credentialPublicKey: credential.publicKey,

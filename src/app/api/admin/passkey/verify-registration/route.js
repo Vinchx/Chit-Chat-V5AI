@@ -36,8 +36,13 @@ export async function POST(request) {
             );
         }
 
-        // Verify registration response
-        const verification = await verifyPasskeyRegistration(response, expectedChallenge);
+        // Detect current domain from request
+        const { detectDomainFromRequest } = await import('@/lib/domain-utils');
+        const currentDomain = detectDomainFromRequest(request);
+        console.log('[Passkey Verify Registration] Detected domain:', currentDomain);
+
+        // Verify registration response with current domain
+        const verification = await verifyPasskeyRegistration(response, expectedChallenge, currentDomain);
 
         if (!verification.verified) {
             return NextResponse.json(

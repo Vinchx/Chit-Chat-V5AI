@@ -44,8 +44,12 @@ export async function POST(request) {
             );
         }
 
-        // Generate authentication options
-        const options = await generatePasskeyAuthenticationOptions(user.passkeys);
+        // Detect current domain from request
+        const { detectDomainFromRequest } = await import('@/lib/domain-utils');
+        const currentDomain = detectDomainFromRequest(request);
+
+        // Generate authentication options with current domain
+        const options = await generatePasskeyAuthenticationOptions(user.passkeys, currentDomain);
 
         return NextResponse.json({
             success: true,
