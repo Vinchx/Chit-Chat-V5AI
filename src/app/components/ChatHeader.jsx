@@ -98,28 +98,34 @@ export default function ChatHeader({ selectedRoom, onlineCount, onInfoClick }) {
                 </div>
               </div>
 
-              {/* Info Button - hanya untuk private chat */}
-              {selectedRoom.type === "private" && onInfoClick && (
-                <button
-                  onClick={onInfoClick}
-                  className="p-2 hover:bg-white/20 rounded-full transition-colors"
-                  title="Info Kontak"
-                >
-                  <svg
-                    className="w-6 h-6 text-gray-700 dark:text-white"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+              {/* Info Button - untuk private dan group chat */}
+              {(selectedRoom.type === "private" ||
+                selectedRoom.type === "group") &&
+                onInfoClick && (
+                  <button
+                    onClick={onInfoClick}
+                    className="p-2 hover:bg-white/20 rounded-full transition-colors"
+                    title={
+                      selectedRoom.type === "group"
+                        ? "Info Grup"
+                        : "Info Kontak"
+                    }
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                </button>
-              )}
+                    <svg
+                      className="w-6 h-6 text-gray-700 dark:text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                  </button>
+                )}
             </div>
           </div>
         </div>
