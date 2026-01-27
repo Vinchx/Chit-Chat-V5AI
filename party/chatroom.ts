@@ -24,9 +24,7 @@ export default class ChatRoom implements Party.Server {
     // Save connection info
     this.connections.set(conn.id, { userId, username });
 
-    console.log(
-      `✅ User ${username} (${userId}) joined room ${this.room.id}`
-    );
+    console.log(`✅ User ${username} (${userId}) joined room ${this.room.id}`);
 
     // Broadcast ke semua user bahwa ada user baru join
     this.broadcast({
@@ -42,7 +40,7 @@ export default class ChatRoom implements Party.Server {
       JSON.stringify({
         type: "online-users",
         users: Array.from(this.connections.values()),
-      })
+      }),
     );
   }
 
@@ -79,7 +77,7 @@ export default class ChatRoom implements Party.Server {
             userId: senderInfo?.userId,
             username: senderInfo?.username,
           },
-          [sender.id] // Exclude sender
+          [sender.id], // Exclude sender
         );
         break;
 
@@ -90,16 +88,30 @@ export default class ChatRoom implements Party.Server {
             type: "user-stop-typing",
             userId: senderInfo?.userId,
           },
-          [sender.id]
+          [sender.id],
         );
         break;
 
       case "read-receipt":
-        // User baca message
+        // User baca message (legacy - single message)
         this.broadcast({
           type: "message-read",
           messageId: data.messageId,
           userId: senderInfo?.userId,
+          username: senderInfo?.username,
+          timestamp: new Date().toISOString(),
+        });
+        break;
+
+      case "mark-room-read":
+        // User mark semua messages di room sebagai dibaca (bulk)
+        this.broadcast({
+          type: "room-marked-read",
+          roomId: data.roomId,
+          userId: senderInfo?.userId,
+          username: senderInfo?.username,
+          messageIds: data.messageIds || [],
+          timestamp: new Date().toISOString(),
         });
         break;
 
@@ -125,9 +137,7 @@ export default class ChatRoom implements Party.Server {
     const userInfo = this.connections.get(conn.id);
 
     if (userInfo) {
-      console.log(
-        `❌ User ${userInfo.username} left room ${this.room.id}`
-      );
+      console.log(`❌ User ${userInfo.username} left room ${this.room.id}`);
 
       // Remove dari connections
       this.connections.delete(conn.id);
@@ -182,7 +192,7 @@ export default class ChatRoom implements Party.Server {
         }),
         {
           headers: { "Content-Type": "application/json" },
-        }
+        },
       );
     }
 

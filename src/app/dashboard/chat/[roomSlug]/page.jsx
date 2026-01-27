@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
 import {
@@ -39,6 +39,9 @@ export default function ChatRoomPage() {
   const [showProfileSidebar, setShowProfileSidebar] = useState(false);
   const [friendUserId, setFriendUserId] = useState(null);
   const [replyingTo, setReplyingTo] = useState(null);
+
+  // Read receipts state
+  const [readReceipts, setReadReceipts] = useState({});
 
   // Load more messages states
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
@@ -338,6 +341,44 @@ export default function ChatRoomPage() {
           });
         },
 
+        // Callback: Message read (single)
+        onMessageRead: (data) => {
+          console.log("📬 Message read:", data);
+          setReadReceipts((prev) => {
+            const existing = prev[data.messageId] || { readBy: [] };
+            const alreadyRead = existing.readBy.some(
+              (r) => r.userId === data.userId,
+            );
+
+            if (!alreadyRead) {
+              return {
+                ...prev,
+                [data.messageId]: {
+                  ...existing,
+                  readBy: [
+                    ...existing.readBy,
+                    {
+                      userId: data.userId,
+                      username: data.username,
+                      readAt: data.timestamp,
+                    },
+                  ],
+                },
+              };
+            }
+            return prev;
+          });
+        },
+
+        // Callback: Room marked as read (bulk)
+        onRoomMarkedRead: (data) => {
+          console.log("📬 Room marked read by:", data.username);
+          // Bulk update - refresh read receipts from API
+          if (selectedRoom?.id) {
+            fetchReadReceipts(selectedRoom.id);
+          }
+        },
+
         // Callback: Error - only log if there's meaningful info
         onError: (error) => {
           if (error?.message || error?.code) {
@@ -449,10 +490,124 @@ export default function ChatRoomPage() {
           }
         }, 100);
       }
+      // 📬 Load read receipts after loading messages
+      if (roomId) {
+        await fetchReadReceipts(roomId);
+      }
     } catch (error) {
       console.error("Error loading messages:", error);
     }
   };
+
+  // 📬 Fetch read receipts from API
+  const fetchReadReceipts = async (roomId) => {
+    try {
+      const messageIds = messages.map((m) => m.id).join(",");
+      const url = `/api/messages/read-receipts?roomId=${roomId}${messageIds ? `&messageIds=${messageIds}` : ""}`;
+
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data.success && data.data.readReceipts) {
+        const receiptsMap = {};
+        data.data.readReceipts.forEach((receipt) => {
+          receiptsMap[receipt.messageId] = {
+            readBy: receipt.readBy,
+            readCount: receipt.readCount,
+            totalMembers: receipt.totalMembers,
+            isReadByAll: receipt.isReadByAll,
+          };
+        });
+        setReadReceipts(receiptsMap);
+      }
+    } catch (error) {
+      console.error("Error fetching read receipts:", error);
+    }
+  };
+
+  // 📬 Mark messages as read
+  const markMessagesAsRead = async (roomId) => {
+    try {
+      const response = await fetch("/api/messages/read-receipts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          roomId: roomId,
+          markAllAsRead: true,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success && socket) {
+        // Broadcast via PartyKit
+        socket.send(
+          JSON.stringify({
+            type: "mark-room-read",
+            roomId: roomId,
+            messageIds: data.data.messageIds || [],
+          }),
+        );
+      }
+    } catch (error) {
+      console.error("Error marking messages as read:", error);
+    }
+  };
+
+  // 📬 Auto mark messages as read when room is opened
+  useEffect(() => {
+    if (selectedRoom?.id && user?.id && messages.length > 0) {
+      // Delay sedikit untuk ensure messages sudah loaded
+      const timer = setTimeout(() => {
+        markMessagesAsRead(selectedRoom.id);
+      }, 1000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [selectedRoom?.id, user?.id, messages.length]);
+
+  // 📬 Enrich messages with read receipt status
+  const enrichedMessages = useMemo(() => {
+    if (!messages || messages.length === 0) return [];
+
+    return messages.map((msg) => {
+      if (!msg.isOwn) return msg; // Only add read status to own messages
+
+      const receipt = readReceipts[msg.id];
+
+      // Determine read status
+      let readStatus = null;
+
+      if (receipt && receipt.readBy && receipt.readBy.length > 0) {
+        // Message has been read by at least one person
+        const readByNames = receipt.readBy
+          .map((r) => r.displayName || r.username)
+          .join(", ");
+
+        readStatus = {
+          status: "read",
+          readCount: receipt.readCount || receipt.readBy.length,
+          totalMembers:
+            receipt.totalMembers || selectedRoom?.members?.length || 0,
+          tooltip:
+            selectedRoom?.type === "group"
+              ? `Dibaca oleh: ${readByNames}`
+              : `Dibaca oleh ${readByNames}`,
+        };
+      } else {
+        // Message sent but not read yet
+        readStatus = {
+          status: "sent",
+          tooltip: "Terkirim",
+        };
+      }
+
+      return {
+        ...msg,
+        readStatus,
+      };
+    });
+  }, [messages, readReceipts, selectedRoom?.type, selectedRoom?.members]);
 
   const loadMoreMessages = async () => {
     if (!selectedRoom || !hasMoreMessages || isLoadingMore || !oldestTimestamp)
@@ -1029,12 +1184,12 @@ export default function ChatRoomPage() {
               className="flex-1 p-4 pt-20 pb-32 overflow-y-auto scroll-smooth"
               onScroll={handleScroll}
             >
-              {/* Loading indicator for load more messages */}
+              {/* Load more messages indicator */}
               {isLoadingMore && (
-                <div className="flex justify-center items-center py-3 mb-2">
-                  <div className="flex items-center gap-2 px-4 py-2 bg-white/40 backdrop-blur-sm rounded-full">
-                    <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                    <span className="text-sm text-gray-700">
+                <div className="text-center py-4">
+                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/20 text-blue-800 dark:text-blue-200 rounded-lg animate-pulse">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+                    <span className="text-sm font-medium">
                       Loading more messages...
                     </span>
                   </div>
@@ -1042,7 +1197,7 @@ export default function ChatRoomPage() {
               )}
 
               {messages && messages.length > 0 ? (
-                messages.map((message) => (
+                enrichedMessages.map((message) => (
                   <MessageBubble
                     key={message.id}
                     message={message}

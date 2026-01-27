@@ -64,6 +64,10 @@ export function createChatSocket(roomId, user, callbacks = {}) {
           callbacks.onMessageRead?.(data);
           break;
 
+        case "room-marked-read":
+          callbacks.onRoomMarkedRead?.(data);
+          break;
+
         case "message-deleted":
           callbacks.onMessageDeleted?.(data);
           break;
