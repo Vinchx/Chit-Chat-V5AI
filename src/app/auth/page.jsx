@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { signIn, useSession } from "next-auth/react";
 import Link from "next/link";
+import LightPillar from "@/components/LightPillar";
 
 export default function AuthPage() {
   const router = useRouter();
@@ -219,18 +220,22 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-black">
       {/* Background Pattern - Sama kayak sebelumnya */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-100 via-purple-50 to-indigo-100">
-        <div className="absolute inset-0 opacity-30">
-          <div className="h-full w-full bg-[radial-gradient(circle,_rgba(139,_69,_195,_0.1)_1px,_transparent_1px)] bg-[length:20px_20px]"></div>
-        </div>
-
-        {/* Floating shapes */}
-        <div className="absolute top-20 left-20 w-64 h-64 bg-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse"></div>
-        <div className="absolute bottom-20 right-20 w-72 h-72 bg-purple-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-1/2 w-80 h-80 bg-indigo-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse delay-500"></div>
-      </div>
+      {/* Background Pattern - LightPillar */}
+      <LightPillar
+        topColor="#6B6974"
+        bottomColor="#62588B"
+        intensity={1.0}
+        rotationSpeed={0.3}
+        interactive={false}
+        className="z-0"
+        pillarRotation={40}
+        pillarWidth={3.0}
+        pillarHeight={0.4}
+        glowAmount={0.005}
+        noiseIntensity={0.5}
+      />
 
       {/* Main Container - Struktur kayak code asli */}
       <div
@@ -244,7 +249,7 @@ export default function AuthPage() {
             className={`absolute top-0 left-0 w-1/2 h-full flex flex-col justify-center p-8 transition-all duration-700 ${isSignUp ? "translate-x-full opacity-100 z-20" : "translate-x-0 opacity-0 z-0"}`}
           >
             <div className="space-y-4">
-              <h1 className="text-2xl font-bold text-gray-800 text-center mb-6">
+              <h1 className="text-2xl font-bold text-white text-center mb-6">
                 Buat Akun
               </h1>
 
@@ -268,7 +273,7 @@ export default function AuthPage() {
                 placeholder="Username"
                 value={formData.username}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2.5 bg-white/30 backdrop-blur-sm border border-white/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 text-gray-800 placeholder-gray-600 text-sm"
+                className="w-full px-3 py-2.5 bg-gray-500/50 backdrop-blur-sm border border-white/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 text-white placeholder-white text-sm"
                 disabled={isLoading}
                 suppressHydrationWarning={true}
               />
@@ -280,7 +285,7 @@ export default function AuthPage() {
                 placeholder="Display Name"
                 value={formData.displayName}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2.5 bg-white/30 backdrop-blur-sm border border-white/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 text-gray-800 placeholder-gray-600 text-sm"
+                className="w-full px-3 py-2.5 bg-gray-500/50 backdrop-blur-sm border border-white/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 text-white placeholder-white text-sm"
                 disabled={isLoading}
                 suppressHydrationWarning={true}
               />
@@ -292,7 +297,7 @@ export default function AuthPage() {
                 placeholder="Email"
                 value={formData.email}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2.5 bg-white/30 backdrop-blur-sm border border-white/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 text-gray-800 placeholder-gray-600 text-sm"
+                className="w-full px-3 py-2.5 bg-gray-500/50 backdrop-blur-sm border border-white/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 text-white placeholder-white text-sm"
                 disabled={isLoading}
                 suppressHydrationWarning={true}
               />
@@ -304,7 +309,7 @@ export default function AuthPage() {
                 placeholder="Password (min. 8 karakter)"
                 value={formData.password}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2.5 bg-white/30 backdrop-blur-sm border border-white/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 text-gray-800 placeholder-gray-600 text-sm"
+                className="w-full px-3 py-2.5 bg-gray-500/50 backdrop-blur-sm border border-white/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 text-white placeholder-white text-sm"
                 disabled={isLoading}
                 suppressHydrationWarning={true}
               />
@@ -317,7 +322,7 @@ export default function AuthPage() {
                 value={formData.confirmPassword}
                 onChange={handleInputChange}
                 onKeyDown={(e) => handleKeyDown(e, handleRegister)}
-                className="w-full px-3 py-2.5 bg-white/30 backdrop-blur-sm border border-white/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 text-gray-800 placeholder-gray-600 text-sm"
+                className="w-full px-3 py-2.5 bg-gray-500/50 backdrop-blur-sm border border-white/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 text-white placeholder-white text-sm"
                 disabled={isLoading}
                 suppressHydrationWarning={true}
               />
@@ -328,7 +333,7 @@ export default function AuthPage() {
                 className={`w-full py-2.5 font-semibold rounded-lg transition-all duration-300 text-sm ${
                   isLoading
                     ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-gradient-to-r from-blue-400 to-purple-400 text-white hover:from-blue-500 hover:to-purple-500 shadow-lg hover:shadow-xl"
+                    : "bg-gradient-to-r from-blue-300 to-purple-300 text-white hover:from-blue-300 hover:to-purple-300 shadow-lg hover:shadow-xl"
                 }`}
               >
                 {isLoading ? (
@@ -348,7 +353,7 @@ export default function AuthPage() {
             className={`absolute top-0 left-0 w-1/2 h-full flex flex-col justify-center p-8 transition-all duration-700 ${isSignUp ? "translate-x-full opacity-0 z-0" : "translate-x-0 opacity-100 z-20"}`}
           >
             <div className="space-y-6">
-              <h1 className="text-3xl font-bold text-gray-800 text-center mb-8">
+              <h1 className="text-3xl font-bold text-white text-center mb-8">
                 Masuk
               </h1>
 
@@ -385,7 +390,8 @@ export default function AuthPage() {
                 placeholder="Username atau Email"
                 value={formData.email}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 bg-white/30 backdrop-blur-sm border border-white/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 text-gray-800 placeholder-gray-600"
+                className="w-full px-4 py-3 bg-gray-500/50 backdrop-blur-sm border border-white/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 text-white placeholder-white"
+                onKeyDown={(e) => handleKeyDown(e, handleLogin)}
                 disabled={isLoading}
                 suppressHydrationWarning={true}
               />
@@ -397,7 +403,7 @@ export default function AuthPage() {
                 value={formData.password}
                 onChange={handleInputChange}
                 onKeyDown={(e) => handleKeyDown(e, handleLogin)}
-                className="w-full px-4 py-3 bg-white/30 backdrop-blur-sm border border-white/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 text-gray-800 placeholder-gray-600"
+                className="w-full px-4 py-3 bg-gray-500/50 backdrop-blur-sm border border-white/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 text-white placeholder-white"
                 disabled={isLoading}
                 suppressHydrationWarning={true}
               />
@@ -408,7 +414,7 @@ export default function AuthPage() {
                 className={`w-full py-3 font-semibold rounded-xl transition-all duration-300 ${
                   isLoading
                     ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-gradient-to-r from-blue-400 to-purple-400 text-white hover:from-blue-500 hover:to-purple-500 shadow-lg hover:shadow-xl"
+                    : "bg-gradient-to-r from-blue-300 to-purple-300 text-gray-100 hover:from-blue-300 hover:to-purple-300 shadow-lg hover:shadow-xl"
                 }`}
               >
                 {isLoading ? (
@@ -425,7 +431,7 @@ export default function AuthPage() {
               <div className="text-center">
                 <Link
                   href="/auth/forgot-password"
-                  className="text-sm text-blue-600 hover:text-blue-800 transition-colors"
+                  className="text-sm text-white hover:text-blue-800 transition-colors"
                 >
                   Lupa Password?
                 </Link>
@@ -438,7 +444,7 @@ export default function AuthPage() {
             className={`absolute top-0 left-1/2 w-1/2 h-full overflow-hidden transition-transform duration-700 z-30 ${isSignUp ? "-translate-x-full" : "translate-x-0"}`}
           >
             <div
-              className={`relative left-[-100%] h-full w-[200%] bg-gradient-to-r from-blue-400 via-purple-400 to-indigo-400 transition-transform duration-700 ${isSignUp ? "translate-x-1/2" : "translate-x-0"}`}
+              className={`relative left-[-100%] h-full w-[200%] bg-gradient-to-r from-blue-300 via-purple-200/90 to-indigo-400 transition-transform duration-700 ${isSignUp ? "translate-x-1/2" : "translate-x-0"}`}
             >
               {/* Overlay Left - Muncul saat mode Register */}
               <div
@@ -450,7 +456,7 @@ export default function AuthPage() {
                 </p>
                 <button
                   onClick={() => setIsSignUp(false)}
-                  className="px-8 py-3 border-2 border-white text-white font-semibold rounded-xl bg-transparent hover:bg-white hover:text-blue-500 transition-all duration-300"
+                  className="px-8 py-3 border-2 border-white text-white font-semibold rounded-xl bg-transparent hover:bg-white hover:text-blue-400 transition-all duration-300"
                 >
                   Masuk
                 </button>
@@ -467,7 +473,7 @@ export default function AuthPage() {
                 </p>
                 <button
                   onClick={() => setIsSignUp(true)}
-                  className="px-8 py-3 border-2 border-white text-white font-semibold rounded-xl bg-transparent hover:bg-white hover:text-purple-500 transition-all duration-300"
+                  className="px-8 py-3 border-2 border-white text-white font-semibold rounded-xl bg-transparent hover:bg-white hover:text-purple-400 transition-all duration-300"
                 >
                   Daftar
                 </button>

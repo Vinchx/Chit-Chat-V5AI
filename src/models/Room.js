@@ -1,0 +1,69 @@
+import mongoose from "mongoose";
+
+const RoomSchema = new mongoose.Schema({
+    _id: {
+        type: String,
+        required: true,
+    },
+    name: {
+        type: String,
+        required: true,
+    },
+    type: {
+        type: String,
+        enum: ["private", "group", "ai"],
+        required: true,
+    },
+    members: [{
+        type: String,
+        ref: "User",
+    }],
+    createdBy: {
+        type: String,
+        required: true,
+        ref: "User",
+    },
+    // Khusus Group Room
+    admins: [{
+        type: String,
+        ref: "User",
+    }],
+    description: {
+        type: String,
+        default: "",
+    },
+    groupAvatar: {
+        type: String,
+        default: null,
+    },
+    settings: {
+        onlyAdminsCanPost: {
+            type: Boolean,
+            default: false,
+        },
+        onlyAdminsCanAddMembers: {
+            type: Boolean,
+            default: true,
+        },
+        onlyAdminsCanEditInfo: {
+            type: Boolean,
+            default: true,
+        },
+    },
+    // Metadata
+    lastMessage: {
+        type: String,
+        default: null,
+    },
+    lastActivity: {
+        type: Date,
+        default: Date.now,
+    },
+    createdAt: {
+        type: Date,
+        default: Date.now,
+    },
+});
+
+// Prevent model overwrite upon initial compilation
+export default mongoose.models.Room || mongoose.model("Room", RoomSchema);

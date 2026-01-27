@@ -29,7 +29,7 @@ export default function DashboardLayout({ children }) {
     {
       icon: <VscAccount size={24} className="text-gray-800 dark:text-white" />,
       label: "Profile",
-      onClick: () => router.push("/profile"),
+      onClick: () => router.push("/dashboard/profile"),
     },
     {
       icon: (

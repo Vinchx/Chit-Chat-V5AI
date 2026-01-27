@@ -168,6 +168,10 @@ Ref: messages.roomId > rooms._id
 // One message can be replied by many messages
 Ref: messages.replyTo_messageId > messages._id
 
+// Messages -> Users (senderId) (1:N)
+// One user can send many messages
+Ref: messages.senderId > users._id
+
 // ============================================
 // NOTES ON MONGODB PATTERNS
 // ============================================

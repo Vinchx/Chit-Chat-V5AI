@@ -4,6 +4,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { startAuthentication } from "@simplewebauthn/browser";
+import LightPillar from "@/components/LightPillar";
 
 export default function AdminAuthPage() {
   const router = useRouter();
@@ -162,7 +163,21 @@ export default function AdminAuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center p-4">
+    <div style={{ width: "100%", height: "600px", position: "relative" }}>
+      <LightPillar
+        topColor="#5227FF"
+        bottomColor="#fee1fd"
+        intensity={1}
+        rotationSpeed={0.2}
+        glowAmount={0.002}
+        pillarWidth={3}
+        pillarHeight={0.4}
+        noiseIntensity={0.5}
+        pillarRotation={90}
+        interactive={false}
+        mixBlendMode="screen"
+        quality="high"
+      />
       <div className="max-w-md w-full">
         {/* Header */}
         <div className="text-center mb-8">

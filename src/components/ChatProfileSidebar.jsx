@@ -354,7 +354,7 @@ const ChatProfileSidebar = ({ isOpen, onClose, userId, roomId }) => {
             {/* Quick Actions */}
             <div className="space-y-2">
               <button
-                onClick={() => router.push(`/profile/${userId}`)}
+                onClick={() => router.push(`/dashboard/profile/${userId}`)}
                 className="w-full flex items-center justify-center px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-xl font-medium transition-all transform hover:scale-105"
               >
                 <svg

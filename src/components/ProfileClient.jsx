@@ -7,7 +7,7 @@ import AvatarUpload from "./AvatarUpload";
 import EditProfileModal from "./EditProfileModal";
 import ChangePasswordModal from "./ChangePasswordModal";
 
-const ProfileClient = ({ user, isOwnProfile }) => {
+const ProfileClient = ({ user, isOwnProfile, isEmbedded = false }) => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] =
     useState(false);
@@ -31,7 +31,13 @@ const ProfileClient = ({ user, isOwnProfile }) => {
 
   return (
     <>
-      <div className="min-h-screen bg-gradient-to-br from-blue-100 via-purple-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 relative overflow-hidden">
+      <div
+        className={`${
+          isEmbedded
+            ? "h-full w-full"
+            : "min-h-screen bg-gradient-to-br from-blue-100 via-purple-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900"
+        } relative overflow-hidden`}
+      >
         {/* Animated Background Blobs */}
         <div className="absolute inset-0 opacity-30 dark:opacity-20">
           <div className="h-full w-full bg-[radial-gradient(circle,_rgba(139,_69,_195,_0.1)_1px,_transparent_1px)] dark:bg-[radial-gradient(circle,_rgba(139,_69,_195,_0.2)_1px,_transparent_1px)] bg-[length:20px_20px]"></div>
@@ -39,7 +45,9 @@ const ProfileClient = ({ user, isOwnProfile }) => {
         <div className="absolute top-20 left-20 w-64 h-64 bg-blue-200 dark:bg-blue-900 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse"></div>
         <div className="absolute bottom-20 right-20 w-72 h-72 bg-purple-200 dark:bg-purple-900 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse delay-1000"></div>
 
-        <div className="container mx-auto px-4 py-8 max-w-6xl relative z-10">
+        <div
+          className={`container mx-auto px-4 py-8 max-w-6xl relative z-10 ${isEmbedded ? "h-full overflow-y-auto" : ""}`}
+        >
           {/* Hero Section */}
           <div className="backdrop-blur-lg bg-white/20 dark:bg-gray-900/40 rounded-3xl border border-white/30 dark:border-gray-700 shadow-2xl overflow-hidden mb-8">
             {/* Cover Gradient */}
