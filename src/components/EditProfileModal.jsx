@@ -1,39 +1,39 @@
 // src/components/EditProfileModal.jsx
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 const EditProfileModal = ({ user, isOpen, onClose }) => {
   const router = useRouter();
   const [formData, setFormData] = useState({
-    displayName: user.displayName || '',
-    email: user.email || '',
-    bio: user.bio || '',
+    displayName: user.displayName || "",
+    email: user.email || "",
+    bio: user.bio || "",
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    setError('');
-    setSuccess('');
+    setError("");
+    setSuccess("");
 
     try {
-      const response = await fetch('/api/profile/update', {
-        method: 'PUT',
+      const response = await fetch("/api/profile/update", {
+        method: "PUT",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(formData),
       });
@@ -41,10 +41,10 @@ const EditProfileModal = ({ user, isOpen, onClose }) => {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to update profile');
+        throw new Error(data.error || "Failed to update profile");
       }
 
-      setSuccess('Profile berhasil diupdate!');
+      setSuccess("Profile berhasil diupdate!");
       setTimeout(() => {
         router.refresh();
         onClose();
@@ -59,7 +59,7 @@ const EditProfileModal = ({ user, isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/30 backdrop-blur-3xl bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-6 text-white rounded-t-2xl">
@@ -69,8 +69,18 @@ const EditProfileModal = ({ user, isOpen, onClose }) => {
               onClick={onClose}
               className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-all"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
@@ -83,7 +93,7 @@ const EditProfileModal = ({ user, isOpen, onClose }) => {
               {error}
             </div>
           )}
-          
+
           {success && (
             <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
               {success}
@@ -91,7 +101,10 @@ const EditProfileModal = ({ user, isOpen, onClose }) => {
           )}
 
           <div>
-            <label htmlFor="displayName" className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              htmlFor="displayName"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
               Nama Lengkap
             </label>
             <input
@@ -106,7 +119,10 @@ const EditProfileModal = ({ user, isOpen, onClose }) => {
           </div>
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
               Email
             </label>
             <input
@@ -121,7 +137,10 @@ const EditProfileModal = ({ user, isOpen, onClose }) => {
           </div>
 
           <div>
-            <label htmlFor="bio" className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              htmlFor="bio"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
               Bio
             </label>
             <textarea
@@ -149,7 +168,7 @@ const EditProfileModal = ({ user, isOpen, onClose }) => {
               className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-lg font-medium transition-all disabled:opacity-50"
               disabled={isLoading}
             >
-              {isLoading ? 'Menyimpan...' : 'Simpan'}
+              {isLoading ? "Menyimpan..." : "Simpan"}
             </button>
           </div>
         </form>

@@ -4,6 +4,7 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import ImageCropper from "./ImageCropper";
 
 const AvatarUpload = ({ user, isOwnProfile }) => {
   const router = useRouter();
@@ -12,6 +13,10 @@ const AvatarUpload = ({ user, isOwnProfile }) => {
   const [preview, setPreview] = useState(user.avatar);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+
+  // Cropper states
+  const [showCropper, setShowCropper] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
 
   const handleFileSelect = (e) => {
     const file = e.target.files?.[0];
@@ -35,15 +40,34 @@ const AvatarUpload = ({ user, isOwnProfile }) => {
     setError("");
     setSuccess("");
 
-    // Preview image
+    // Show cropper instead of direct upload
     const reader = new FileReader();
     reader.onloadend = () => {
-      setPreview(reader.result);
+      setSelectedImage(reader.result);
+      setShowCropper(true);
     };
     reader.readAsDataURL(file);
+  };
 
-    // Upload file
-    handleUpload(file);
+  const handleCropComplete = async (croppedBlob) => {
+    setShowCropper(false);
+
+    // Preview cropped image
+    const croppedUrl = URL.createObjectURL(croppedBlob);
+    setPreview(croppedUrl);
+
+    // Upload cropped image
+    const file = new File([croppedBlob], "avatar.jpg", { type: "image/jpeg" });
+    await handleUpload(file);
+  };
+
+  const handleCropCancel = () => {
+    setShowCropper(false);
+    setSelectedImage(null);
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   const handleUpload = async (file) => {
@@ -97,80 +121,93 @@ const AvatarUpload = ({ user, isOwnProfile }) => {
   };
 
   return (
-    <div className="relative group">
-      <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-lg">
-        {preview ? (
-          <Image
-            src={preview}
-            alt={user.displayName || "User avatar"}
-            fill
-            className="object-cover"
-            sizes="128px"
-            unoptimized={true}
-          />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-3xl font-bold">
-            {getInitials(user.displayName)}
+    <>
+      <div className="relative group">
+        <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-lg">
+          {preview ? (
+            <Image
+              src={preview}
+              alt={user.displayName || "User avatar"}
+              fill
+              className="object-cover"
+              sizes="128px"
+              unoptimized={true}
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-3xl font-bold">
+              {getInitials(user.displayName)}
+            </div>
+          )}
+
+          {isUploading && (
+            <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+            </div>
+          )}
+        </div>
+
+        {isOwnProfile && (
+          <>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="absolute bottom-0 right-0 bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-full shadow-lg transition-all transform hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isUploading}
+              title="Upload avatar"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+              </svg>
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+          </>
+        )}
+
+        {success && (
+          <div className="absolute top-full mt-2 bg-green-50 border border-green-200 text-green-700 px-3 py-2 rounded-lg text-sm whitespace-nowrap shadow-md">
+            {success}
           </div>
         )}
 
-        {isUploading && (
-          <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+        {error && (
+          <div className="absolute top-full mt-2 bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-sm whitespace-nowrap shadow-md">
+            {error}
           </div>
         )}
       </div>
 
-      {isOwnProfile && (
-        <>
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="absolute bottom-0 right-0 bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-full shadow-lg transition-all transform hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={isUploading}
-            title="Upload avatar"
-          >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
-              />
-            </svg>
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/gif,image/webp"
-            onChange={handleFileSelect}
-            className="hidden"
-          />
-        </>
+      {/* Image Cropper Modal */}
+      {showCropper && selectedImage && (
+        <ImageCropper
+          image={selectedImage}
+          onCropComplete={handleCropComplete}
+          onCancel={handleCropCancel}
+          aspectRatio={1}
+          title="Crop Avatar (1:1)"
+        />
       )}
-
-      {success && (
-        <div className="absolute top-full mt-2 bg-green-50 border border-green-200 text-green-700 px-3 py-2 rounded-lg text-sm whitespace-nowrap shadow-md">
-          {success}
-        </div>
-      )}
-
-      {error && (
-        <div className="absolute top-full mt-2 bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-sm whitespace-nowrap shadow-md">
-          {error}
-        </div>
-      )}
-    </div>
+    </>
   );
 };
 
