@@ -11,6 +11,7 @@ import ChangePasswordModal from "./ChangePasswordModal";
 import BlockedUsersSection from "./BlockedUsersSection";
 import BlockUserButton from "./BlockUserButton";
 import BannerEditorModal from "./BannerEditorModal";
+import ReportUserDialog from "./ReportUserDialog";
 
 const ProfileClient = ({ user, isOwnProfile, isEmbedded = false }) => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -19,6 +20,7 @@ const ProfileClient = ({ user, isOwnProfile, isEmbedded = false }) => {
     useState(false);
   const [copiedUsername, setCopiedUsername] = useState(false);
   const [activeTab, setActiveTab] = useState("overview"); // overview, blocked
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
 
   const copyUsername = () => {
     navigator.clipboard.writeText(`@${user.username}`);
@@ -201,7 +203,7 @@ const ProfileClient = ({ user, isOwnProfile, isEmbedded = false }) => {
               )}
 
               {/* Action Buttons */}
-              <div className="flex gap-3 justify-center">
+              <div className="flex gap-3 justify-center flex-wrap">
                 {isOwnProfile ? (
                   <button
                     onClick={() => setIsEditModalOpen(true)}
@@ -210,10 +212,29 @@ const ProfileClient = ({ user, isOwnProfile, isEmbedded = false }) => {
                     ✏️ Edit Profile
                   </button>
                 ) : (
-                  <BlockUserButton
-                    userId={user._id}
-                    displayName={user.displayName}
-                  />
+                  <>
+                    <BlockUserButton
+                      userId={user._id}
+                      displayName={user.displayName}
+                    />
+                    <button
+                      onClick={() => setIsReportDialogOpen(true)}
+                      className="px-6 py-3 bg-red-500/20 dark:bg-red-600/30 hover:bg-red-500/30 dark:hover:bg-red-600/40 text-red-700 dark:text-red-400 border border-red-400/30 rounded-full font-medium transition-all transform hover:scale-105 flex items-center gap-2"
+                    >
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                      </svg>
+                      Report User
+                    </button>
+                  </>
                 )}
               </div>
             </div>
@@ -553,6 +574,16 @@ const ProfileClient = ({ user, isOwnProfile, isEmbedded = false }) => {
           user={user}
           isOpen={isBannerModalOpen}
           onClose={() => setIsBannerModalOpen(false)}
+        />
+      )}
+
+      {/* Report User Dialog */}
+      {!isOwnProfile && (
+        <ReportUserDialog
+          userId={user._id}
+          username={user.username}
+          isOpen={isReportDialogOpen}
+          onClose={() => setIsReportDialogOpen(false)}
         />
       )}
     </>

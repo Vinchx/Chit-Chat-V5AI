@@ -57,6 +57,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           throw new Error("User tidak ditemukan");
         }
 
+        // Check if user is banned
+        if (user.isBanned) {
+          throw new Error(`Akun Anda telah dibanned. Alasan: ${user.bannedReason || "Pelanggaran kebijakan platform"}`);
+        }
+
+        // Check if user is suspended
+        if (user.suspendedUntil && new Date(user.suspendedUntil) > new Date()) {
+          const suspendUntilDate = new Date(user.suspendedUntil).toLocaleString("id-ID", {
+            dateStyle: "long",
+            timeStyle: "short",
+          });
+          throw new Error(`Akun Anda disuspend sampai ${suspendUntilDate}. Alasan: ${user.suspensionReason || "Pelanggaran sementara"}`);
+        }
+
         // Periksa apakah akun sudah terverifikasi
         if (!user.isVerified) {
           throw new Error("Akun belum terverifikasi. Silakan cek email Anda untuk link verifikasi.");

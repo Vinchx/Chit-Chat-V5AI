@@ -102,6 +102,31 @@ const UserSchema = new mongoose.Schema({
       default: Date.now,
     },
   }],
+  // User moderation fields
+  isBanned: {
+    type: Boolean,
+    default: false,
+  },
+  bannedAt: {
+    type: Date,
+    default: null,
+  },
+  bannedReason: {
+    type: String,
+    default: null,
+  },
+  suspendedUntil: {
+    type: Date,
+    default: null,
+  },
+  suspensionReason: {
+    type: String,
+    default: null,
+  },
+  warningCount: {
+    type: Number,
+    default: 0,
+  },
 });
 
 // Prevent model overwrite upon initial compilation

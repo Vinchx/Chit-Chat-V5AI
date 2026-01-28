@@ -236,6 +236,16 @@ export default function AdminDashboard() {
               href="/vinchx/dashboard/analytics"
             />
             <ActionButton
+              label="Manage Reports"
+              icon="⚠️"
+              href="/vinchx/dashboard/reports"
+            />
+            <ActionButton
+              label="Moderated Users"
+              icon="🚫"
+              href="/vinchx/dashboard/moderated-users"
+            />
+            <ActionButton
               label="Passkey Management"
               icon="🔑"
               href="/vinchx/dashboard/passkeys"
