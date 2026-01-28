@@ -10,9 +10,11 @@ import EditProfileModal from "./EditProfileModal";
 import ChangePasswordModal from "./ChangePasswordModal";
 import BlockedUsersSection from "./BlockedUsersSection";
 import BlockUserButton from "./BlockUserButton";
+import BannerEditorModal from "./BannerEditorModal";
 
 const ProfileClient = ({ user, isOwnProfile, isEmbedded = false }) => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] =
     useState(false);
   const [copiedUsername, setCopiedUsername] = useState(false);
@@ -32,6 +34,9 @@ const ProfileClient = ({ user, isOwnProfile, isEmbedded = false }) => {
     } else {
       document.documentElement.classList.remove("dark");
     }
+
+    // Debug: Log banner value
+    console.log("🎨 [ProfileClient] User banner value:", user.banner);
   }, []);
 
   return (
@@ -56,8 +61,48 @@ const ProfileClient = ({ user, isOwnProfile, isEmbedded = false }) => {
           {/* Hero Section */}
           <div className="backdrop-blur-lg bg-white/20 dark:bg-gray-900/40 rounded-3xl border border-white/30 dark:border-gray-700 shadow-2xl overflow-hidden mb-8">
             {/* Cover Gradient */}
-            <div className="h-64 bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 relative">
+            <div
+              className="h-64 relative transition-all duration-700 ease-in-out"
+              style={
+                user.banner
+                  ? user.banner.startsWith("/") ||
+                    user.banner.startsWith("http")
+                    ? {
+                        backgroundImage: `url('${user.banner}')`,
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
+                      }
+                    : { background: user.banner }
+                  : { background: "#6b7280" }
+              }
+            >
               <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
+
+              {/* Edit Banner Button */}
+              {isOwnProfile && (
+                <button
+                  onClick={() => setIsBannerModalOpen(true)}
+                  className="absolute top-4 right-4 bg-white/20 hover:bg-white/30 backdrop-blur-md text-white p-2 rounded-full shadow-lg transition-all transform hover:scale-110 group z-20"
+                  title="Ganti Banner"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                    />
+                  </svg>
+                  <span className="absolute right-full mr-2 top-1/2 -translate-y-1/2 px-2 py-1 bg-black/70 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                    Ganti Banner
+                  </span>
+                </button>
+              )}
 
               {/* Avatar Section - Centered */}
               <div className="absolute -bottom-20 left-1/2 transform -translate-x-1/2">
@@ -499,6 +544,15 @@ const ProfileClient = ({ user, isOwnProfile, isEmbedded = false }) => {
         <ChangePasswordModal
           isOpen={isChangePasswordModalOpen}
           onClose={() => setIsChangePasswordModalOpen(false)}
+        />
+      )}
+
+      {/* Banner Editor Modal */}
+      {isOwnProfile && (
+        <BannerEditorModal
+          user={user}
+          isOpen={isBannerModalOpen}
+          onClose={() => setIsBannerModalOpen(false)}
         />
       )}
     </>

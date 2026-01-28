@@ -27,6 +27,10 @@ const UserSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
+  banner: {
+    type: String,
+    default: null,
+  },
   bio: {
     type: String,
     default: '',

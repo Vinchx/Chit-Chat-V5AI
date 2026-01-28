@@ -28,6 +28,7 @@ export default async function DashboardFriendProfilePage({ params }) {
         email: user.email,
         displayName: user.displayName,
         avatar: user.avatar ? user.avatar.replace(/\\/g, '/') : null,
+        banner: user.banner ? user.banner.replace(/\\/g, '/') : null,
         bio: user.bio || '',
         isOnline: user.isOnline,
         isVerified: user.isVerified,

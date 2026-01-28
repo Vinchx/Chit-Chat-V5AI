@@ -27,6 +27,7 @@ export default async function ProfilePage({ params }) {
     email: user.email,
     displayName: user.displayName,
     avatar: user.avatar ? user.avatar.replace(/\\/g, '/') : null, // Normalize path untuk Next.js
+    banner: user.banner ? user.banner.replace(/\\/g, '/') : null, // Normalize path untuk Next.js
     bio: user.bio || '',
     isOnline: user.isOnline,
     isVerified: user.isVerified,
