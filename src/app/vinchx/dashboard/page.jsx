@@ -153,12 +153,13 @@ export default function AdminDashboard() {
 
                 {/* New: Clear All Cookies & Logout Button */}
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     setShowLogoutMenu(false);
-                    // Clear ALL cookies, localStorage, sessionStorage
+                    // Sign out first to ensure proper server-side session termination
+                    await signOut({ redirect: false });
+                    // Then clear all local data
                     clearAllCookies();
-                    // Then logout
-                    signOut({ callbackUrl: "/auth" });
+                    router.push("/auth");
                   }}
                   className="w-full px-4 py-3 text-left hover:bg-yellow-500/10 transition-colors flex items-center gap-3 text-yellow-300"
                 >

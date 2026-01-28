@@ -315,6 +315,56 @@ export default function DashboardLayout({ children }) {
     }
   };
 
+  const handleBlockUser = (userId, displayName) => {
+    toast(
+      (t) => (
+        <div className="flex flex-col gap-2">
+          <p className="font-medium">Block {displayName}?</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            User ini tidak akan bisa mengirim friend request ke kamu lagi.
+          </p>
+          <div className="flex gap-2 mt-2">
+            <button
+              onClick={async () => {
+                toast.dismiss(t);
+                try {
+                  const res = await fetch("/api/users/block", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ userId, type: "block" }),
+                  });
+                  const data = await res.json();
+
+                  if (data.success) {
+                    toast.success(`${displayName} berhasil diblokir`);
+                    loadFriendsData();
+                  } else {
+                    toast.error(data.message);
+                  }
+                } catch (error) {
+                  console.error("Error blocking user:", error);
+                  toast.error("Terjadi kesalahan");
+                }
+              }}
+              className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600"
+            >
+              Block
+            </button>
+            <button
+              onClick={() => toast.dismiss(t)}
+              className="px-3 py-1.5 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm hover:bg-gray-300 dark:hover:bg-gray-500"
+            >
+              Batal
+            </button>
+          </div>
+        </div>
+      ),
+      {
+        duration: 10000,
+      },
+    );
+  };
+
   const handleLogout = async () => {
     // Gunakan redirect: false agar tidak pakai NEXTAUTH_URL dari .env
     await signOut({ redirect: false });
@@ -323,8 +373,10 @@ export default function DashboardLayout({ children }) {
   };
 
   const handleClearAllLogout = async () => {
-    clearAllCookies();
+    // Sign out first while we have the CSRF token
     await signOut({ redirect: false });
+    // Then clear all cookies and storage
+    clearAllCookies();
     router.push("/auth");
   };
 
@@ -748,6 +800,14 @@ export default function DashboardLayout({ children }) {
                           className="flex-1 py-1.5 bg-red-400/20 hover:bg-red-400/30 dark:bg-red-500/20 dark:hover:bg-red-500/30 text-red-700 dark:text-red-400 rounded-lg transition-colors text-sm font-medium"
                         >
                           Tolak
+                        </button>
+                        <button
+                          onClick={() =>
+                            handleBlockUser(request.userId, request.displayName)
+                          }
+                          className="flex-1 py-1.5 bg-gray-400/20 hover:bg-gray-400/30 dark:bg-gray-500/20 dark:hover:bg-gray-500/30 text-gray-700 dark:text-gray-400 rounded-lg transition-colors text-sm font-medium"
+                        >
+                          🚫 Block
                         </button>
                       </div>
                     </div>

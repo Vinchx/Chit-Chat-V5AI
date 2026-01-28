@@ -44,6 +44,22 @@ export async function POST(request) {
             }, { status: 400 });
         }
 
+        // 🚫 Check if either user has blocked the other (bidirectional check)
+        const blockedCollection = db.collection("blockedusers");
+        const blockCheck = await blockedCollection.findOne({
+            $or: [
+                { blockerId: targetUser._id, blockedUserId: currentUserId }, // Target blocked you
+                { blockerId: currentUserId, blockedUserId: targetUser._id }  // You blocked target
+            ]
+        });
+
+        if (blockCheck) {
+            return Response.json({
+                success: false,
+                message: "Tidak dapat mengirim friend request ke user ini"
+            }, { status: 403 });
+        }
+
         const existingFriendship = await friendsCollection.findOne({
             $or: [
                 { senderId: currentUserId, receiverId: targetUser._id },

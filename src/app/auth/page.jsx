@@ -220,22 +220,25 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-black">
+    <div className="min-h-screen w-full relative flex items-center justify-center bg-gray-900 overflow-hidden">
       {/* Background Pattern - Sama kayak sebelumnya */}
       {/* Background Pattern - LightPillar */}
-      <LightPillar
-        topColor="#6B6974"
-        bottomColor="#62588B"
-        intensity={1.0}
-        rotationSpeed={0.3}
-        interactive={false}
-        className="z-0"
-        pillarRotation={40}
-        pillarWidth={3.0}
-        pillarHeight={0.4}
-        glowAmount={0.005}
-        noiseIntensity={0.5}
-      />
+      <div className="absolute inset-0 z-0">
+        <LightPillar
+          topColor="#6B6974"
+          bottomColor="#62588B"
+          intensity={1}
+          rotationSpeed={0.2}
+          glowAmount={0.007}
+          pillarWidth={3}
+          pillarHeight={0.4}
+          noiseIntensity={0.5}
+          pillarRotation={30}
+          interactive={false}
+          mixBlendMode="screen"
+          quality="high"
+        />
+      </div>
 
       {/* Main Container - Struktur kayak code asli */}
       <div
@@ -243,7 +246,7 @@ export default function AuthPage() {
         id="container"
       >
         {/* Glassmorphism Container - Pengganti .container */}
-        <div className="relative w-full h-full backdrop-blur-lg bg-white/20 rounded-3xl shadow-2xl border border-white/30 overflow-hidden">
+        <div className="relative w-full h-full backdrop-blur-lg bg-gray-900/40 rounded-3xl shadow-2xl border border-white/30 overflow-hidden">
           {/* Sign Up Container - Panel Register */}
           <div
             className={`absolute top-0 left-0 w-1/2 h-full flex flex-col justify-center p-8 transition-all duration-700 ${isSignUp ? "translate-x-full opacity-100 z-20" : "translate-x-0 opacity-0 z-0"}`}
