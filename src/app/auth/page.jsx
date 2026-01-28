@@ -50,6 +50,10 @@ export default function AuthPage() {
     }
   };
 
+  // State untuk OTP verification step
+  const [verificationStep, setVerificationStep] = useState(false);
+  const [otp, setOtp] = useState("");
+
   // Fungsi register - kirim ke API beneran
   const handleRegister = async () => {
     // Validasi semua field harus diisi
@@ -98,17 +102,11 @@ export default function AuthPage() {
 
       if (data.success) {
         setMessage({
-          text: "Akun berhasil dibuat! Silakan login.",
+          text: "Registrasi berhasil! Silakan cek email untuk kode OTP.",
           type: "success",
         });
-        setFormData({
-          username: "",
-          email: "",
-          password: "",
-          confirmPassword: "",
-          displayName: "",
-        });
-        setTimeout(() => setIsSignUp(false), 2000);
+        // Pindah ke step verifikasi OTP
+        setVerificationStep(true);
       } else {
         setMessage({ text: data.message, type: "error" });
       }
@@ -119,6 +117,47 @@ export default function AuthPage() {
       });
     }
 
+    setIsLoading(false);
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!otp || otp.length < 6) {
+      setMessage({ text: "Masukkan 6 digit kode OTP!", type: "error" });
+      return;
+    }
+
+    setIsLoading(true);
+    setMessage({ text: "", type: "" });
+
+    try {
+      const response = await fetch("/api/auth/verify/otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: formData.email,
+          otp,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setMessage({
+          text: "Verifikasi berhasil! Mengalihkan ke login...",
+          type: "success",
+        });
+        setTimeout(() => {
+          setVerificationStep(false);
+          setIsSignUp(false); // Switch to login view
+          setFormData({ ...formData, password: "", confirmPassword: "" }); // Clear passwords
+          setOtp("");
+        }, 2000);
+      } else {
+        setMessage({ text: data.message, type: "error" });
+      }
+    } catch (error) {
+      setMessage({ text: "Gagal memverifikasi OTP.", type: "error" });
+    }
     setIsLoading(false);
   };
 
@@ -247,6 +286,87 @@ export default function AuthPage() {
       >
         {/* Glassmorphism Container - Pengganti .container */}
         <div className="relative w-full h-full backdrop-blur-lg bg-gray-900/40 rounded-3xl shadow-2xl border border-white/30 overflow-hidden">
+          {/* Verification Step Container */}
+          <div
+            className={`absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center p-8 transition-all duration-500 z-50 bg-gray-900/90 ${verificationStep ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"}`}
+          >
+            <div className="w-full max-w-md space-y-6 text-center">
+              <div className="mb-6">
+                <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg
+                    className="w-8 h-8 text-blue-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                    />
+                  </svg>
+                </div>
+                <h2 className="text-2xl font-bold text-white mb-2">
+                  Verifikasi Email
+                </h2>
+                <p className="text-gray-300">
+                  Kami telah mengirimkan kode OTP ke{" "}
+                  <strong>{formData.email}</strong>
+                </p>
+              </div>
+
+              {message.text && (
+                <div
+                  className={`p-3 rounded-lg text-sm font-medium ${message.type === "success" ? "bg-green-100/10 text-green-400" : "bg-red-100/10 text-red-400"}`}
+                >
+                  {message.text}
+                </div>
+              )}
+
+              <div className="space-y-4">
+                <input
+                  type="text"
+                  placeholder="Masukkan 6 digit Kode OTP"
+                  className="w-full text-center text-2xl tracking-widest px-4 py-3 bg-gray-800 border border-gray-600 rounded-xl focus:outline-none focus:border-blue-500 text-white placeholder-gray-600 font-mono"
+                  maxLength={6}
+                  value={otp}
+                  onChange={(e) =>
+                    setOtp(e.target.value.replace(/[^0-9]/g, ""))
+                  }
+                />
+
+                <button
+                  onClick={handleVerifyOtp}
+                  disabled={isLoading || otp.length < 6}
+                  className={`w-full py-3 font-semibold rounded-xl transition-all duration-300 ${
+                    isLoading || otp.length < 6
+                      ? "bg-gray-700 text-gray-400 cursor-not-allowed"
+                      : "bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 shadow-lg hover:shadow-xl"
+                  }`}
+                >
+                  {isLoading ? "Memverifikasi..." : "Verifikasi Akun"}
+                </button>
+
+                <div className="flex justify-between text-sm mt-4">
+                  <button
+                    onClick={() => setVerificationStep(false)}
+                    className="text-gray-400 hover:text-white"
+                  >
+                    Kembali
+                  </button>
+                  <button
+                    onClick={handleResendVerification}
+                    className="text-blue-400 hover:text-blue-300"
+                    disabled={isLoading}
+                  >
+                    Kirim Ulang Kode
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Sign Up Container - Panel Register */}
           <div
             className={`absolute top-0 left-0 w-1/2 h-full flex flex-col justify-center p-8 transition-all duration-700 ${isSignUp ? "translate-x-full opacity-100 z-20" : "translate-x-0 opacity-0 z-0"}`}

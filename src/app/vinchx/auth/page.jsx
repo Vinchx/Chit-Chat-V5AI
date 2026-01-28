@@ -4,6 +4,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { startAuthentication } from "@simplewebauthn/browser";
+import { toast } from "sonner";
 import LightPillar from "@/components/LightPillar";
 
 export default function AdminAuthPage() {
@@ -80,6 +81,7 @@ export default function AdminAuthPage() {
       // Get admin token after successful passkey login (same as password login)
       const tokenRes = await fetch("/api/admin/auth/token", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
       });
 
       if (!tokenRes.ok) {
@@ -100,11 +102,20 @@ export default function AdminAuthPage() {
       window.location.href = "/vinchx/dashboard";
     } catch (err) {
       console.error("Passkey login error:", err);
-      setError(
-        err.message ||
-          "Passkey authentication failed. Try using password instead.",
-      );
-      setShowPasswordForm(true); // Show password form as fallback
+
+      if (
+        err.message.includes("Forbidden") ||
+        err.message.includes("Admin access required")
+      ) {
+        toast.error("Akun anda tidak terdaftarkan");
+        // Optional: clear loading state but don't set 'error' state so red box doesn't appear
+      } else {
+        setError(
+          err.message ||
+            "Passkey authentication failed. Try using password instead.",
+        );
+        setShowPasswordForm(true); // Show password form as fallback
+      }
     } finally {
       setPasskeyLoading(false);
     }
