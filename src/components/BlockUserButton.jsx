@@ -1,4 +1,9 @@
-// BlockUserButton component - internal to ProfileClient
+// src/components/BlockUserButton.jsx
+"use client";
+
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+
 const BlockUserButton = ({ userId, displayName }) => {
   const router = useRouter();
 
@@ -77,3 +82,5 @@ const BlockUserButton = ({ userId, displayName }) => {
     </button>
   );
 };
+
+export default BlockUserButton;

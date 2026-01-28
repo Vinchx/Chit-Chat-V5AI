@@ -50,6 +50,7 @@ export async function GET(request) {
                         username: friendData.username,
                         displayName: friendData.displayName,
                         avatar: friendData.avatar ? friendData.avatar.replace(/\\/g, '/') : null,
+                        banner: friendData.banner ? friendData.banner.replace(/\\/g, '/') : null,
                         isOnline: friendData.isOnline
                     };
                     // Slug untuk private = username teman
@@ -68,6 +69,7 @@ export async function GET(request) {
                     username: member.username,
                     displayName: member.displayName,
                     avatar: member.avatar ? member.avatar.replace(/\\/g, '/') : null,
+                    banner: member.banner ? member.banner.replace(/\\/g, '/') : null,
                     isOnline: member.isOnline
                 }));
                 // Slug untuk group = slugified group name

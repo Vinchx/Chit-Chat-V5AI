@@ -21,15 +21,30 @@ function FlowingFriendItem({
 
   const displayName = friend.displayName;
   const avatarUrl = friend.avatar ? normalizeAvatar(friend.avatar) : null;
+  const bannerUrl = friend.banner ? normalizeAvatar(friend.banner) : null;
+
+  // Debug: Log banner info
+  console.log(
+    "🎨 [FlowingFriendItem] Friend:",
+    displayName,
+    "| Banner:",
+    friend.banner,
+    "| BannerUrl:",
+    bannerUrl,
+  );
 
   // Generate banner background
   const getBannerStyle = () => {
-    if (avatarUrl) {
-      return { backgroundImage: `url(${avatarUrl})` };
+    if (bannerUrl) {
+      return {
+        backgroundImage: `url(${bannerUrl})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      };
     }
 
     return {
-      background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+      background: "#6b7280",
     };
   };
 
@@ -54,7 +69,7 @@ function FlowingFriendItem({
     calculateRepetitions();
     window.addEventListener("resize", calculateRepetitions);
     return () => window.removeEventListener("resize", calculateRepetitions);
-  }, [displayName, avatarUrl]);
+  }, [displayName, bannerUrl]);
 
   useEffect(() => {
     const setupMarquee = () => {
@@ -84,7 +99,7 @@ function FlowingFriendItem({
         animationRef.current.kill();
       }
     };
-  }, [displayName, avatarUrl, repetitions, speed]);
+  }, [displayName, bannerUrl, repetitions, speed]);
 
   const handleMouseEnter = (ev) => {
     if (!itemRef.current || !marqueeRef.current || !marqueeInnerRef.current)
@@ -192,7 +207,7 @@ function FlowingFriendItem({
                 className="w-[125px] h-[50px] rounded-4xl bg-cover bg-center flex-shrink-0 shadow-md"
                 style={getBannerStyle()}
               >
-                {!avatarUrl && (
+                {!bannerUrl && (
                   <div className="w-full h-full flex items-center justify-center text-white font-bold text-xl backdrop-blur-sm bg-black/20 rounded-2xl">
                     💬
                   </div>

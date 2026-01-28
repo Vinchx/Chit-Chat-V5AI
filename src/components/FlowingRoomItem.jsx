@@ -25,27 +25,59 @@ function FlowingRoomItem({
       ? room.friend.displayName || room.name
       : room.name;
 
-  // Get avatar for banner
+  // Get avatar for circle display
   const avatarUrl =
     room.type === "private" && room.friend?.avatar
       ? normalizeAvatar(room.friend.avatar)
       : null;
 
-  // Generate banner background based on room type
-  const getBannerStyle = () => {
+  // Get banner for landscape background
+  const bannerUrl =
+    room.type === "private" && room.friend?.banner
+      ? normalizeAvatar(room.friend.banner)
+      : null;
+
+  // Debug: Log banner info
+  if (room.type === "private" && room.friend) {
+    console.log(
+      "🎨 [FlowingRoomItem] Friend:",
+      room.friend.displayName,
+      "| Avatar:",
+      room.friend.avatar,
+      "| Banner:",
+      room.friend.banner,
+    );
+  }
+
+  // Generate avatar style for circle
+  const getAvatarStyle = () => {
     if (avatarUrl) {
-      return { backgroundImage: `url(${avatarUrl})` };
+      return {
+        backgroundImage: `url(${avatarUrl})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      };
     }
 
-    // Fallback gradients based on room type
-    const gradients = {
-      private: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-      group: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
-      ai: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
-    };
-
+    // Fallback to neutral gray
     return {
-      background: gradients[room.type] || gradients.private,
+      background: "#6b7280",
+    };
+  };
+
+  // Generate banner background for landscape
+  const getBannerStyle = () => {
+    if (bannerUrl) {
+      return {
+        backgroundImage: `url(${bannerUrl})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      };
+    }
+
+    // Fallback to neutral gray
+    return {
+      background: "#6b7280",
     };
   };
 
@@ -78,7 +110,7 @@ function FlowingRoomItem({
     calculateRepetitions();
     window.addEventListener("resize", calculateRepetitions);
     return () => window.removeEventListener("resize", calculateRepetitions);
-  }, [displayName, avatarUrl]);
+  }, [displayName, avatarUrl, bannerUrl]);
 
   useEffect(() => {
     const setupMarquee = () => {
@@ -108,7 +140,7 @@ function FlowingRoomItem({
         animationRef.current.kill();
       }
     };
-  }, [displayName, avatarUrl, repetitions, speed]);
+  }, [displayName, avatarUrl, bannerUrl, repetitions, speed]);
 
   const handleMouseEnter = (ev) => {
     if (!itemRef.current || !marqueeRef.current || !marqueeInnerRef.current)
@@ -209,10 +241,10 @@ function FlowingRoomItem({
               key={idx}
               className="marquee-part flex items-center flex-shrink-0 gap-3 px-4"
             >
-              {/* Avatar Banner */}
+              {/* Avatar Circle - uses avatar */}
               <div
                 className="w-12 h-12 rounded-full bg-cover bg-center flex-shrink-0 border-2 border-white shadow-lg"
-                style={getBannerStyle()}
+                style={getAvatarStyle()}
               >
                 {!avatarUrl && (
                   <div className="w-full h-full flex items-center justify-center text-white font-bold text-lg">
@@ -230,7 +262,7 @@ function FlowingRoomItem({
                 className="w-[125px] h-[50px] rounded-4xl bg-cover bg-center flex-shrink-0 shadow-md"
                 style={getBannerStyle()}
               >
-                {!avatarUrl && (
+                {!bannerUrl && (
                   <div className="w-full h-full flex items-center justify-center text-white font-bold text-xl backdrop-blur-sm bg-black/20 rounded-2xl">
                     {room.type === "private"
                       ? "💬"
