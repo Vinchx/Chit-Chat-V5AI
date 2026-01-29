@@ -26,5 +26,10 @@ const FriendshipSchema = new mongoose.Schema({
     },
 });
 
+// Indexes for query performance and data integrity
+FriendshipSchema.index({ senderId: 1, receiverId: 1 }, { unique: true }); // Prevent duplicate friendships
+FriendshipSchema.index({ receiverId: 1, status: 1 }); // Query incoming friend requests
+FriendshipSchema.index({ senderId: 1, status: 1 }); // Query sent friend requests
+
 // Prevent model overwrite upon initial compilation
 export default mongoose.models.Friendship || mongoose.model("Friendship", FriendshipSchema);

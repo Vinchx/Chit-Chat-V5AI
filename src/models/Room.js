@@ -65,5 +65,11 @@ const RoomSchema = new mongoose.Schema({
     },
 });
 
+// Indexes for query performance
+RoomSchema.index({ type: 1 }); // Filter by room type (private/group/ai)
+RoomSchema.index({ members: 1 }); // Check user membership, find user's rooms
+RoomSchema.index({ lastActivity: -1 }); // Sort rooms by recent activity
+RoomSchema.index({ createdBy: 1 }); // Find rooms created by user
+
 // Prevent model overwrite upon initial compilation
 export default mongoose.models.Room || mongoose.model("Room", RoomSchema);
