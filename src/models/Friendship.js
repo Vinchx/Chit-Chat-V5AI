@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import softDeletePlugin from "@/lib/soft-delete-plugin";
 
 const FriendshipSchema = new mongoose.Schema({
     _id: {
@@ -30,6 +31,9 @@ const FriendshipSchema = new mongoose.Schema({
 FriendshipSchema.index({ senderId: 1, receiverId: 1 }, { unique: true }); // Prevent duplicate friendships
 FriendshipSchema.index({ receiverId: 1, status: 1 }); // Query incoming friend requests
 FriendshipSchema.index({ senderId: 1, status: 1 }); // Query sent friend requests
+
+// Apply soft delete plugin
+FriendshipSchema.plugin(softDeletePlugin);
 
 // Prevent model overwrite upon initial compilation
 export default mongoose.models.Friendship || mongoose.model("Friendship", FriendshipSchema);

@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import softDeletePlugin from "@/lib/soft-delete-plugin";
 
 const BlockedUserSchema = new mongoose.Schema({
     _id: {
@@ -34,6 +35,9 @@ BlockedUserSchema.index({ blockedUserId: 1 });
 
 // Index untuk query list blocked users by blocker
 BlockedUserSchema.index({ blockerId: 1, blockedAt: -1 });
+
+// Apply soft delete plugin
+BlockedUserSchema.plugin(softDeletePlugin);
 
 // Prevent model overwrite upon initial compilation
 export default mongoose.models.BlockedUser ||

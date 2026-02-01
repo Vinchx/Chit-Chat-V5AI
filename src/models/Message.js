@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import softDeletePlugin from "@/lib/soft-delete-plugin";
 
 const MessageSchema = new mongoose.Schema({
     _id: {
@@ -50,15 +51,8 @@ const MessageSchema = new mongoose.Schema({
         type: Boolean,
         default: false,
     },
-    isDeleted: {
-        type: Boolean,
-        default: false,
-    },
     // Timestamps
     editedAt: {
-        type: Date,
-    },
-    deletedAt: {
         type: Date,
     },
     timestamp: {
@@ -66,6 +60,9 @@ const MessageSchema = new mongoose.Schema({
         default: Date.now,
     },
 });
+
+// Apply soft delete plugin (will add isDeleted, deletedAt, deletedBy)
+MessageSchema.plugin(softDeletePlugin);
 
 // Index untuk performa query chat history
 MessageSchema.index({ roomId: 1, timestamp: -1 });

@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import softDeletePlugin from "@/lib/soft-delete-plugin";
 
 const RoomSchema = new mongoose.Schema({
     _id: {
@@ -70,6 +71,9 @@ RoomSchema.index({ type: 1 }); // Filter by room type (private/group/ai)
 RoomSchema.index({ members: 1 }); // Check user membership, find user's rooms
 RoomSchema.index({ lastActivity: -1 }); // Sort rooms by recent activity
 RoomSchema.index({ createdBy: 1 }); // Find rooms created by user
+
+// Apply soft delete plugin
+RoomSchema.plugin(softDeletePlugin);
 
 // Prevent model overwrite upon initial compilation
 export default mongoose.models.Room || mongoose.model("Room", RoomSchema);

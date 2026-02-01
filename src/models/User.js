@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import softDeletePlugin from "@/lib/soft-delete-plugin";
 
 const UserSchema = new mongoose.Schema({
   _id: {
@@ -128,6 +129,9 @@ const UserSchema = new mongoose.Schema({
     default: 0,
   },
 });
+
+// Apply soft delete plugin
+UserSchema.plugin(softDeletePlugin);
 
 // Prevent model overwrite upon initial compilation
 export default mongoose.models.User || mongoose.model("User", UserSchema);

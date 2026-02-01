@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import softDeletePlugin from "@/lib/soft-delete-plugin";
 
 const ReportSchema = new mongoose.Schema({
     _id: {
@@ -56,6 +57,9 @@ const ReportSchema = new mongoose.Schema({
         default: null,
     },
 });
+
+// Apply soft delete plugin
+ReportSchema.plugin(softDeletePlugin);
 
 // Indexes for efficient queries
 ReportSchema.index({ reporterId: 1, createdAt: -1 });
