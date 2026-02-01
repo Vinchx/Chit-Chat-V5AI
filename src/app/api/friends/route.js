@@ -19,12 +19,13 @@ export async function GET(request) {
         const friendsCollection = db.collection("friendships");
         const usersCollection = db.collection("users");
 
-        // 3. Ambil semua data friendship yang melibatkan user ini
+        // 3. Ambil semua data friendship yang melibatkan user ini (exclude soft deleted)
         const friendships = await friendsCollection.find({
             $or: [
                 { senderId: currentUserId },
                 { receiverId: currentUserId }
-            ]
+            ],
+            isDeleted: { $ne: true }
         }).toArray();
 
         // 4. Pisahkan berdasarkan kategori

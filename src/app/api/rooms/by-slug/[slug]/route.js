@@ -30,7 +30,8 @@ export async function GET(request, { params }) {
         if (slug === "ai-assistant") {
             room = await roomsCollection.findOne({
                 type: "ai",
-                members: currentUserId
+                members: currentUserId,
+                isDeleted: { $ne: true }
             });
         }
 
@@ -40,7 +41,8 @@ export async function GET(request, { params }) {
             if (targetUser) {
                 room = await roomsCollection.findOne({
                     type: "private",
-                    members: { $all: [currentUserId, targetUser._id] }
+                    members: { $all: [currentUserId, targetUser._id] },
+                    isDeleted: { $ne: true }
                 });
             }
         }
@@ -49,7 +51,8 @@ export async function GET(request, { params }) {
         if (!room) {
             const allUserRooms = await roomsCollection.find({
                 type: "group",
-                members: currentUserId
+                members: currentUserId,
+                isDeleted: { $ne: true }
             }).toArray();
 
             for (const r of allUserRooms) {

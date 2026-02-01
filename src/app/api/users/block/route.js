@@ -120,15 +120,26 @@ export async function DELETE(req) {
             );
         }
 
-        // Find and delete block record
-        const deleteResult = await BlockedUser.findOneAndDelete({
-            blockerId: currentUserId,
-            blockedUserId: userIdParam,
-        });
+        // Find and soft delete block record
+        const deleteResult = await BlockedUser.findOneAndUpdate(
+            {
+                blockerId: currentUserId,
+                blockedUserId: userIdParam,
+                isDeleted: { $ne: true } // Only unblock active blocks
+            },
+            {
+                $set: {
+                    isDeleted: true,
+                    deletedAt: new Date(),
+                    deletedBy: currentUserId
+                }
+            },
+            { new: false } // Return original doc before update
+        );
 
         if (!deleteResult) {
             return NextResponse.json(
-                { success: false, message: "Block record tidak ditemukan" },
+                { success: false, message: "Block record tidak ditemukan atau sudah di-unblock" },
                 { status: 404 },
             );
         }
@@ -161,8 +172,11 @@ export async function GET(req) {
         const { searchParams } = new URL(req.url);
         const type = searchParams.get("type"); // optional filter: 'block' or 'mute'
 
-        // Build query
-        const query = { blockerId: currentUserId };
+        // Build query - exclude soft deleted
+        const query = {
+            blockerId: currentUserId,
+            isDeleted: { $ne: true }
+        };
         if (type) {
             query.type = type;
         }

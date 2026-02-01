@@ -19,9 +19,10 @@ export async function GET(request) {
         const roomsCollection = db.collection("rooms");
         const usersCollection = db.collection("users");
 
-        // 3. Ambil semua room yang user ini ikuti
+        // 3. Ambil semua room yang user ini ikuti (exclude soft deleted)
         const rooms = await roomsCollection.find({
-            members: currentUserId
+            members: currentUserId,
+            isDeleted: { $ne: true }
         }).sort({ lastActivity: -1 }).toArray(); // Urutkan berdasarkan aktivitas terakhir
 
         // 4. Siapkan data detail untuk setiap room

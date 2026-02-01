@@ -33,6 +33,7 @@ export async function GET(request) {
         const users = await usersCollection.find({
             $and: [
                 { _id: { $ne: currentUserId } }, // Jangan tampilkan diri sendiri
+                { isDeleted: { $ne: true } }, // Exclude soft-deleted users
                 {
                     $or: [
                         { username: { $regex: searchQuery, $options: "i" } },
@@ -40,7 +41,7 @@ export async function GET(request) {
                     ]
                 }
             ]
-        }).limit(10).toArray(); // Cuma ambil 10 hasil teratas
+        }).limit(20).toArray(); // Cuma ambil 10 hasil teratas
 
         // Format hasil pencarian
         const searchResults = users.map(user => ({
