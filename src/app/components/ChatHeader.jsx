@@ -17,7 +17,12 @@ const getInitials = (name) => {
     .slice(0, 2);
 };
 
-export default function ChatHeader({ selectedRoom, onlineCount, onInfoClick }) {
+export default function ChatHeader({
+  selectedRoom,
+  onlineCount,
+  onInfoClick,
+  onDeleteRoom,
+}) {
   // Get avatar based on room type
   const getAvatar = () => {
     if (selectedRoom.type === "private" && selectedRoom.friend?.avatar) {
@@ -69,6 +74,7 @@ export default function ChatHeader({ selectedRoom, onlineCount, onInfoClick }) {
                       fill
                       className="object-cover"
                       sizes="40px"
+                      unoptimized={true}
                     />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center text-white font-bold text-sm">
@@ -98,21 +104,46 @@ export default function ChatHeader({ selectedRoom, onlineCount, onInfoClick }) {
                 </div>
               </div>
 
-              {/* Info Button - untuk private dan group chat */}
-              {(selectedRoom.type === "private" ||
-                selectedRoom.type === "group") &&
-                onInfoClick && (
+              {/* Action Buttons - Info and Delete */}
+              <div className="flex items-center gap-2">
+                {/* Info Button - untuk private dan group chat */}
+                {(selectedRoom.type === "private" ||
+                  selectedRoom.type === "group") &&
+                  onInfoClick && (
+                    <button
+                      onClick={onInfoClick}
+                      className="p-2 hover:bg-white/20 rounded-full transition-colors"
+                      title={
+                        selectedRoom.type === "group"
+                          ? "Info Grup"
+                          : "Info Kontak"
+                      }
+                    >
+                      <svg
+                        className="w-6 h-6 text-gray-700 dark:text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </button>
+                  )}
+
+                {/* Delete Button - untuk semua room type */}
+                {onDeleteRoom && (
                   <button
-                    onClick={onInfoClick}
-                    className="p-2 hover:bg-white/20 rounded-full transition-colors"
-                    title={
-                      selectedRoom.type === "group"
-                        ? "Info Grup"
-                        : "Info Kontak"
-                    }
+                    onClick={onDeleteRoom}
+                    className="p-2 hover:bg-red-500/20 rounded-full transition-colors group"
+                    title="Hapus Chat"
                   >
                     <svg
-                      className="w-6 h-6 text-gray-700 dark:text-white"
+                      className="w-6 h-6 text-gray-700 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-400"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -121,11 +152,12 @@ export default function ChatHeader({ selectedRoom, onlineCount, onInfoClick }) {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
                       />
                     </svg>
                   </button>
                 )}
+              </div>
             </div>
           </div>
         </div>

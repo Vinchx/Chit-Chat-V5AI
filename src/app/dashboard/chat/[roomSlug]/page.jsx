@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
+import { toast } from "sonner";
 import {
   createChatSocket,
   sendMessage,
@@ -497,6 +498,62 @@ export default function ChatRoomPage() {
     } catch (error) {
       console.error("Error loading messages:", error);
     }
+  };
+
+  // Delete room handler with confirmation toast
+  const handleDeleteRoom = () => {
+    const displayName =
+      selectedRoom.type === "private" && selectedRoom.friend?.displayName
+        ? selectedRoom.friend.displayName
+        : selectedRoom.name;
+
+    toast(
+      (t) => (
+        <div className="flex flex-col gap-2">
+          <p className="font-medium">Hapus chat ini?</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Chat dengan <strong>{displayName}</strong> akan dihapus. Kamu bisa
+            buat room baru lagi nanti.
+          </p>
+          <div className="flex gap-2 mt-2">
+            <button
+              onClick={async () => {
+                toast.dismiss(t);
+                try {
+                  const res = await fetch(`/api/rooms/${selectedRoom.id}`, {
+                    method: "DELETE",
+                  });
+                  const data = await res.json();
+
+                  if (data.success) {
+                    toast.success(`Chat "${displayName}" berhasil dihapus`);
+                    // Force full page reload to refresh room list
+                    window.location.href = "/dashboard";
+                  } else {
+                    toast.error(data.message || "Gagal menghapus chat");
+                  }
+                } catch (error) {
+                  console.error("Error deleting room:", error);
+                  toast.error("Terjadi kesalahan saat menghapus chat");
+                }
+              }}
+              className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600"
+            >
+              Hapus
+            </button>
+            <button
+              onClick={() => toast.dismiss(t)}
+              className="px-3 py-1.5 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm hover:bg-gray-300 dark:hover:bg-gray-500"
+            >
+              Batal
+            </button>
+          </div>
+        </div>
+      ),
+      {
+        duration: 10000,
+      },
+    );
   };
 
   // 📬 Fetch read receipts from API
@@ -1098,6 +1155,7 @@ export default function ChatRoomPage() {
               selectedRoom={selectedRoom}
               onlineCount={onlineUsers.length}
               onInfoClick={() => setShowProfileSidebar(true)}
+              onDeleteRoom={handleDeleteRoom}
             />
 
             {/* Model Selector & AI Toggle - Only for AI rooms */}
