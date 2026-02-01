@@ -25,11 +25,13 @@ function FlowingRoomItem({
       ? room.friend.displayName || room.name
       : room.name;
 
-  // Get avatar for circle display
+  // Get avatar for circular display (handles both friend and group avatars)
   const avatarUrl =
     room.type === "private" && room.friend?.avatar
       ? normalizeAvatar(room.friend.avatar)
-      : null;
+      : room.type === "group" && room.groupAvatar
+        ? normalizeAvatar(room.groupAvatar)
+        : null;
 
   // Get banner for landscape background
   const bannerUrl =
@@ -196,14 +198,15 @@ function FlowingRoomItem({
       {/* Normal State Content */}
       <div className="normal-content flex items-center space-x-3 relative z-10 transition-opacity duration-100">
         {/* Avatar */}
-        {room.type === "private" && room.friend?.avatar ? (
+        {avatarUrl ? (
           <div className="relative w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
             <Image
-              src={normalizeAvatar(room.friend.avatar)}
-              alt={room.friend.displayName || room.name}
+              src={avatarUrl}
+              alt={displayName}
               fill
               className="object-cover"
               sizes="40px"
+              unoptimized={true}
             />
           </div>
         ) : room.type === "private" && room.friend ? (

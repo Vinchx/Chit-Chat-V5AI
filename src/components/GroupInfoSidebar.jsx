@@ -5,6 +5,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Image from "next/image";
+import { useRef } from "react";
+import ImageCropper from "./ImageCropper";
 
 const GroupInfoSidebar = ({ isOpen, onClose, roomData, currentUserId }) => {
   const router = useRouter();
@@ -16,6 +18,13 @@ const GroupInfoSidebar = ({ isOpen, onClose, roomData, currentUserId }) => {
   );
   const [showMemberActions, setShowMemberActions] = useState(null);
   const [activeTab, setActiveTab] = useState("info"); // info, media, files, settings
+
+  // Avatar Upload States
+  const fileInputRef = useRef(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [showCropper, setShowCropper] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState(null);
 
   // Check if current user is admin
   const isAdmin = roomData?.admins?.includes(currentUserId);
@@ -32,6 +41,85 @@ const GroupInfoSidebar = ({ isOpen, onClose, roomData, currentUserId }) => {
 
   const normalizeAvatar = (avatar) => {
     return avatar ? avatar.replace(/\\/g, "/") : null;
+  };
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validasi tipe file
+    const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error(
+        "Tipe file tidak valid. Hanya JPEG, PNG, GIF, dan WebP yang diperbolehkan.",
+      );
+      return;
+    }
+
+    // Validasi ukuran file (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Ukuran file terlalu besar. Maksimal 10MB.");
+      return;
+    }
+
+    // Show cropper
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setSelectedImage(reader.result);
+      setShowCropper(true);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleCropComplete = async (croppedBlob) => {
+    setShowCropper(false);
+
+    // Preview immediately
+    const croppedUrl = URL.createObjectURL(croppedBlob);
+    setAvatarPreview(croppedUrl);
+
+    // Upload
+    const file = new File([croppedBlob], "group-avatar.jpg", {
+      type: "image/jpeg",
+    });
+    await handleUploadAvatar(file);
+  };
+
+  const handleCropCancel = () => {
+    setShowCropper(false);
+    setSelectedImage(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleUploadAvatar = async (file) => {
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("avatar", file);
+
+      const response = await fetch(`/api/rooms/${roomData.id}/avatar`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success("Avatar grup berhasil diubah");
+        router.refresh();
+      } else {
+        toast.error(data.error || "Gagal upload avatar");
+        setAvatarPreview(null); // Revert preview on error
+      }
+    } catch (error) {
+      console.error("Error uploading avatar:", error);
+      toast.error("Terjadi kesalahan saat upload avatar");
+      setAvatarPreview(null);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleUpdateGroupInfo = async () => {
@@ -277,18 +365,68 @@ const GroupInfoSidebar = ({ isOpen, onClose, roomData, currentUserId }) => {
             <div className="p-6 space-y-6">
               {/* Group Profile */}
               <div className="text-center">
-                <div className="relative w-32 h-32 mx-auto mb-4">
-                  {normalizeAvatar(roomData?.groupAvatar) ? (
+                <div className="relative w-32 h-32 mx-auto mb-4 group">
+                  {avatarPreview || normalizeAvatar(roomData?.groupAvatar) ? (
                     <Image
-                      src={normalizeAvatar(roomData.groupAvatar)}
+                      src={
+                        avatarPreview || normalizeAvatar(roomData.groupAvatar)
+                      }
                       alt={roomData.name}
                       fill
                       className="rounded-full object-cover"
                       sizes="128px"
+                      unoptimized={true}
                     />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-br from-purple-400 to-blue-500 rounded-full flex items-center justify-center text-white text-4xl font-bold">
                       {getInitials(roomData?.name)}
+                    </div>
+                  )}
+
+                  {/* Upload Overlay (Admin Only) */}
+                  {isAdmin && (
+                    <>
+                      <div
+                        onClick={() =>
+                          !isUploading && fileInputRef.current?.click()
+                        }
+                        className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 rounded-full flex items-center justify-center transition-all cursor-pointer"
+                      >
+                        <div className="opacity-0 group-hover:opacity-100 text-white transform scale-50 group-hover:scale-100 transition-all">
+                          <svg
+                            className="w-8 h-8"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+                            />
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+                            />
+                          </svg>
+                        </div>
+                      </div>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/gif,image/webp"
+                        onChange={handleFileSelect}
+                        className="hidden"
+                      />
+                    </>
+                  )}
+
+                  {isUploading && (
+                    <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center z-10">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
                     </div>
                   )}
                 </div>
@@ -717,6 +855,16 @@ const GroupInfoSidebar = ({ isOpen, onClose, roomData, currentUserId }) => {
           )}
         </div>
       </div>
+      {/* Image Cropper Modal */}
+      {showCropper && selectedImage && (
+        <ImageCropper
+          image={selectedImage}
+          onCropComplete={handleCropComplete}
+          onCancel={handleCropCancel}
+          aspectRatio={1}
+          title="Crop Group Avatar (1:1)"
+        />
+      )}
     </>
   );
 };
