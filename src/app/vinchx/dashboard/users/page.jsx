@@ -13,6 +13,8 @@ export default function ViewAllUsersPage() {
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all"); // all, online, offline, banned
+  const [selectedUser, setSelectedUser] = useState(null); // For profile modal
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   useEffect(() => {
     if (isAdminAuthed) {
@@ -272,9 +274,10 @@ export default function ViewAllUsersPage() {
                     {/* Actions */}
                     <div className="flex gap-2 ml-4">
                       <button
-                        onClick={() =>
-                          router.push(`/dashboard/profile/${user._id}`)
-                        }
+                        onClick={() => {
+                          setSelectedUser(user);
+                          setShowProfileModal(true);
+                        }}
                         className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
                       >
                         👁️ View Profile
@@ -296,6 +299,231 @@ export default function ViewAllUsersPage() {
             )}
           </div>
         </div>
+
+        {/* User Profile Modal */}
+        {showProfileModal && selectedUser && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-gray-800 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+              {/* Modal Header */}
+              <div className="sticky top-0 bg-gray-800 border-b border-gray-700 p-6 flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-white">User Profile</h2>
+                <button
+                  onClick={() => {
+                    setShowProfileModal(false);
+                    setSelectedUser(null);
+                  }}
+                  className="text-gray-400 hover:text-white transition-colors"
+                >
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-6">
+                {/* Banner */}
+                {selectedUser.banner && (
+                  <div className="relative w-full h-48 rounded-xl overflow-hidden mb-4">
+                    <Image
+                      src={selectedUser.banner.replace(/\\/g, "/")}
+                      alt="Banner"
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                )}
+
+                {/* Avatar & Basic Info */}
+                <div className="flex items-start gap-6 mb-6">
+                  <div className="relative w-24 h-24 rounded-full overflow-hidden flex-shrink-0 border-4 border-gray-700">
+                    {selectedUser.avatar ? (
+                      <Image
+                        src={selectedUser.avatar.replace(/\\/g, "/")}
+                        alt={selectedUser.displayName || selectedUser.username}
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-3xl">
+                        {selectedUser.displayName?.[0] ||
+                          selectedUser.username?.[0] ||
+                          "?"}
+                      </div>
+                    )}
+                    {selectedUser.isOnline && (
+                      <div className="absolute bottom-1 right-1 w-6 h-6 bg-green-500 border-4 border-gray-800 rounded-full"></div>
+                    )}
+                  </div>
+
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="text-2xl font-bold text-white">
+                        {selectedUser.displayName || selectedUser.username}
+                      </h3>
+                      {selectedUser.isVerified && (
+                        <span
+                          className="text-blue-400 text-2xl"
+                          title="Verified"
+                        >
+                          ✓
+                        </span>
+                      )}
+                      {selectedUser.isBanned && (
+                        <span className="px-3 py-1 bg-red-500/20 text-red-400 text-sm rounded-full">
+                          BANNED
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-gray-400 mb-2">
+                      @{selectedUser.username}
+                    </p>
+                    <p className="text-gray-500">{selectedUser.email}</p>
+                    {selectedUser.bio && (
+                      <p className="text-gray-300 mt-3">{selectedUser.bio}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Stats Grid */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                  <div className="bg-gray-700/50 rounded-lg p-4 text-center">
+                    <div className="text-2xl font-bold text-blue-400">
+                      {selectedUser.friendCount || 0}
+                    </div>
+                    <div className="text-gray-400 text-sm">Friends</div>
+                  </div>
+                  <div className="bg-gray-700/50 rounded-lg p-4 text-center">
+                    <div className="text-2xl font-bold text-purple-400">
+                      {selectedUser.messageCount || 0}
+                    </div>
+                    <div className="text-gray-400 text-sm">Messages</div>
+                  </div>
+                  <div className="bg-gray-700/50 rounded-lg p-4 text-center">
+                    <div className="text-2xl font-bold text-green-400">
+                      {selectedUser.groupCount || 0}
+                    </div>
+                    <div className="text-gray-400 text-sm">Groups</div>
+                  </div>
+                  <div className="bg-gray-700/50 rounded-lg p-4 text-center">
+                    <div className="text-2xl font-bold text-yellow-400">
+                      {selectedUser.warningCount || 0}
+                    </div>
+                    <div className="text-gray-400 text-sm">Warnings</div>
+                  </div>
+                </div>
+
+                {/* Detailed Information */}
+                <div className="space-y-4">
+                  <div className="bg-gray-700/50 rounded-lg p-4">
+                    <h4 className="text-white font-medium mb-3">
+                      Account Information
+                    </h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">User ID:</span>
+                        <span className="text-gray-200">
+                          {selectedUser._id}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Joined:</span>
+                        <span className="text-gray-200">
+                          {new Date(
+                            selectedUser.createdAt,
+                          ).toLocaleDateString()}
+                        </span>
+                      </div>
+                      {selectedUser.verifiedAt && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Verified:</span>
+                          <span className="text-green-400">
+                            {new Date(
+                              selectedUser.verifiedAt,
+                            ).toLocaleDateString()}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Status:</span>
+                        <span
+                          className={
+                            selectedUser.isOnline
+                              ? "text-green-400"
+                              : "text-gray-400"
+                          }
+                        >
+                          {selectedUser.isOnline ? "🟢 Online" : "⚫ Offline"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {selectedUser.isBanned && (
+                    <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-4">
+                      <h4 className="text-red-400 font-medium mb-2">
+                        Ban Information
+                      </h4>
+                      <div className="space-y-2 text-sm">
+                        {selectedUser.bannedAt && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Banned At:</span>
+                            <span className="text-gray-200">
+                              {new Date(selectedUser.bannedAt).toLocaleString()}
+                            </span>
+                          </div>
+                        )}
+                        {selectedUser.bannedBy && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Banned By:</span>
+                            <span className="text-gray-200">
+                              {selectedUser.bannedBy}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Action Buttons */}
+                <div className="mt-6 flex gap-3">
+                  <button
+                    onClick={() =>
+                      handleBanUser(selectedUser._id, selectedUser.isBanned)
+                    }
+                    className={`flex-1 px-6 py-3 rounded-lg font-medium transition-colors ${
+                      selectedUser.isBanned
+                        ? "bg-green-500 hover:bg-green-600 text-white"
+                        : "bg-red-500 hover:bg-red-600 text-white"
+                    }`}
+                  >
+                    {selectedUser.isBanned ? "✅ Unban User" : "🚫 Ban User"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowProfileModal(false);
+                      setSelectedUser(null);
+                    }}
+                    className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-medium transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
