@@ -35,19 +35,73 @@ export async function GET(request, { params }) {
             });
         }
 
-        // 2. Try private room (slug = username)
+        // 2. Try private room by slug format: username-roomId
         if (!room) {
-            const targetUser = await usersCollection.findOne({ username: slug });
-            if (targetUser) {
-                room = await roomsCollection.findOne({
+            // Check if slug has room ID suffix (format: username-1769940405430_axrkwg)
+            const parts = slug.split('-');
+            if (parts.length >= 2) {
+                // Try to extract room ID (last part might be room suffix)
+                const possibleRoomId = `room_${parts[parts.length - 1]}`;
+
+                // Try direct room lookup by ID
+                const roomById = await roomsCollection.findOne({
+                    _id: possibleRoomId,
                     type: "private",
-                    members: { $all: [currentUserId, targetUser._id] },
+                    members: currentUserId,
                     isDeleted: { $ne: true }
                 });
+
+                if (roomById) {
+                    room = roomById;
+                }
             }
         }
 
-        // 3. Try group room (slug = slugified name)
+        // 3. Fallback: Try private room by username only (for old slugs or when clicking friend)
+        if (!room) {
+            // Extract username (remove room ID suffix if exists)
+            const username = slug.split('-')[0];
+
+            const targetUser = await usersCollection.findOne({ username: username });
+            if (targetUser) {
+                // Sort by lastActivity DESC to get the most recent room
+                // This handles cases where multiple rooms with same members exist
+                room = await roomsCollection
+                    .find({
+                        type: "private",
+                        members: { $all: [currentUserId, targetUser._id] },
+                        isDeleted: { $ne: true }
+                    })
+                    .sort({ lastActivity: -1, createdAt: -1 })
+                    .limit(1)
+                    .toArray()
+                    .then(rooms => rooms[0] || null);
+            }
+        }
+
+        // 4. Try group room by slug format: group-name-roomId
+        if (!room) {
+            // Check if slug has room ID suffix
+            const parts = slug.split('-');
+            if (parts.length >= 2) {
+                // Try to extract room ID (last part might be room suffix)
+                const possibleRoomId = `room_${parts[parts.length - 1]}`;
+
+                // Try direct room lookup by ID
+                const roomById = await roomsCollection.findOne({
+                    _id: possibleRoomId,
+                    type: "group",
+                    members: currentUserId,
+                    isDeleted: { $ne: true }
+                });
+
+                if (roomById) {
+                    room = roomById;
+                }
+            }
+        }
+
+        // 5. Fallback: Try group room by slugified name (for old slugs)
         if (!room) {
             const allUserRooms = await roomsCollection.find({
                 type: "group",
@@ -57,7 +111,8 @@ export async function GET(request, { params }) {
 
             for (const r of allUserRooms) {
                 const roomSlug = r.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-                if (roomSlug === slug) {
+                // Check if slug matches (without room ID suffix for backward compatibility)
+                if (slug.startsWith(roomSlug)) {
                     room = r;
                     break;
                 }
@@ -145,6 +200,9 @@ export async function GET(request, { params }) {
             }
             if (room.groupAvatar) {
                 roomInfo.groupAvatar = room.groupAvatar;
+            }
+            if (room.groupBanner) {
+                roomInfo.groupBanner = room.groupBanner;
             }
             if (room.settings) {
                 roomInfo.settings = room.settings;

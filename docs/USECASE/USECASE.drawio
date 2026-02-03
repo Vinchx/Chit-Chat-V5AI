@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36" version="29.3.6">
   <diagram id="_4H69sHLhgTeo9klAsJz" name="Page-1">
-    <mxGraphModel dx="3565" dy="1913" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1920" pageHeight="1080" math="0" shadow="0">
+    <mxGraphModel dx="1783" dy="956" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1920" pageHeight="1080" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -26,7 +26,7 @@
           <mxGeometry height="332" width="290" x="271" y="2112" as="geometry" />
         </mxCell>
         <mxCell id="KL0dOFdQw0bI5msT9LVY-8" parent="1" style="rounded=1;whiteSpace=wrap;arcSize=50;strokeWidth=2;" value="User" vertex="1">
-          <mxGeometry height="39" width="57" x="140" y="1451" as="geometry" />
+          <mxGeometry height="39" width="57" x="130" y="1450.5" as="geometry" />
         </mxCell>
         <mxCell id="KL0dOFdQw0bI5msT9LVY-9" parent="1" style="rounded=1;whiteSpace=wrap;arcSize=50;strokeWidth=2;" value="Admin" vertex="1">
           <mxGeometry height="39" width="70" x="20" y="291" as="geometry" />
@@ -243,6 +243,9 @@
               <mxPoint x="115" y="414" />
             </Array>
           </mxGeometry>
+        </mxCell>
+        <mxCell id="KL0dOFdQw0bI5msT9LVY-53" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" value="Actor" vertex="1">
+          <mxGeometry height="60" width="30" x="60" y="1437" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>

@@ -37,6 +37,10 @@ const RoomSchema = new mongoose.Schema({
         type: String,
         default: null,
     },
+    groupBanner: {
+        type: String,
+        default: null,
+    },
     settings: {
         onlyAdminsCanPost: {
             type: Boolean,

@@ -54,8 +54,10 @@ export async function GET(request) {
                         banner: friendData.banner ? friendData.banner.replace(/\\/g, '/') : null,
                         isOnline: friendData.isOnline
                     };
-                    // Slug untuk private = username teman
-                    roomInfo.slug = friendData.username;
+                    // Slug untuk private = username-roomId (unique identifier)
+                    // Format: username-room_xxx
+                    const roomIdSuffix = room._id.replace('room_', '');
+                    roomInfo.slug = `${friendData.username}-${roomIdSuffix}`;
                 }
             }
 
@@ -73,8 +75,15 @@ export async function GET(request) {
                     banner: member.banner ? member.banner.replace(/\\/g, '/') : null,
                     isOnline: member.isOnline
                 }));
-                // Slug untuk group = slugified group name
-                roomInfo.slug = room.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+                // Add group avatar if available
+                roomInfo.groupAvatar = room.groupAvatar ? room.groupAvatar.replace(/\\/g, '/') : null;
+                // Add group banner if available
+                roomInfo.groupBanner = room.groupBanner ? room.groupBanner.replace(/\\/g, '/') : null;
+                // Slug untuk group = slugified-name-roomId (unique identifier)
+                // Format: group-name-room_xxx
+                const groupSlug = room.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+                const roomIdSuffix = room._id.replace('room_', '');
+                roomInfo.slug = `${groupSlug}-${roomIdSuffix}`;
             }
 
             // Untuk AI room

@@ -26,6 +26,13 @@ const GroupInfoSidebar = ({ isOpen, onClose, roomData, currentUserId }) => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
 
+  // Banner Upload States
+  const bannerFileInputRef = useRef(null);
+  const [isUploadingBanner, setIsUploadingBanner] = useState(false);
+  const [showBannerCropper, setShowBannerCropper] = useState(false);
+  const [selectedBannerImage, setSelectedBannerImage] = useState(null);
+  const [bannerPreview, setBannerPreview] = useState(null);
+
   // Check if current user is admin
   const isAdmin = roomData?.admins?.includes(currentUserId);
 
@@ -90,6 +97,86 @@ const GroupInfoSidebar = ({ isOpen, onClose, roomData, currentUserId }) => {
     setSelectedImage(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
+    }
+  };
+
+  // Banner Upload Handlers
+  const handleBannerFileSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validasi tipe file
+    const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error(
+        "Tipe file tidak valid. Hanya JPEG, PNG, GIF, dan WebP yang diperbolehkan.",
+      );
+      return;
+    }
+
+    // Validasi ukuran file (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Ukuran file terlalu besar. Maksimal 10MB.");
+      return;
+    }
+
+    // Show cropper
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setSelectedBannerImage(reader.result);
+      setShowBannerCropper(true);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleBannerCropComplete = async (croppedBlob) => {
+    setShowBannerCropper(false);
+
+    // Preview immediately
+    const croppedUrl = URL.createObjectURL(croppedBlob);
+    setBannerPreview(croppedUrl);
+
+    // Upload
+    const file = new File([croppedBlob], "group-banner.jpg", {
+      type: "image/jpeg",
+    });
+    await handleUploadBanner(file);
+  };
+
+  const handleBannerCropCancel = () => {
+    setShowBannerCropper(false);
+    setSelectedBannerImage(null);
+    if (bannerFileInputRef.current) {
+      bannerFileInputRef.current.value = "";
+    }
+  };
+
+  const handleUploadBanner = async (file) => {
+    setIsUploadingBanner(true);
+    try {
+      const formData = new FormData();
+      formData.append("banner", file);
+
+      const response = await fetch(`/api/rooms/${roomData.id}/banner`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success("Banner grup berhasil diubah");
+        router.refresh();
+      } else {
+        toast.error(data.error || "Gagal upload banner");
+        setBannerPreview(null); // Revert preview on error
+      }
+    } catch (error) {
+      console.error("Error uploading banner:", error);
+      toast.error("Terjadi kesalahan saat upload banner");
+      setBannerPreview(null);
+    } finally {
+      setIsUploadingBanner(false);
     }
   };
 
@@ -552,6 +639,99 @@ const GroupInfoSidebar = ({ isOpen, onClose, roomData, currentUserId }) => {
                 </div>
               </div>
 
+              {/* Group Banner */}
+              <div className="space-y-2">
+                <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase">
+                  Banner Grup
+                </h4>
+                <div className="relative w-full aspect-video rounded-xl overflow-hidden group bg-gray-100 dark:bg-gray-700">
+                  {bannerPreview || normalizeAvatar(roomData?.groupBanner) ? (
+                    <Image
+                      src={
+                        bannerPreview || normalizeAvatar(roomData.groupBanner)
+                      }
+                      alt="Group Banner"
+                      fill
+                      className="object-cover"
+                      sizes="320px"
+                      unoptimized={true}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-500">
+                      <div className="text-center">
+                        <svg
+                          className="w-16 h-16 mx-auto mb-2"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={1.5}
+                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                          />
+                        </svg>
+                        <p className="text-sm">Belum ada banner</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Upload Overlay (Admin Only) */}
+                  {isAdmin && (
+                    <>
+                      <div
+                        onClick={() =>
+                          !isUploadingBanner &&
+                          bannerFileInputRef.current?.click()
+                        }
+                        className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 flex items-center justify-center transition-all cursor-pointer"
+                      >
+                        <div className="opacity-0 group-hover:opacity-100 text-white transform scale-50 group-hover:scale-100 transition-all">
+                          <svg
+                            className="w-10 h-10"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+                            />
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+                            />
+                          </svg>
+                        </div>
+                      </div>
+                      <input
+                        ref={bannerFileInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/gif,image/webp"
+                        onChange={handleBannerFileSelect}
+                        className="hidden"
+                      />
+                    </>
+                  )}
+
+                  {isUploadingBanner && (
+                    <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-10">
+                      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-white"></div>
+                    </div>
+                  )}
+                </div>
+                {isAdmin && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Rekomendasi: 1600x900px atau aspect ratio 16:9
+                  </p>
+                )}
+              </div>
+
               {/* Members List */}
               <div className="space-y-3">
                 <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase">
@@ -863,6 +1043,17 @@ const GroupInfoSidebar = ({ isOpen, onClose, roomData, currentUserId }) => {
           onCancel={handleCropCancel}
           aspectRatio={1}
           title="Crop Group Avatar (1:1)"
+        />
+      )}
+
+      {/* Banner Image Cropper */}
+      {showBannerCropper && (
+        <ImageCropper
+          image={selectedBannerImage}
+          onCropComplete={handleBannerCropComplete}
+          onCancel={handleBannerCropCancel}
+          aspectRatio={16 / 9}
+          title="Crop Group Banner (16:9)"
         />
       )}
     </>

@@ -1,78 +1,87 @@
-import { NextResponse } from "next/server";
-import { auth } from "@/auth";
-import connectDB from "@/lib/mongodb";
-import User from "@/models/User";
+import connectToDatabase from "@/lib/mongodb";
+import mongoose from "mongoose";
+import { getAuthSessionOrApiKey } from "@/lib/auth-helpers";
 import { isAdmin } from "@/lib/admin-config";
 
-
-
+// POST /api/admin/users/[userId]/ban - Ban or unban user
 export async function POST(request, { params }) {
     try {
-        const session = await auth();
+        const awaitedParams = await params;
+        const { userId } = awaitedParams;
 
-        // Check authentication
-        if (!session || !session.user) {
-            return NextResponse.json(
-                { error: "Unauthorized" },
-                { status: 401 }
-            );
+        const { session, userId: adminId, error } = await getAuthSessionOrApiKey(request);
+
+        if (error) {
+            return error;
         }
 
-        // Check admin access
-        if (!isAdmin(session.user.email)) {
-            return NextResponse.json(
-                { error: "Forbidden - Admin access required" },
-                { status: 403 }
-            );
+        // Check if user is admin using email whitelist
+        await connectToDatabase();
+        const db = mongoose.connection.db;
+        const usersCollection = db.collection("users");
+
+        const currentUser = await usersCollection.findOne({ _id: adminId });
+        if (!currentUser || !isAdmin(currentUser.email)) {
+            return Response.json({
+                success: false,
+                message: "Unauthorized - Admin only"
+            }, { status: 403 });
         }
 
-        await connectDB();
+        // Get request body
+        const body = await request.json();
+        const { isBanned } = body;
 
-        const { userId } = params;
-        const { reason } = await request.json();
-
-        // Get user
-        const user = await User.findById(userId);
-        if (!user) {
-            return NextResponse.json(
-                { error: "User not found" },
-                { status: 404 }
-            );
+        // Check if target user exists
+        const targetUser = await usersCollection.findOne({ _id: userId });
+        if (!targetUser) {
+            return Response.json({
+                success: false,
+                message: "User not found"
+            }, { status: 404 });
         }
 
-        // Cannot ban admin
-        if (isAdmin(user.email)) {
-            return NextResponse.json(
-                { error: "Cannot ban admin users" },
-                { status: 403 }
-            );
+        // Cannot ban yourself
+        if (userId === adminId) {
+            return Response.json({
+                success: false,
+                message: "Cannot ban yourself"
+            }, { status: 400 });
         }
 
-        // Update user
-        user.isBanned = true;
-        user.bannedAt = new Date();
-        user.bannedReason = reason || "Account permanently banned";
-        // Clear suspension if any
-        user.suspendedUntil = null;
-        user.suspensionReason = null;
-        await user.save();
+        // Cannot ban another admin
+        if (isAdmin(targetUser.email)) {
+            return Response.json({
+                success: false,
+                message: "Cannot ban another admin"
+            }, { status: 400 });
+        }
 
-        return NextResponse.json({
-            success: true,
-            message: "User banned successfully",
-            user: {
-                _id: user._id,
-                username: user.username,
-                isBanned: user.isBanned,
-                bannedAt: user.bannedAt,
-                bannedReason: user.bannedReason,
-            },
-        });
-    } catch (error) {
-        console.error("[Admin Ban User] Error:", error);
-        return NextResponse.json(
-            { error: "Internal server error" },
-            { status: 500 }
+        // Update ban status
+        await usersCollection.updateOne(
+            { _id: userId },
+            {
+                $set: {
+                    isBanned: isBanned,
+                    bannedAt: isBanned ? new Date() : null,
+                    bannedBy: isBanned ? adminId : null
+                }
+            }
         );
+
+        console.log(`[ADMIN] User ${userId} ${isBanned ? 'banned' : 'unbanned'} by admin ${adminId}`);
+
+        return Response.json({
+            success: true,
+            message: `User successfully ${isBanned ? 'banned' : 'unbanned'}`
+        });
+
+    } catch (error) {
+        console.error("Error banning/unbanning user:", error);
+        return Response.json({
+            success: false,
+            message: "Error updating user ban status",
+            error: error.message
+        }, { status: 500 });
     }
 }

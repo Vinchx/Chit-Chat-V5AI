@@ -1,0 +1,78 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36" version="29.3.6">
+  <diagram name="Page-1" id="J6QKcmjD3nGDvF7HJKFI">
+    <mxGraphModel dx="4074" dy="4346" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1920" pageHeight="1080" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="GhPk9Aeu5fIvIL6pRn1p-68" parent="1" style="whiteSpace=wrap;strokeWidth=2;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" value="👤 User" vertex="1">
+          <mxGeometry height="76.69260700389106" width="152.9599056603774" x="849.3396226415095" y="-1985" as="geometry" />
+        </mxCell>
+        <mxCell id="GhPk9Aeu5fIvIL6pRn1p-69" parent="1" style="whiteSpace=wrap;strokeWidth=2;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" value="👮 Admin" vertex="1">
+          <mxGeometry height="76.69260700389106" width="168.38443396226415" x="520.2830188679245" y="-1331.692607003891" as="geometry" />
+        </mxCell>
+        <mxCell id="GhPk9Aeu5fIvIL6pRn1p-70" parent="1" style="whiteSpace=wrap;strokeWidth=2;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" value="📧 Email System" vertex="1">
+          <mxGeometry height="76.69260700389106" width="233.93867924528305" x="808.2075471698113" y="-1331.692607003891" as="geometry" />
+        </mxCell>
+        <mxCell id="GhPk9Aeu5fIvIL6pRn1p-71" parent="1" style="whiteSpace=wrap;strokeWidth=2;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" value="🤖 Gemini AI API" vertex="1">
+          <mxGeometry height="76.69260700389106" width="233.93867924528305" x="1170.683962264151" y="-1331.692607003891" as="geometry" />
+        </mxCell>
+        <mxCell id="GhPk9Aeu5fIvIL6pRn1p-72" parent="1" style="ellipse;aspect=fixed;strokeWidth=2;whiteSpace=wrap;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" value="Chit-Chat V5.1 AI" vertex="1">
+          <mxGeometry height="173.4198011240813" width="173.4198011240813" x="836.4858490566038" y="-1700.953307392996" as="geometry" />
+        </mxCell>
+        <mxCell id="GhPk9Aeu5fIvIL6pRn1p-73" edge="1" parent="1" source="GhPk9Aeu5fIvIL6pRn1p-68" style="curved=1;startArrow=none;endArrow=block;exitX=0.31;exitY=1;entryX=0.21;entryY=0;rounded=0;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;fontSize=18;" target="GhPk9Aeu5fIvIL6pRn1p-72" value="1. Login/Register&#xa;2. Chat Message &amp;amp; Media&#xa;3. Friend Request&#xa;4. AI Prompt">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="817.2051886792453" y="-1804.6303501945526" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="GhPk9Aeu5fIvIL6pRn1p-74" edge="1" parent="1" source="GhPk9Aeu5fIvIL6pRn1p-72" style="curved=1;startArrow=none;endArrow=block;exitX=0.79;exitY=0;entryX=0.68;entryY=1;rounded=0;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;fontSize=18;" target="GhPk9Aeu5fIvIL6pRn1p-68" value="1. Session Token&#xa;2. Notification&#xa;3. Chat History&#xa;4. AI Response">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1033.1485849056603" y="-1804.6303501945526" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="GhPk9Aeu5fIvIL6pRn1p-75" edge="1" parent="1" source="GhPk9Aeu5fIvIL6pRn1p-69" style="curved=1;startArrow=none;endArrow=block;exitX=0.67;exitY=0;entryX=0;entryY=0.87;rounded=0;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;fontSize=18;" target="GhPk9Aeu5fIvIL6pRn1p-72" value="1. Admin Login&#xa;2. Ban User&#xa;3. Review Report">
+          <mxGeometry relative="1" x="-0.0634" y="-15" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="700.2358490566038" y="-1418.326848249027" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="GhPk9Aeu5fIvIL6pRn1p-76" edge="1" parent="1" source="GhPk9Aeu5fIvIL6pRn1p-72" style="curved=1;startArrow=none;endArrow=block;exitX=0;exitY=0.7;entryX=0.33;entryY=0;rounded=0;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;fontSize=18;" target="GhPk9Aeu5fIvIL6pRn1p-69" value="1. Dashboard Stats&#xa;2. Report List">
+          <mxGeometry relative="1" x="0.2538" y="16" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="510" y="-1418.326848249027" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="GhPk9Aeu5fIvIL6pRn1p-77" edge="1" parent="1" source="GhPk9Aeu5fIvIL6pRn1p-72" style="curved=1;startArrow=block;endArrow=block;exitX=0.5;exitY=1;entryX=0.5;entryY=0;rounded=0;startFill=1;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;fontSize=18;" target="GhPk9Aeu5fIvIL6pRn1p-70" value="Verification Email&#xa;Reset OTP">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="GhPk9Aeu5fIvIL6pRn1p-78" edge="1" parent="1" source="GhPk9Aeu5fIvIL6pRn1p-72" style="curved=1;startArrow=none;endArrow=block;exitX=1;exitY=0.83;entryX=0.36;entryY=0;rounded=0;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;fontSize=18;" target="GhPk9Aeu5fIvIL6pRn1p-71" value="Chat Context + Prompt">
+          <mxGeometry relative="1" x="-0.4147" y="-9" as="geometry">
+            <mxPoint x="-1" as="offset" />
+            <Array as="points">
+              <mxPoint x="1180.9669811320755" y="-1418.326848249027" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="GhPk9Aeu5fIvIL6pRn1p-79" edge="1" parent="1" source="GhPk9Aeu5fIvIL6pRn1p-71" style="curved=1;startArrow=none;endArrow=block;exitX=0.64;exitY=0;entryX=1;entryY=0.68;rounded=0;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;fontSize=18;" target="GhPk9Aeu5fIvIL6pRn1p-72" value="AI Generated Text">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1394.3396226415095" y="-1418.326848249027" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="GhPk9Aeu5fIvIL6pRn1p-80" parent="1" style="text;strokeColor=none;fillColor=none;html=1;fontSize=50;fontStyle=1;verticalAlign=middle;align=center;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" value="DFD LEVEL 0" vertex="1">
+          <mxGeometry height="113.61867704280156" width="447.31132075471703" x="1152.688679245283" y="-1729.3579766536966" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

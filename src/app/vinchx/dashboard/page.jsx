@@ -231,11 +231,6 @@ export default function AdminDashboard() {
               href="/vinchx/dashboard/rooms"
             />
             <ActionButton
-              label="Analytics"
-              icon="📊"
-              href="/vinchx/dashboard/analytics"
-            />
-            <ActionButton
               label="Manage Reports"
               icon="⚠️"
               href="/vinchx/dashboard/reports"

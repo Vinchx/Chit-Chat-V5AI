@@ -37,7 +37,9 @@ function FlowingRoomItem({
   const bannerUrl =
     room.type === "private" && room.friend?.banner
       ? normalizeAvatar(room.friend.banner)
-      : null;
+      : room.type === "group" && room.groupBanner
+        ? normalizeAvatar(room.groupBanner)
+        : null;
 
   // Debug: Log banner info
   if (room.type === "private" && room.friend) {
@@ -48,6 +50,20 @@ function FlowingRoomItem({
       room.friend.avatar,
       "| Banner:",
       room.friend.banner,
+    );
+  }
+
+  // Debug: Log group avatar info
+  if (room.type === "group") {
+    console.log(
+      "👥 [FlowingRoomItem] Group:",
+      room.name,
+      "| GroupAvatar:",
+      room.groupAvatar,
+      "| GroupBanner:",
+      room.groupBanner,
+      "| Members:",
+      room.members?.length,
     );
   }
 
@@ -228,7 +244,9 @@ function FlowingRoomItem({
             {displayName}
           </h4>
           <p className="text-sm text-gray-600 dark:text-gray-300 truncate">
-            {room.lastMessage || "No messages yet"}
+            {room.type === "group" && room.members
+              ? `${room.members.length} members${room.members.filter((m) => m.isOnline).length > 0 ? `, ${room.members.filter((m) => m.isOnline).length} online` : ""}`
+              : room.lastMessage || "No messages yet"}
           </p>
         </div>
       </div>
