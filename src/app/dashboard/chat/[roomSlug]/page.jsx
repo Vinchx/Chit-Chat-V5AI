@@ -1160,7 +1160,7 @@ export default function ChatRoomPage() {
 
             {/* Model Selector & AI Toggle - Only for AI rooms */}
             {selectedRoom?.type === "ai" && (
-              <div className="px-3 sm:px-4 py-3 bg-white/30 dark:bg-gray-800/60 backdrop-blur-md border-b border-white/30 dark:border-gray-700">
+              <div className="mt-24 px-3 sm:px-4 py-3 bg-white/30 dark:bg-gray-800/60 backdrop-blur-md border-b border-white/30 dark:border-gray-700 relative z-20">
                 {/* AI Toggle Switch */}
                 <div className="flex items-center justify-between mb-3 pb-3 border-b border-white/30 dark:border-gray-600">
                   <div className="flex items-center gap-2 flex-1 min-w-0">

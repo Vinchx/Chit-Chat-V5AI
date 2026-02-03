@@ -173,7 +173,7 @@ export default function AdminReportsPage() {
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div className="bg-zinc-800 border border-zinc-700 rounded-xl p-4">
               <div className="text-2xl font-bold text-white">{stats.total}</div>
               <div className="text-sm text-zinc-400">Total Reports</div>
@@ -184,47 +184,32 @@ export default function AdminReportsPage() {
               </div>
               <div className="text-sm text-zinc-400">Pending</div>
             </div>
-            <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
-              <div className="text-2xl font-bold text-blue-400">
-                {stats.under_review}
-              </div>
-              <div className="text-sm text-zinc-400">Under Review</div>
-            </div>
             <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4">
               <div className="text-2xl font-bold text-green-400">
                 {stats.resolved}
               </div>
               <div className="text-sm text-zinc-400">Resolved</div>
             </div>
-            <div className="bg-gray-500/10 border border-gray-500/30 rounded-xl p-4">
-              <div className="text-2xl font-bold text-gray-400">
-                {stats.rejected}
-              </div>
-              <div className="text-sm text-zinc-400">Rejected</div>
-            </div>
           </div>
         </div>
 
         {/* Filters */}
         <div className="mb-6 flex gap-2">
-          {["all", "pending", "under_review", "resolved", "rejected"].map(
-            (status) => (
-              <button
-                key={status}
-                onClick={() => setStatusFilter(status)}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                  statusFilter === status
-                    ? "bg-blue-600 text-white"
-                    : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
-                }`}
-              >
-                {status === "all"
-                  ? "All"
-                  : status.replace("_", " ").charAt(0).toUpperCase() +
-                    status.slice(1).replace("_", " ")}
-              </button>
-            ),
-          )}
+          {["all", "pending", "resolved"].map((status) => (
+            <button
+              key={status}
+              onClick={() => setStatusFilter(status)}
+              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                statusFilter === status
+                  ? "bg-blue-600 text-white"
+                  : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+              }`}
+            >
+              {status === "all"
+                ? "All"
+                : status.charAt(0).toUpperCase() + status.slice(1)}
+            </button>
+          ))}
         </div>
 
         {/* Reports Table */}
@@ -425,6 +410,48 @@ export default function AdminReportsPage() {
                       {selectedReport.reason}
                     </p>
                   </div>
+
+                  {/* Evidence Images */}
+                  {selectedReport.evidence &&
+                    selectedReport.evidence.length > 0 && (
+                      <div>
+                        <span className="text-zinc-400 block mb-2">
+                          Evidence Images ({selectedReport.evidence.length}):
+                        </span>
+                        <div className="grid grid-cols-3 gap-2">
+                          {selectedReport.evidence.map((imageUrl, index) => (
+                            <a
+                              key={index}
+                              href={imageUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="relative aspect-square rounded-lg overflow-hidden bg-zinc-900 hover:ring-2 hover:ring-blue-500 transition-all group"
+                            >
+                              <img
+                                src={imageUrl}
+                                alt={`Evidence ${index + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                                <svg
+                                  className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"
+                                  />
+                                </svg>
+                              </div>
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                 </div>
               </div>
 

@@ -57,7 +57,12 @@ export default function MessageInput({
     if (!file) return;
 
     const isImage = file.type.startsWith("image/");
-    const maxSize = isImage ? 5 * 1024 * 1024 : 10 * 1024 * 1024;
+    const isVideo = file.type.startsWith("video/");
+
+    // Set size limits: images 5MB, videos 100MB, documents 10MB
+    let maxSize = 10 * 1024 * 1024; // Default for documents
+    if (isImage) maxSize = 5 * 1024 * 1024;
+    if (isVideo) maxSize = 100 * 1024 * 1024;
 
     if (file.size > maxSize) {
       const maxSizeMB = maxSize / (1024 * 1024);
@@ -67,6 +72,7 @@ export default function MessageInput({
 
     setSelectedFile(file);
 
+    // Preview for images only
     if (isImage) {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -224,6 +230,22 @@ export default function MessageInput({
                     sizes="80px"
                   />
                 </div>
+              ) : selectedFile.type.startsWith("video/") ? (
+                <div className="w-14 h-14 sm:w-20 sm:h-20 bg-purple-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <svg
+                    className="w-8 h-8 sm:w-10 sm:h-10 text-purple-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                    />
+                  </svg>
+                </div>
               ) : (
                 <div className="w-14 h-14 sm:w-20 sm:h-20 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
                   <svg
@@ -297,7 +319,7 @@ export default function MessageInput({
             ref={fileInputRef}
             type="file"
             onChange={handleFileSelect}
-            accept="image/*,.pdf,.doc,.docx,.txt,.zip"
+            accept="image/*,video/*,.pdf,.doc,.docx,.txt,.zip"
             className="hidden"
           />
 

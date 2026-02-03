@@ -43,7 +43,7 @@ export default function ChatHeader({
       : selectedRoom.name || "User";
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50">
+    <div className="absolute top-0 left-0 right-0 z-30">
       <GlassSurface
         width="100%"
         height="auto"

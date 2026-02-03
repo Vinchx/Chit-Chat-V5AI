@@ -94,6 +94,8 @@ export default function MessageBubble({
   const hasAttachment = message.attachment && !message.isDeleted;
   const isImageAttachment =
     hasAttachment && message.attachment.type === "image";
+  const isVideoAttachment =
+    hasAttachment && message.attachment.type === "video";
   const isDocumentAttachment =
     hasAttachment && message.attachment.type === "document";
 
@@ -107,6 +109,7 @@ export default function MessageBubble({
       text: message.text,
       hasAttachment,
       isImageAttachment,
+      isVideoAttachment,
       isDocumentAttachment,
       attachment: message.attachment,
     });
@@ -206,6 +209,26 @@ export default function MessageBubble({
                         />
                       </svg>
                     </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Video attachment - between image and document */}
+            {isVideoAttachment && (
+              <div className="mb-2">
+                <div className="relative rounded-lg overflow-hidden max-w-md">
+                  <video
+                    src={message.attachment.url}
+                    controls
+                    className="w-full rounded-lg bg-black"
+                    style={{ maxHeight: "400px" }}
+                    preload="metadata"
+                  >
+                    Your browser does not support the video tag.
+                  </video>
+                  <div className="mt-1 text-xs opacity-70">
+                    📹 {message.attachment.filename}
                   </div>
                 </div>
               </div>
