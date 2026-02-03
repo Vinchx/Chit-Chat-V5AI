@@ -6,6 +6,7 @@ import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
 import { toast, Toaster } from "sonner";
 import { useUser } from "@/contexts/UserContext";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import AddFriendModal from "../components/AddFriendModal";
 import NotificationModal from "../components/NotificationModal";
 import Dock from "../../components/Dock";
@@ -15,6 +16,8 @@ import { VscHome, VscAdd, VscAccount, VscSettingsGear } from "react-icons/vsc";
 import { clearAllCookies } from "@/lib/cookie-utils";
 
 export default function DashboardLayout({ children }) {
+  // Track online status automatically
+  useOnlineStatus();
   const items = [
     {
       icon: <VscHome size={24} className="text-gray-800 dark:text-white" />,
