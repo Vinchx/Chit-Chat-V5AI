@@ -51,7 +51,8 @@ export default function AdminDashboard() {
           <div>
             <h1 className="text-4xl font-bold text-white mb-2">Admin Panel</h1>
             <p className="text-gray-400">
-              Welcome, {session.user.displayName || session.user.email}
+              Welcome,{" "}
+              {session?.user?.displayName || session?.user?.email || "Admin"}
             </p>
           </div>
           {/* Logout Dropdown */}
