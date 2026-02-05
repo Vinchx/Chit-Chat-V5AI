@@ -1,0 +1,7 @@
+{
+  "chat.mcp.serverSampling": {
+    "chit-chat-v5.1-ai/.vscode/mcp.json: io.github.mongodb-js/mongodb-mcp-server": {
+      "allowedModels": []
+    }
+  }
+}

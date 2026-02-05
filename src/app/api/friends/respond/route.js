@@ -1,5 +1,6 @@
 import connectToDatabase from "@/lib/mongodb";
 import mongoose from "mongoose";
+import Friendship from "@/models/Friendship";
 import { getAuthSessionOrApiKey } from "@/lib/auth-helpers";
 
 export async function POST(request) {
@@ -67,8 +68,17 @@ export async function POST(request) {
                 }
             });
         } else {
-            // Tolak permintaan = hapus friendship
-            await friendsCollection.deleteOne({ _id: friendshipId });
+            // Tolak permintaan = soft delete friendship + update status
+            await Friendship.findByIdAndUpdate(
+                friendshipId,
+                {
+                    $set: {
+                        status: "rejected",
+                        isDeleted: true,
+                        deletedAt: new Date()
+                    }
+                }
+            );
 
             return Response.json({
                 success: true,

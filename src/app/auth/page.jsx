@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { signIn, useSession } from "next-auth/react";
 import Link from "next/link";
+import LightPillar from "@/components/LightPillar";
 
 export default function AuthPage() {
   const router = useRouter();
@@ -48,6 +49,10 @@ export default function AuthPage() {
       action();
     }
   };
+
+  // State untuk OTP verification step
+  const [verificationStep, setVerificationStep] = useState(false);
+  const [otp, setOtp] = useState("");
 
   // Fungsi register - kirim ke API beneran
   const handleRegister = async () => {
@@ -97,17 +102,11 @@ export default function AuthPage() {
 
       if (data.success) {
         setMessage({
-          text: "Akun berhasil dibuat! Silakan login.",
+          text: "Registrasi berhasil! Silakan cek email untuk kode OTP.",
           type: "success",
         });
-        setFormData({
-          username: "",
-          email: "",
-          password: "",
-          confirmPassword: "",
-          displayName: "",
-        });
-        setTimeout(() => setIsSignUp(false), 2000);
+        // Pindah ke step verifikasi OTP
+        setVerificationStep(true);
       } else {
         setMessage({ text: data.message, type: "error" });
       }
@@ -118,6 +117,47 @@ export default function AuthPage() {
       });
     }
 
+    setIsLoading(false);
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!otp || otp.length < 6) {
+      setMessage({ text: "Masukkan 6 digit kode OTP!", type: "error" });
+      return;
+    }
+
+    setIsLoading(true);
+    setMessage({ text: "", type: "" });
+
+    try {
+      const response = await fetch("/api/auth/verify/otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: formData.email,
+          otp,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setMessage({
+          text: "Verifikasi berhasil! Mengalihkan ke login...",
+          type: "success",
+        });
+        setTimeout(() => {
+          setVerificationStep(false);
+          setIsSignUp(false); // Switch to login view
+          setFormData({ ...formData, password: "", confirmPassword: "" }); // Clear passwords
+          setOtp("");
+        }, 2000);
+      } else {
+        setMessage({ text: data.message, type: "error" });
+      }
+    } catch (error) {
+      setMessage({ text: "Gagal memverifikasi OTP.", type: "error" });
+    }
     setIsLoading(false);
   };
 
@@ -219,17 +259,24 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+    <div className="min-h-screen w-full relative flex items-center justify-center bg-gray-900 overflow-hidden">
       {/* Background Pattern - Sama kayak sebelumnya */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-100 via-purple-50 to-indigo-100">
-        <div className="absolute inset-0 opacity-30">
-          <div className="h-full w-full bg-[radial-gradient(circle,_rgba(139,_69,_195,_0.1)_1px,_transparent_1px)] bg-[length:20px_20px]"></div>
-        </div>
-
-        {/* Floating shapes */}
-        <div className="absolute top-20 left-20 w-64 h-64 bg-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse"></div>
-        <div className="absolute bottom-20 right-20 w-72 h-72 bg-purple-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-1/2 w-80 h-80 bg-indigo-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse delay-500"></div>
+      {/* Background Pattern - LightPillar */}
+      <div className="absolute inset-0 z-0">
+        <LightPillar
+          topColor="#6B6974"
+          bottomColor="#62588B"
+          intensity={1}
+          rotationSpeed={0.2}
+          glowAmount={0.007}
+          pillarWidth={3}
+          pillarHeight={0.4}
+          noiseIntensity={0.5}
+          pillarRotation={30}
+          interactive={false}
+          mixBlendMode="screen"
+          quality="high"
+        />
       </div>
 
       {/* Main Container - Struktur kayak code asli */}
@@ -238,13 +285,94 @@ export default function AuthPage() {
         id="container"
       >
         {/* Glassmorphism Container - Pengganti .container */}
-        <div className="relative w-full h-full backdrop-blur-lg bg-white/20 rounded-3xl shadow-2xl border border-white/30 overflow-hidden">
+        <div className="relative w-full h-full backdrop-blur-lg bg-gray-900/40 rounded-3xl shadow-2xl border border-white/30 overflow-hidden">
+          {/* Verification Step Container */}
+          <div
+            className={`absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center p-8 transition-all duration-500 z-50 bg-gray-900/90 ${verificationStep ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"}`}
+          >
+            <div className="w-full max-w-md space-y-6 text-center">
+              <div className="mb-6">
+                <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg
+                    className="w-8 h-8 text-blue-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                    />
+                  </svg>
+                </div>
+                <h2 className="text-2xl font-bold text-white mb-2">
+                  Verifikasi Email
+                </h2>
+                <p className="text-gray-300">
+                  Kami telah mengirimkan kode OTP ke{" "}
+                  <strong>{formData.email}</strong>
+                </p>
+              </div>
+
+              {message.text && (
+                <div
+                  className={`p-3 rounded-lg text-sm font-medium ${message.type === "success" ? "bg-green-100/10 text-green-400" : "bg-red-100/10 text-red-400"}`}
+                >
+                  {message.text}
+                </div>
+              )}
+
+              <div className="space-y-4">
+                <input
+                  type="text"
+                  placeholder="Masukkan 6 digit Kode OTP"
+                  className="w-full text-center text-2xl tracking-widest px-4 py-3 bg-gray-800 border border-gray-600 rounded-xl focus:outline-none focus:border-blue-500 text-white placeholder-gray-600 font-mono"
+                  maxLength={6}
+                  value={otp}
+                  onChange={(e) =>
+                    setOtp(e.target.value.replace(/[^0-9]/g, ""))
+                  }
+                />
+
+                <button
+                  onClick={handleVerifyOtp}
+                  disabled={isLoading || otp.length < 6}
+                  className={`w-full py-3 font-semibold rounded-xl transition-all duration-300 ${
+                    isLoading || otp.length < 6
+                      ? "bg-gray-700 text-gray-400 cursor-not-allowed"
+                      : "bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 shadow-lg hover:shadow-xl"
+                  }`}
+                >
+                  {isLoading ? "Memverifikasi..." : "Verifikasi Akun"}
+                </button>
+
+                <div className="flex justify-between text-sm mt-4">
+                  <button
+                    onClick={() => setVerificationStep(false)}
+                    className="text-gray-400 hover:text-white"
+                  >
+                    Kembali
+                  </button>
+                  <button
+                    onClick={handleResendVerification}
+                    className="text-blue-400 hover:text-blue-300"
+                    disabled={isLoading}
+                  >
+                    Kirim Ulang Kode
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Sign Up Container - Panel Register */}
           <div
             className={`absolute top-0 left-0 w-1/2 h-full flex flex-col justify-center p-8 transition-all duration-700 ${isSignUp ? "translate-x-full opacity-100 z-20" : "translate-x-0 opacity-0 z-0"}`}
           >
             <div className="space-y-4">
-              <h1 className="text-2xl font-bold text-gray-800 text-center mb-6">
+              <h1 className="text-2xl font-bold text-white text-center mb-6">
                 Buat Akun
               </h1>
 
@@ -268,7 +396,7 @@ export default function AuthPage() {
                 placeholder="Username"
                 value={formData.username}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2.5 bg-white/30 backdrop-blur-sm border border-white/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 text-gray-800 placeholder-gray-600 text-sm"
+                className="w-full px-3 py-2.5 bg-gray-500/50 backdrop-blur-sm border border-white/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 text-white placeholder-white text-sm"
                 disabled={isLoading}
                 suppressHydrationWarning={true}
               />
@@ -280,7 +408,7 @@ export default function AuthPage() {
                 placeholder="Display Name"
                 value={formData.displayName}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2.5 bg-white/30 backdrop-blur-sm border border-white/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 text-gray-800 placeholder-gray-600 text-sm"
+                className="w-full px-3 py-2.5 bg-gray-500/50 backdrop-blur-sm border border-white/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 text-white placeholder-white text-sm"
                 disabled={isLoading}
                 suppressHydrationWarning={true}
               />
@@ -292,7 +420,7 @@ export default function AuthPage() {
                 placeholder="Email"
                 value={formData.email}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2.5 bg-white/30 backdrop-blur-sm border border-white/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 text-gray-800 placeholder-gray-600 text-sm"
+                className="w-full px-3 py-2.5 bg-gray-500/50 backdrop-blur-sm border border-white/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 text-white placeholder-white text-sm"
                 disabled={isLoading}
                 suppressHydrationWarning={true}
               />
@@ -304,7 +432,7 @@ export default function AuthPage() {
                 placeholder="Password (min. 8 karakter)"
                 value={formData.password}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2.5 bg-white/30 backdrop-blur-sm border border-white/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 text-gray-800 placeholder-gray-600 text-sm"
+                className="w-full px-3 py-2.5 bg-gray-500/50 backdrop-blur-sm border border-white/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 text-white placeholder-white text-sm"
                 disabled={isLoading}
                 suppressHydrationWarning={true}
               />
@@ -317,7 +445,7 @@ export default function AuthPage() {
                 value={formData.confirmPassword}
                 onChange={handleInputChange}
                 onKeyDown={(e) => handleKeyDown(e, handleRegister)}
-                className="w-full px-3 py-2.5 bg-white/30 backdrop-blur-sm border border-white/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 text-gray-800 placeholder-gray-600 text-sm"
+                className="w-full px-3 py-2.5 bg-gray-500/50 backdrop-blur-sm border border-white/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 text-white placeholder-white text-sm"
                 disabled={isLoading}
                 suppressHydrationWarning={true}
               />
@@ -328,7 +456,7 @@ export default function AuthPage() {
                 className={`w-full py-2.5 font-semibold rounded-lg transition-all duration-300 text-sm ${
                   isLoading
                     ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-gradient-to-r from-blue-400 to-purple-400 text-white hover:from-blue-500 hover:to-purple-500 shadow-lg hover:shadow-xl"
+                    : "bg-gradient-to-r from-blue-300 to-purple-300 text-white hover:from-blue-300 hover:to-purple-300 shadow-lg hover:shadow-xl"
                 }`}
               >
                 {isLoading ? (
@@ -348,7 +476,7 @@ export default function AuthPage() {
             className={`absolute top-0 left-0 w-1/2 h-full flex flex-col justify-center p-8 transition-all duration-700 ${isSignUp ? "translate-x-full opacity-0 z-0" : "translate-x-0 opacity-100 z-20"}`}
           >
             <div className="space-y-6">
-              <h1 className="text-3xl font-bold text-gray-800 text-center mb-8">
+              <h1 className="text-3xl font-bold text-white text-center mb-8">
                 Masuk
               </h1>
 
@@ -385,7 +513,8 @@ export default function AuthPage() {
                 placeholder="Username atau Email"
                 value={formData.email}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 bg-white/30 backdrop-blur-sm border border-white/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 text-gray-800 placeholder-gray-600"
+                className="w-full px-4 py-3 bg-gray-500/50 backdrop-blur-sm border border-white/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 text-white placeholder-white"
+                onKeyDown={(e) => handleKeyDown(e, handleLogin)}
                 disabled={isLoading}
                 suppressHydrationWarning={true}
               />
@@ -397,7 +526,7 @@ export default function AuthPage() {
                 value={formData.password}
                 onChange={handleInputChange}
                 onKeyDown={(e) => handleKeyDown(e, handleLogin)}
-                className="w-full px-4 py-3 bg-white/30 backdrop-blur-sm border border-white/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 text-gray-800 placeholder-gray-600"
+                className="w-full px-4 py-3 bg-gray-500/50 backdrop-blur-sm border border-white/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 text-white placeholder-white"
                 disabled={isLoading}
                 suppressHydrationWarning={true}
               />
@@ -408,7 +537,7 @@ export default function AuthPage() {
                 className={`w-full py-3 font-semibold rounded-xl transition-all duration-300 ${
                   isLoading
                     ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-gradient-to-r from-blue-400 to-purple-400 text-white hover:from-blue-500 hover:to-purple-500 shadow-lg hover:shadow-xl"
+                    : "bg-gradient-to-r from-blue-300 to-purple-300 text-gray-100 hover:from-blue-300 hover:to-purple-300 shadow-lg hover:shadow-xl"
                 }`}
               >
                 {isLoading ? (
@@ -425,7 +554,7 @@ export default function AuthPage() {
               <div className="text-center">
                 <Link
                   href="/auth/forgot-password"
-                  className="text-sm text-blue-600 hover:text-blue-800 transition-colors"
+                  className="text-sm text-white hover:text-blue-800 transition-colors"
                 >
                   Lupa Password?
                 </Link>
@@ -438,7 +567,7 @@ export default function AuthPage() {
             className={`absolute top-0 left-1/2 w-1/2 h-full overflow-hidden transition-transform duration-700 z-30 ${isSignUp ? "-translate-x-full" : "translate-x-0"}`}
           >
             <div
-              className={`relative left-[-100%] h-full w-[200%] bg-gradient-to-r from-blue-400 via-purple-400 to-indigo-400 transition-transform duration-700 ${isSignUp ? "translate-x-1/2" : "translate-x-0"}`}
+              className={`relative left-[-100%] h-full w-[200%] bg-gradient-to-r from-blue-300 via-purple-200/90 to-indigo-400 transition-transform duration-700 ${isSignUp ? "translate-x-1/2" : "translate-x-0"}`}
             >
               {/* Overlay Left - Muncul saat mode Register */}
               <div
@@ -450,7 +579,7 @@ export default function AuthPage() {
                 </p>
                 <button
                   onClick={() => setIsSignUp(false)}
-                  className="px-8 py-3 border-2 border-white text-white font-semibold rounded-xl bg-transparent hover:bg-white hover:text-blue-500 transition-all duration-300"
+                  className="px-8 py-3 border-2 border-white text-white font-semibold rounded-xl bg-transparent hover:bg-white hover:text-blue-400 transition-all duration-300"
                 >
                   Masuk
                 </button>
@@ -467,7 +596,7 @@ export default function AuthPage() {
                 </p>
                 <button
                   onClick={() => setIsSignUp(true)}
-                  className="px-8 py-3 border-2 border-white text-white font-semibold rounded-xl bg-transparent hover:bg-white hover:text-purple-500 transition-all duration-300"
+                  className="px-8 py-3 border-2 border-white text-white font-semibold rounded-xl bg-transparent hover:bg-white hover:text-purple-400 transition-all duration-300"
                 >
                   Daftar
                 </button>

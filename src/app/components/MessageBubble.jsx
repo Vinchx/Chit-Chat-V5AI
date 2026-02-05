@@ -94,6 +94,8 @@ export default function MessageBubble({
   const hasAttachment = message.attachment && !message.isDeleted;
   const isImageAttachment =
     hasAttachment && message.attachment.type === "image";
+  const isVideoAttachment =
+    hasAttachment && message.attachment.type === "video";
   const isDocumentAttachment =
     hasAttachment && message.attachment.type === "document";
 
@@ -107,6 +109,7 @@ export default function MessageBubble({
       text: message.text,
       hasAttachment,
       isImageAttachment,
+      isVideoAttachment,
       isDocumentAttachment,
       attachment: message.attachment,
     });
@@ -211,6 +214,26 @@ export default function MessageBubble({
               </div>
             )}
 
+            {/* Video attachment - between image and document */}
+            {isVideoAttachment && (
+              <div className="mb-2">
+                <div className="relative rounded-lg overflow-hidden max-w-md">
+                  <video
+                    src={message.attachment.url}
+                    controls
+                    className="w-full rounded-lg bg-black"
+                    style={{ maxHeight: "400px" }}
+                    preload="metadata"
+                  >
+                    Your browser does not support the video tag.
+                  </video>
+                  <div className="mt-1 text-xs opacity-70">
+                    📹 {message.attachment.filename}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Document attachment - THIRD */}
             {isDocumentAttachment && (
               <div className="mb-2">
@@ -226,9 +249,69 @@ export default function MessageBubble({
             {/* Text content - AFTER REPLY & ATTACHMENTS */}
             {message.text && <p className="break-words">{message.text}</p>}
 
-            {/* Time and edited indicator */}
-            <div className="flex justify-between items-center mt-1">
+            {/* Time and read receipt status */}
+            <div className="flex justify-between items-center mt-1 gap-2">
               <p className="text-xs opacity-70">{message.time}</p>
+
+              {/* Read Receipt Checkmarks - hanya untuk pesan sendiri */}
+              {message.isOwn && message.readStatus && (
+                <div
+                  className="flex items-center gap-0.5"
+                  title={message.readStatus.tooltip || ""}
+                >
+                  {message.readStatus.status === "sent" && (
+                    <svg
+                      width="14"
+                      height="10"
+                      viewBox="0 0 16 11"
+                      fill="none"
+                      className="opacity-50"
+                    >
+                      <path
+                        d="M1 5.5L5 9.5L15 1"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  )}
+                  {message.readStatus.status === "read" && (
+                    <>
+                      {/* Double checkmark dengan warna lavender */}
+                      <svg
+                        width="18"
+                        height="10"
+                        viewBox="0 0 20 11"
+                        fill="none"
+                        className="text-purple-300"
+                      >
+                        <path
+                          d="M1 5.5L5 9.5L11 1"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        <path
+                          d="M9 5.5L13 9.5L19 1"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                      {/* Group chat detail count */}
+                      {message.readStatus.readCount !== undefined && (
+                        <span className="text-[10px] text-purple-300 ml-0.5">
+                          {message.readStatus.readCount}/
+                          {message.readStatus.totalMembers - 1}
+                        </span>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
             </div>
             {message.isEdited && (
               <div className="text-right mt-1">

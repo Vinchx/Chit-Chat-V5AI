@@ -56,9 +56,21 @@ export async function POST(request) {
             }, { status: 403 });
         }
 
-        // 5. Buat message ID
-        const messageCount = await messagesCollection.countDocuments();
-        const messageId = `msg${String(messageCount + 1).padStart(6, '0')}`;
+        // 5. Buat message ID - Find highest existing ID to prevent duplicates
+        const lastMessage = await messagesCollection
+            .find({})
+            .sort({ _id: -1 })
+            .limit(1)
+            .toArray();
+
+        let nextMessageNumber = 1;
+        if (lastMessage.length > 0 && lastMessage[0]._id) {
+            // Extract number from last message ID (e.g., "msg000013" -> 13)
+            const lastIdNumber = parseInt(lastMessage[0]._id.replace('msg', ''), 10);
+            nextMessageNumber = lastIdNumber + 1;
+        }
+
+        const messageId = `msg${String(nextMessageNumber).padStart(6, '0')}`;
 
         // 5.5. Validate replyTo if provided
         if (replyTo && replyTo.messageId) {
@@ -177,8 +189,20 @@ export async function POST(request) {
                     const aiResult = await aiResponse.json();
 
                     if (aiResult.success) {
-                        const aiMessageCount = await messagesCollection.countDocuments();
-                        const aiMessageId = `msg${String(aiMessageCount + 1).padStart(6, '0')}`;
+                        // Generate AI message ID using same method to prevent duplicates
+                        const lastAiMessage = await messagesCollection
+                            .find({})
+                            .sort({ _id: -1 })
+                            .limit(1)
+                            .toArray();
+
+                        let nextAiMessageNumber = 1;
+                        if (lastAiMessage.length > 0 && lastAiMessage[0]._id) {
+                            const lastIdNumber = parseInt(lastAiMessage[0]._id.replace('msg', ''), 10);
+                            nextAiMessageNumber = lastIdNumber + 1;
+                        }
+
+                        const aiMessageId = `msg${String(nextAiMessageNumber).padStart(6, '0')}`;
 
                         let cleanResponse = aiResult.data.response
                             .replace(/\*\*/g, '')

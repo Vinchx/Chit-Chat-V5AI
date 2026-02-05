@@ -1,0 +1,15 @@
+{
+  "workspace": {
+    "id": "05d6139f-262d-485a-81a2-3b5b516df81c"
+  },
+  "entities": {
+    "collections": [
+      "..\\docs\\ChitChat_API_Simple.postman_collection.json",
+      "..\\docs\\other\\ChitChat_API_Collection.postman_collection.json"
+    ],
+    "environments": [],
+    "specs": [],
+    "flows": [],
+    "globals": []
+  }
+}

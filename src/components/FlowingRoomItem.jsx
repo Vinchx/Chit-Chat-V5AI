@@ -25,27 +25,77 @@ function FlowingRoomItem({
       ? room.friend.displayName || room.name
       : room.name;
 
-  // Get avatar for banner
+  // Get avatar for circular display (handles both friend and group avatars)
   const avatarUrl =
     room.type === "private" && room.friend?.avatar
       ? normalizeAvatar(room.friend.avatar)
-      : null;
+      : room.type === "group" && room.groupAvatar
+        ? normalizeAvatar(room.groupAvatar)
+        : null;
 
-  // Generate banner background based on room type
-  const getBannerStyle = () => {
+  // Get banner for landscape background
+  const bannerUrl =
+    room.type === "private" && room.friend?.banner
+      ? normalizeAvatar(room.friend.banner)
+      : room.type === "group" && room.groupBanner
+        ? normalizeAvatar(room.groupBanner)
+        : null;
+
+  // Debug: Log banner info
+  if (room.type === "private" && room.friend) {
+    console.log(
+      "🎨 [FlowingRoomItem] Friend:",
+      room.friend.displayName,
+      "| Avatar:",
+      room.friend.avatar,
+      "| Banner:",
+      room.friend.banner,
+    );
+  }
+
+  // Debug: Log group avatar info
+  if (room.type === "group") {
+    console.log(
+      "👥 [FlowingRoomItem] Group:",
+      room.name,
+      "| GroupAvatar:",
+      room.groupAvatar,
+      "| GroupBanner:",
+      room.groupBanner,
+      "| Members:",
+      room.members?.length,
+    );
+  }
+
+  // Generate avatar style for circle
+  const getAvatarStyle = () => {
     if (avatarUrl) {
-      return { backgroundImage: `url(${avatarUrl})` };
+      return {
+        backgroundImage: `url(${avatarUrl})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      };
     }
 
-    // Fallback gradients based on room type
-    const gradients = {
-      private: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-      group: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
-      ai: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
-    };
-
+    // Fallback to neutral gray
     return {
-      background: gradients[room.type] || gradients.private,
+      background: "#6b7280",
+    };
+  };
+
+  // Generate banner background for landscape
+  const getBannerStyle = () => {
+    if (bannerUrl) {
+      return {
+        backgroundImage: `url(${bannerUrl})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      };
+    }
+
+    // Fallback to neutral gray
+    return {
+      background: "#6b7280",
     };
   };
 
@@ -62,15 +112,23 @@ function FlowingRoomItem({
         marqueeInnerRef.current.querySelector(".marquee-part");
       if (!marqueeContent) return;
       const contentWidth = marqueeContent.offsetWidth;
+      if (contentWidth === 0) return; // Prevent division by zero
       const containerWidth = itemRef.current?.offsetWidth || 300;
       const needed = Math.ceil(containerWidth / contentWidth) + 2;
+
+      // Safety check to ensure needed is a finite number
+      if (!isFinite(needed) || isNaN(needed)) {
+        setRepetitions(4);
+        return;
+      }
+
       setRepetitions(Math.max(4, needed));
     };
 
     calculateRepetitions();
     window.addEventListener("resize", calculateRepetitions);
     return () => window.removeEventListener("resize", calculateRepetitions);
-  }, [displayName, avatarUrl]);
+  }, [displayName, avatarUrl, bannerUrl]);
 
   useEffect(() => {
     const setupMarquee = () => {
@@ -100,7 +158,7 @@ function FlowingRoomItem({
         animationRef.current.kill();
       }
     };
-  }, [displayName, avatarUrl, repetitions, speed]);
+  }, [displayName, avatarUrl, bannerUrl, repetitions, speed]);
 
   const handleMouseEnter = (ev) => {
     if (!itemRef.current || !marqueeRef.current || !marqueeInnerRef.current)
@@ -151,19 +209,20 @@ function FlowingRoomItem({
       onClick={onClick}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      className="relative p-3 cursor-pointer transition-colors overflow-hidden group"
+      className="relative p-3 cursor-pointer transition-all duration-300 overflow-hidden group hover:bg-white/30 dark:hover:bg-gray-800/40"
     >
       {/* Normal State Content */}
       <div className="normal-content flex items-center space-x-3 relative z-10 transition-opacity duration-100">
         {/* Avatar */}
-        {room.type === "private" && room.friend?.avatar ? (
+        {avatarUrl ? (
           <div className="relative w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
             <Image
-              src={normalizeAvatar(room.friend.avatar)}
-              alt={room.friend.displayName || room.name}
+              src={avatarUrl}
+              alt={displayName}
               fill
               className="object-cover"
               sizes="40px"
+              unoptimized={true}
             />
           </div>
         ) : room.type === "private" && room.friend ? (
@@ -185,7 +244,9 @@ function FlowingRoomItem({
             {displayName}
           </h4>
           <p className="text-sm text-gray-600 dark:text-gray-300 truncate">
-            {room.lastMessage || "No messages yet"}
+            {room.type === "group" && room.members
+              ? `${room.members.length} members${room.members.filter((m) => m.isOnline).length > 0 ? `, ${room.members.filter((m) => m.isOnline).length} online` : ""}`
+              : room.lastMessage || "No messages yet"}
           </p>
         </div>
       </div>
@@ -201,10 +262,10 @@ function FlowingRoomItem({
               key={idx}
               className="marquee-part flex items-center flex-shrink-0 gap-3 px-4"
             >
-              {/* Avatar Banner */}
+              {/* Avatar Circle - uses avatar */}
               <div
                 className="w-12 h-12 rounded-full bg-cover bg-center flex-shrink-0 border-2 border-white shadow-lg"
-                style={getBannerStyle()}
+                style={getAvatarStyle()}
               >
                 {!avatarUrl && (
                   <div className="w-full h-full flex items-center justify-center text-white font-bold text-lg">
@@ -222,7 +283,7 @@ function FlowingRoomItem({
                 className="w-[125px] h-[50px] rounded-4xl bg-cover bg-center flex-shrink-0 shadow-md"
                 style={getBannerStyle()}
               >
-                {!avatarUrl && (
+                {!bannerUrl && (
                   <div className="w-full h-full flex items-center justify-center text-white font-bold text-xl backdrop-blur-sm bg-black/20 rounded-2xl">
                     {room.type === "private"
                       ? "💬"

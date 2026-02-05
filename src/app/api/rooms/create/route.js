@@ -70,7 +70,8 @@ export async function POST(request) {
                 $or: [
                     { senderId: currentUserId, receiverId: friendId, status: "accepted" },
                     { senderId: friendId, receiverId: currentUserId, status: "accepted" }
-                ]
+                ],
+                isDeleted: { $ne: true }
             });
             console.log('[STEP 5] Friendship check result:', friendship ? 'Found' : 'Not found');
 
@@ -81,15 +82,28 @@ export async function POST(request) {
                 }, { status: 400 });
             }
 
-            // Cek udah ada private room atau belum
+            // Cek udah ada private room atau belum (exclude soft deleted)
             console.log('[STEP 5] Checking for existing private room...');
+            console.log('[STEP 5] Query filter:', {
+                type: "private",
+                isDeleted: { $ne: true },
+                members: [currentUserId, friendId]
+            });
+
             const existingRoom = await roomsCollection.findOne({
                 type: "private",
+                isDeleted: { $ne: true },
                 $and: [
                     { members: currentUserId },
                     { members: friendId }
                 ]
             });
+
+            console.log('[STEP 5] Existing room result:', existingRoom ? {
+                id: existingRoom._id,
+                isDeleted: existingRoom.isDeleted,
+                members: existingRoom.members
+            } : 'null - no existing room');
 
             if (existingRoom) {
                 console.log('[STEP 5] Existing private room found:', existingRoom._id);
@@ -108,11 +122,12 @@ export async function POST(request) {
             }
             console.log('[STEP 5] No existing private room found');
         } else if (type === "ai") {
-            // Cek apakah user sudah punya AI room
+            // Cek apakah user sudah punya AI room (exclude soft deleted)
             console.log('[STEP 5] Checking for existing AI room...');
             const existingAiRoom = await roomsCollection.findOne({
                 type: "ai",
-                members: currentUserId
+                members: currentUserId,
+                isDeleted: { $ne: true }
             });
 
             if (existingAiRoom) {
@@ -150,14 +165,14 @@ export async function POST(request) {
             const friendId = memberIds[0];
             const friendData = await usersCollection.findOne({ _id: friendId });
             console.log('[STEP 6] Friend data:', friendData ? `Found (${friendData.displayName})` : 'Not found');
-            roomName = `Chat dengan ${friendData.displayName}`;
+            roomName = friendData.displayName; // Store friend name directly without "Chat dengan" prefix
             members = [currentUserId, friendId];
         } else if (type === "group") {
             console.log('[STEP 6] Setting up group room...');
             members = [currentUserId, ...memberIds];
         } else if (type === "ai") {
             console.log('[STEP 6] Setting up AI room...');
-            roomName = "Chat dengan AI";
+            roomName = "AI Assistant"; // Simplified AI room name
             members = [currentUserId];
         }
 

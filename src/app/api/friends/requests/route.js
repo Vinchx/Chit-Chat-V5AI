@@ -19,10 +19,11 @@ export async function GET(request) {
         const friendsCollection = db.collection("friendships");
         const usersCollection = db.collection("users");
 
-        // 3. Cari semua permintaan yang masuk ke user ini (status pending)
+        // 3. Cari semua permintaan yang masuk ke user ini (status pending, exclude soft deleted)
         const friendshipRequests = await friendsCollection.find({
             receiverId: currentUserId,  // Yang nerima = user yang login
-            status: "pending"           // Cuma yang belum dijawab
+            status: "pending",          // Cuma yang belum dijawab
+            isDeleted: { $ne: true }    // Exclude soft deleted
         }).toArray();
 
         // 4. Ambil data lengkap sender (yang kirim permintaan)

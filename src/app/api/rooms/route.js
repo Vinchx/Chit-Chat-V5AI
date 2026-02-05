@@ -19,9 +19,10 @@ export async function GET(request) {
         const roomsCollection = db.collection("rooms");
         const usersCollection = db.collection("users");
 
-        // 3. Ambil semua room yang user ini ikuti
+        // 3. Ambil semua room yang user ini ikuti (exclude soft deleted)
         const rooms = await roomsCollection.find({
-            members: currentUserId
+            members: currentUserId,
+            isDeleted: { $ne: true }
         }).sort({ lastActivity: -1 }).toArray(); // Urutkan berdasarkan aktivitas terakhir
 
         // 4. Siapkan data detail untuk setiap room
@@ -50,10 +51,13 @@ export async function GET(request) {
                         username: friendData.username,
                         displayName: friendData.displayName,
                         avatar: friendData.avatar ? friendData.avatar.replace(/\\/g, '/') : null,
+                        banner: friendData.banner ? friendData.banner.replace(/\\/g, '/') : null,
                         isOnline: friendData.isOnline
                     };
-                    // Slug untuk private = username teman
-                    roomInfo.slug = friendData.username;
+                    // Slug untuk private = username-roomId (unique identifier)
+                    // Format: username-room_xxx
+                    const roomIdSuffix = room._id.replace('room_', '');
+                    roomInfo.slug = `${friendData.username}-${roomIdSuffix}`;
                 }
             }
 
@@ -68,10 +72,18 @@ export async function GET(request) {
                     username: member.username,
                     displayName: member.displayName,
                     avatar: member.avatar ? member.avatar.replace(/\\/g, '/') : null,
+                    banner: member.banner ? member.banner.replace(/\\/g, '/') : null,
                     isOnline: member.isOnline
                 }));
-                // Slug untuk group = slugified group name
-                roomInfo.slug = room.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+                // Add group avatar if available
+                roomInfo.groupAvatar = room.groupAvatar ? room.groupAvatar.replace(/\\/g, '/') : null;
+                // Add group banner if available
+                roomInfo.groupBanner = room.groupBanner ? room.groupBanner.replace(/\\/g, '/') : null;
+                // Slug untuk group = slugified-name-roomId (unique identifier)
+                // Format: group-name-room_xxx
+                const groupSlug = room.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+                const roomIdSuffix = room._id.replace('room_', '');
+                roomInfo.slug = `${groupSlug}-${roomIdSuffix}`;
             }
 
             // Untuk AI room

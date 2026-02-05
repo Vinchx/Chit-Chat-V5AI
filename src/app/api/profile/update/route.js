@@ -8,7 +8,7 @@ export async function PUT(request) {
   try {
     // Ambil session user yang sedang login
     const session = await auth();
-    
+
     if (!session || !session.user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -16,7 +16,7 @@ export async function PUT(request) {
       );
     }
 
-    const { displayName, email, bio } = await request.json();
+    const { displayName, email, bio, banner } = await request.json();
 
     await connectToDatabase();
 
@@ -27,6 +27,7 @@ export async function PUT(request) {
         ...(displayName && { displayName }),
         ...(email && { email }),
         ...(bio && { bio }),
+        ...(banner && { banner }),
       },
       { new: true, runValidators: true }
     ).select('-password');

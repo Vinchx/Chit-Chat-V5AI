@@ -1,0 +1,187 @@
+// ========================================
+// Chit Chat v5.1 AI - Database Schema
+// ========================================
+
+Table users {
+  _id varchar [pk, note: 'Custom String ID']
+  username varchar [unique, not null]
+  email varchar [unique, not null]
+  password varchar [not null]
+  displayName varchar [not null]
+  avatar varchar [null]
+  bio text [default: '']
+  isOnline boolean [default: false]
+  createdAt timestamp [default: `now()`]
+  
+  // Verification
+  isVerified boolean [default: false]
+  verificationToken varchar [null]
+  verifiedAt timestamp [null]
+  
+  // Password Reset
+  resetPasswordOtp varchar [null]
+  resetPasswordExpires timestamp [null]
+  
+  Note: 'User accounts dengan autentikasi dan profile'
+}
+
+// Passkeys sebagai embedded array di User
+Table passkeys {
+  _id varchar [pk]
+  user_id varchar [ref: > users._id, note: 'Parent user']
+  credentialID varchar [not null, note: 'base64url']
+  publicKey varchar [not null, note: 'base64']
+  counter int [not null]
+  deviceType varchar [default: 'unknown']
+  backedUp boolean [default: false]
+  transports varchar [note: 'JSON array stored as string']
+  createdAt timestamp [default: `now()`]
+  
+  Note: 'Passkey credentials untuk WebAuthn (embedded dalam User)'
+}
+
+Table friendships {
+  _id varchar [pk, note: 'Custom String ID']
+  senderId varchar [not null, ref: > users._id]
+  receiverId varchar [not null, ref: > users._id]
+  status varchar [not null, default: 'pending', note: 'pending | accepted | rejected']
+  createdAt timestamp [default: `now()`]
+  
+  indexes {
+    (senderId, receiverId) [unique]
+  }
+  
+  Note: 'Friend requests dan status pertemanan'
+}
+
+Table rooms {
+  _id varchar [pk, note: 'Custom String ID']
+  name varchar [not null]
+  type varchar [not null, note: 'private | group | ai']
+  createdBy varchar [not null, ref: > users._id]
+  
+  // Group settings
+  description text [default: '']
+  groupAvatar varchar [null]
+  
+  // Metadata
+  lastMessage varchar [null]
+  lastActivity timestamp [default: `now()`]
+  createdAt timestamp [default: `now()`]
+  
+  // Settings (stored as JSON)
+  onlyAdminsCanPost boolean [default: false]
+  onlyAdminsCanAddMembers boolean [default: true]
+  onlyAdminsCanEditInfo boolean [default: true]
+  
+  Note: 'Chat rooms: private (1-on-1), group, atau AI assistant'
+}
+
+// Many-to-Many: Room Members
+Table room_members {
+  room_id varchar [ref: > rooms._id]
+  user_id varchar [ref: > users._id]
+  joined_at timestamp [default: `now()`]
+  
+  indexes {
+    (room_id, user_id) [pk]
+  }
+  
+  Note: 'Members dalam setiap room (many-to-many)'
+}
+
+// Many-to-Many: Room Admins (khusus group)
+Table room_admins {
+  room_id varchar [ref: > rooms._id]
+  user_id varchar [ref: > users._id]
+  assigned_at timestamp [default: `now()`]
+  
+  indexes {
+    (room_id, user_id) [pk]
+  }
+  
+  Note: 'Admin dalam group room (many-to-many)'
+}
+
+Table messages {
+  _id varchar [pk, note: 'Custom String ID']
+  roomId varchar [not null, ref: > rooms._id]
+  senderId varchar [not null, note: 'User ID or "ai-assistant"']
+  message text [default: '']
+  messageType varchar [default: 'text', note: 'text | image | file | sticker']
+  
+  // Attachment (stored as JSON)
+  attachment_type varchar [note: 'image | file']
+  attachment_url varchar
+  attachment_filename varchar
+  attachment_size int
+  attachment_mimeType varchar
+  
+  // Reply Context (stored as JSON)
+  replyTo_messageId varchar [ref: > messages._id, note: 'Self-referencing untuk reply']
+  replyTo_text text
+  replyTo_sender varchar
+  
+  // Status Flags
+  isEdited boolean [default: false]
+  isDeleted boolean [default: false]
+  
+  // Timestamps
+  timestamp timestamp [default: `now()`]
+  editedAt timestamp [null]
+  deletedAt timestamp [null]
+  
+  indexes {
+    (roomId, timestamp) [note: 'Index untuk query chat history']
+  }
+  
+  Note: 'Pesan chat dalam room dengan support attachment dan reply'
+}
+
+Table read_receipts {
+  _id varchar [pk, note: 'Auto-generated ID']
+  messageId varchar [not null, ref: > messages._id]
+  userId varchar [not null, ref: > users._id]
+  roomId varchar [not null, ref: > rooms._id]
+  readAt timestamp [default: `now()`]
+  
+  indexes {
+    (messageId, userId) [unique, note: 'Setiap user hanya 1 read receipt per message']
+    (roomId, userId, readAt) [note: 'Query performa - read receipts by room']
+    (messageId, readAt) [note: 'Query read receipts by message']
+  }
+  
+  Note: 'Tracking status baca pesan oleh user'
+}
+
+Table blocked_users {
+  _id varchar [pk, note: 'Auto-generated ID']
+  blockerId varchar [not null, ref: > users._id, note: 'User yang nge-block']
+  blockedId varchar [not null, ref: > users._id, note: 'User yang di-block']
+  type varchar [not null, default: 'block', note: 'block | mute']
+  createdAt timestamp [default: `now()`]
+  
+  indexes {
+    (blockerId, blockedId) [unique, note: 'Prevent duplicate blocks']
+    (blockedId) [note: 'Query siapa saja yang nge-block user ini']
+  }
+  
+  Note: 'User blocking/muting untuk privacy dan filter konten'
+}
+
+// ========================================
+// Keterangan Relasi:
+// ========================================
+// 1. User → Friendship (sender): 1-to-Many
+// 2. User → Friendship (receiver): 1-to-Many
+// 3. User → Room (creator): 1-to-Many
+// 4. User ↔ Room (members): Many-to-Many via room_members
+// 5. User ↔ Room (admins): Many-to-Many via room_admins
+// 6. Room → Message: 1-to-Many
+// 7. User → Message (sender): 1-to-Many
+// 8. Message → Message (reply): Self-referencing 1-to-Many
+// 9. Message → ReadReceipt: 1-to-Many
+// 10. User → ReadReceipt: 1-to-Many
+// 11. User → BlockedUser (blocker): 1-to-Many
+// 12. User → BlockedUser (blocked): 1-to-Many
+// ========================================

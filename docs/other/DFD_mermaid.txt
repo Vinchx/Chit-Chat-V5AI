@@ -1,0 +1,127 @@
+%% DFD Level 0: Context Diagram
+flowchart TD
+    User[User / Pengguna]
+    Admin[Admin]
+    AIService[AI Service / LLM]
+    EmailService[Email Service / SMTP]
+    System((Chit-Chat V5.1 AI System))
+    User -- "Login Credentials, Profile Info, Messages, Friend Requests" --> System
+    System -- "Auth Token, Chat History, Notifications, Friend Status" --> User
+    Admin -- "Admin Passkey, Management Commands" --> System
+    System -- "Dashboard Stats, User Reports, System Logs" --> Admin
+    System -- "Prompt Context, User Query" --> AIService
+    AIService -- "AI Response, Embeddings" --> System
+    System -- "Verification Email, OTP" --> EmailService
+    EmailService -- "Delivery Status" --> System
+
+%% DFD Level 1: System Overview
+flowchart TD
+    User[User]
+    Admin[Admin]
+    AIService[AI Service]
+    P1((1.0 Manage Authentication))
+    P2((2.0 Manage Profile))
+    P3((3.0 Manage Friendship))
+    P4((4.0 Manage Chat & Rooms))
+    P5((5.0 Admin Management))
+    DS_Users[(Use Collection)]
+    DS_Friends[(Friendships Collection)]
+    DS_Rooms[(Rooms Collection)]
+    DS_Msgs[(Messages Collection)]
+    DS_Keys[(Passkeys Collection)]
+    User -->|Login/Register Data| P1
+    P1 -->|Save User Data| DS_Users
+    P1 -->|Verify Passkey| DS_Keys
+    DS_Users -->|User Exists?| P1
+    P1 -->|Session Token| User
+    User -->|Update Bio/Avatar| P2
+    P2 -->|Update Info| DS_Users
+    DS_Users -->|Current Profile| P2
+    User -->|Add/Accept Friend| P3
+    P3 -->|Create/Update Request| DS_Friends
+    DS_Friends -->|Status| P3
+    DS_Users -->|Check User ID| P3
+    P3 -->|Friend List Update| User
+    User -->|Send Message / Join Room| P4
+    P4 -->|Store Message| DS_Msgs
+    P4 -->|Update Room Activity| DS_Rooms
+    DS_Rooms -->|Room Info| P4
+    DS_Msgs -->|History| P4
+    P4 -->|Broadcast Message| User
+    P4 -->|Context + Query| AIService
+    AIService -->|AI Response| P4
+    Admin -->|Manage Users/Settings| P5
+    P5 -->|Read/Write| DS_Users
+    P5 -->|Read Stats| DS_Msgs
+    P5 -->|Manage Keys| DS_Keys
+
+%% DFD Level 2: Authentication
+flowchart TD
+    User[User]
+    EmailService[Email Service]
+    P1_1((1.1 Login))
+    P1_2((1.2 Register))
+    P1_3((1.3 Verify Email))
+    P1_4((1.4 Manage Passkeys))
+    DS_Users[(Users)]
+    DS_Keys[(Passkeys)]
+    User -->|Credentials| P1_1
+    P1_1 -->|Fetch User| DS_Users
+    DS_Users -->|Password Hash| P1_1
+    P1_1 -->|Valid: JWT Token| User
+    P1_1 -->|Invalid: Error| User
+    User -->|Registration Data| P1_2
+    P1_2 -->|Check Duplicate| DS_Users
+    P1_2 -->|Create User (Unverified)| DS_Users
+    P1_2 -->|Verification Token| P1_3
+    P1_3 -->|Send Email Request| EmailService
+    User -->|Click Verify Link| P1_3
+    P1_3 -->|Update Verified=True| DS_Users
+    User -->|Register Passkey| P1_4
+    P1_4 -->|Store Public Key| DS_Keys
+
+%% DFD Level 2: Friendship
+flowchart TD
+    User[User]
+    P3_1((3.1 Send Friend Request))
+    P3_2((3.2 Process Response))
+    P3_3((3.3 Block User))
+    DS_Friends[(Friendships)]
+    DS_Users[(Users)]
+    DS_Rooms[(Rooms)]
+    User -->|Target User ID| P3_1
+    P3_1 -->|Check Existing| DS_Friends
+    P3_1 -->|Create Pending Record| DS_Friends
+    User -->|Accept/Reject| P3_2
+    P3_2 -->|Update Status| DS_Friends
+    P3_2 -->|If Accepted: Create DM| DS_Rooms
+    User -->|Block ID| P3_3
+    P3_3 -->|Update Status=Blocked| DS_Friends
+
+%% DFD Level 2: Chat & Rooms
+flowchart TD
+    User[User]
+    AIService[AI Service]
+    P4_1((4.1 Create Room))
+    P4_2((4.2 Send Message))
+    P4_3((4.3 AI Processing))
+    P4_4((4.4 Broadcast))
+    DS_Rooms[(Rooms)]
+    DS_Msgs[(Messages)]
+    DS_Friends[(Friendships)]
+    User -->|Room Details| P4_1
+    P4_1 -->|Check Permissions| DS_Friends
+    P4_1 -->|Validate Type| P4_1
+    P4_1 -->|Insert Room| DS_Rooms
+    User -->|Message Content| P4_2
+    P4_2 -->|Validate Membership| DS_Rooms
+    P4_2 -->|Save Message| DS_Msgs
+    P4_2 -->|Update Last Activity| DS_Rooms
+    P4_2 -->|Check if /ai request| P4_3
+    P4_3 -->|Get Context| DS_Msgs
+    P4_3 -->|Call LLM| AIService
+    AIService -->|Response| P4_3
+    P4_3 -->|Save AI Message| DS_Msgs
+    P4_2 -->|New Message Event| P4_4
+    P4_3 -->|New AI Message Event| P4_4
+    P4_4 -->|Push to Websocket| User

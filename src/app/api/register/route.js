@@ -61,6 +61,12 @@ export async function POST(request) {
     console.log('[REGISTER] Generating verification token...');
     const verificationToken = crypto.randomBytes(32).toString('hex');
 
+    // Generate OTP (6 digits)
+    console.log('[REGISTER] Generating OTP...');
+    const verificationOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    // OTP expires in 24 hours (matches token validity implicitly, though DB field is explicit)
+    const verificationOtpExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
     // Hash password
     console.log('[REGISTER] Hashing password...');
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -74,12 +80,22 @@ export async function POST(request) {
       password: hashedPassword,
       displayName,
       isVerified: false,
-      verificationToken
+      verificationToken,
+      verificationOtp,
+      verificationOtpExpires
     });
 
     console.log('[REGISTER] Saving user to database...');
     await newUser.save();
     console.log('[REGISTER] User saved successfully!');
+
+    // Tentukan base URL dari request origin untuk mendukung localhost dan ngrok
+    // Prioritaskan header proxy (ngrok) jika ada
+    const host = request.headers.get('x-forwarded-host') || request.headers.get('host');
+    const protocol = request.headers.get('x-forwarded-proto') || 'http';
+    const baseUrl = `${protocol}://${host}`;
+
+    console.log('[REGISTER] Using base URL for verification:', baseUrl);
 
     // Kirim email verifikasi
     try {
@@ -89,26 +105,37 @@ export async function POST(request) {
 
       const emailResult = await emailService.sendEmail({
         to: email,
-        subject: 'Verifikasi Akun ChitChat - Aktifkan Akun Anda',
+        subject: 'Verifikasi Akun ChitChat - Kode OTP & Link',
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <h2 style="color: #333; text-align: center;">Verifikasi Akun Anda</h2>
             <p>Halo <strong>${displayName}</strong>,</p>
-            <p>Terima kasih telah mendaftar di ChitChat V5.1 AI. Untuk mengaktifkan akun Anda, silakan klik tombol di bawah ini:</p>
+            <p>Terima kasih telah mendaftar di ChitChat V5.1 AI. Gunakan salah satu cara di bawah ini untuk mengaktifkan akun Anda:</p>
+            
+            <div style="background-color: #f9f9f9; padding: 20px; border-radius: 10px; margin: 20px 0; text-align: center;">
+              <p style="margin-bottom: 10px; font-weight: bold; color: #555;">Cara 1: Masukkan Kode OTP</p>
+              <div style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #4F46E5; background: #fff; padding: 15px; border: 1px dashed #ccc; display: inline-block; border-radius: 8px;">
+                ${verificationOtp}
+              </div>
+              <p style="font-size: 12px; color: #888; margin-top: 10px;">Masukkan kode ini di halaman verifikasi website.</p>
+            </div>
+
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${process.env.NEXT_PUBLIC_SERVER_URL}/auth/verify/${verificationToken}"
+              <p style="margin-bottom: 10px; font-weight: bold; color: #555;">Cara 2: Klik Tombol Verifikasi</p>
+              <a href="${baseUrl}/auth/verify/${verificationToken}"
                  style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
-                Verifikasi Akun
+                Verifikasi Akun Otomatis
               </a>
             </div>
-            <p>Atau copy dan paste link berikut ke browser Anda:</p>
-            <p style="word-break: break-all; background-color: #f5f5f5; padding: 10px; border-radius: 4px;">
-              ${process.env.NEXT_PUBLIC_SERVER_URL}/auth/verify/${verificationToken}
+            
+            <p style="text-align: center; color: #666e">Atau copy link berikut:</p>
+            <p style="word-break: break-all; background-color: #f5f5f5; padding: 10px; border-radius: 4px; font-size: 12px; color: #666;">
+              ${baseUrl}/auth/verify/${verificationToken}
             </p>
-            <p>Link verifikasi ini akan kadaluarsa dalam 24 jam.</p>
-            <p>Jika Anda tidak mendaftar di ChitChat, abaikan email ini.</p>
-            <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
-            <p><small>Email ini dikirim secara otomatis. Mohon tidak membalas email ini.</small></p>
+            
+            <p style="font-size: 11px; color: #999; margin-top: 30px; text-align: center;">
+              Jika Anda tidak mendaftar di ChitChat, abaikan email ini.
+            </p>
           </div>
         `
       });

@@ -77,6 +77,7 @@ export async function GET(request, { params }) {
             filename: msg.attachment.filename,
             size: msg.attachment.size,
             mimeType: msg.attachment.mimeType,
+            type: msg.attachment.mimeType || 'unknown',
             timestamp: msg.timestamp,
             senderId: msg.senderId
         }));

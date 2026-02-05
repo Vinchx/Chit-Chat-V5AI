@@ -1,6 +1,7 @@
 // src/app/api/rooms/[roomId]/leave/route.js
 import connectToDatabase from "@/lib/mongodb";
 import mongoose from "mongoose";
+import Room from "@/models/Room";
 import { getAuthSessionOrApiKey } from "@/lib/auth-helpers";
 
 // Leave group
@@ -52,14 +53,15 @@ export async function POST(request, { params }) {
             }
         );
 
-        // If no members left, delete the room
+        // If no members left, soft delete the room
         const updatedRoom = await roomsCollection.findOne({ _id: roomId });
         if (updatedRoom && updatedRoom.members.length === 0) {
-            await roomsCollection.deleteOne({ _id: roomId });
+            // Soft delete menggunakan model method
+            await Room.softDeleteById(roomId, userId);
 
             return Response.json({
                 success: true,
-                message: "Anda berhasil keluar dari grup. Grup telah dihapus karena tidak ada member"
+                message: "Anda berhasil keluar dari grup. Grup telah diarsipkan karena tidak ada member"
             });
         }
 
