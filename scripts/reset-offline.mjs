@@ -1,0 +1,35 @@
+import { MongoClient } from 'mongodb';
+
+const uri = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/chitchat";
+
+async function resetAllUsersOffline() {
+    const client = new MongoClient(uri);
+
+    try {
+        await client.connect();
+        console.log('✅ Connected to MongoDB');
+
+        const db = client.db();
+        const users = db.collection('users');
+
+        // Set all users to offline
+        const result = await users.updateMany(
+            {},
+            { $set: { isOnline: false } }
+        );
+
+        console.log(`\n🔄 Updated ${result.modifiedCount} users to offline`);
+
+        // Check online count
+        const onlineCount = await users.countDocuments({ isOnline: true });
+        console.log(`🟢 Online users now: ${onlineCount}`);
+
+    } catch (error) {
+        console.error('❌ Error:', error);
+    } finally {
+        await client.close();
+        console.log('✅ Connection closed\n');
+    }
+}
+
+resetAllUsersOffline();

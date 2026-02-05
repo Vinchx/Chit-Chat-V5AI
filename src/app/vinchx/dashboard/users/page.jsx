@@ -19,6 +19,10 @@ export default function ViewAllUsersPage() {
   useEffect(() => {
     if (isAdminAuthed) {
       fetchUsers();
+
+      // Auto-refresh every 10 seconds for realtime online status
+      const interval = setInterval(fetchUsers, 10000);
+      return () => clearInterval(interval);
     }
   }, [isAdminAuthed]);
 

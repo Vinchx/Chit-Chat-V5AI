@@ -11,6 +11,7 @@
       "item": [
         {
           "name": "Register",
+          "id": "b5b7e67c-ac17-4e9e-b6ec-76b1160f626d",
           "request": {
             "method": "POST",
             "header": [
@@ -28,10 +29,12 @@
               "host": ["{{base_url}}"],
               "path": ["api", "register"]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Login (DEPRECATED)",
+          "id": "dede5e32-d21a-489a-9859-894948598376",
           "request": {
             "method": "POST",
             "header": [
@@ -54,6 +57,7 @@
         },
         {
           "name": "Forgot Password",
+          "id": "3997ddaa-53d2-4842-8002-73f916e64a00",
           "request": {
             "method": "POST",
             "header": [
@@ -71,15 +75,18 @@
               "host": ["{{base_url}}"],
               "path": ["api", "auth", "forgot-password"]
             }
-          }
+          },
+          "response": []
         }
-      ]
+      ],
+      "id": "49f7f4ce-adad-46b3-a95b-0c4243188b70"
     },
     {
       "name": "Friends",
       "item": [
         {
           "name": "Get Friends List",
+          "id": "4b603ab2-bbd1-457a-977a-ee854b72eac8",
           "request": {
             "method": "GET",
             "header": [
@@ -97,10 +104,12 @@
               "host": ["{{base_url}}"],
               "path": ["api", "friends"]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Add Friend",
+          "id": "e7bd2634-e71f-43a4-b02a-5d51ef04c49a",
           "request": {
             "method": "POST",
             "header": [
@@ -126,10 +135,12 @@
               "host": ["{{base_url}}"],
               "path": ["api", "friends", "add"]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Get Friend Requests",
+          "id": "dbb70280-ea30-4d14-8b03-38b3e1495e10",
           "request": {
             "method": "GET",
             "header": [
@@ -147,10 +158,12 @@
               "host": ["{{base_url}}"],
               "path": ["api", "friends", "requests"]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Respond to Friend Request",
+          "id": "2af1706b-f579-496a-becf-b206d83e4c5e",
           "request": {
             "method": "POST",
             "header": [
@@ -176,15 +189,18 @@
               "host": ["{{base_url}}"],
               "path": ["api", "friends", "respond"]
             }
-          }
+          },
+          "response": []
         }
-      ]
+      ],
+      "id": "fcd4d815-dda0-44d2-97a9-fb21250c0e60"
     },
     {
       "name": "Rooms",
       "item": [
         {
           "name": "Get All Rooms",
+          "id": "796b6eb9-00de-4db1-8618-4387fb7e235c",
           "request": {
             "method": "GET",
             "header": [
@@ -202,10 +218,12 @@
               "host": ["{{base_url}}"],
               "path": ["api", "rooms"]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Create Private Room",
+          "id": "bc707902-7142-42eb-9124-88e1e965db26",
           "request": {
             "method": "POST",
             "header": [
@@ -231,10 +249,12 @@
               "host": ["{{base_url}}"],
               "path": ["api", "rooms", "create"]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Create Group Room",
+          "id": "63c5a1f1-0681-4239-8a7e-2d5ff563b16c",
           "request": {
             "method": "POST",
             "header": [
@@ -260,10 +280,12 @@
               "host": ["{{base_url}}"],
               "path": ["api", "rooms", "create"]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Create AI Room",
+          "id": "e1df441a-2fad-4c18-ac7e-29619a0680d6",
           "request": {
             "method": "POST",
             "header": [
@@ -289,10 +311,12 @@
               "host": ["{{base_url}}"],
               "path": ["api", "rooms", "create"]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Get Room by Slug",
+          "id": "565a031b-8a41-4181-ad51-c4c7a705682d",
           "request": {
             "method": "GET",
             "header": [
@@ -310,15 +334,18 @@
               "host": ["{{base_url}}"],
               "path": ["api", "rooms", "by-slug", "john"]
             }
-          }
+          },
+          "response": []
         }
-      ]
+      ],
+      "id": "e0a90553-3a59-4688-820e-68f1b199596f"
     },
     {
       "name": "Messages",
       "item": [
         {
           "name": "Send Message",
+          "id": "4b154016-ed8d-465a-a642-561572315299",
           "request": {
             "method": "POST",
             "header": [
@@ -344,10 +371,12 @@
               "host": ["{{base_url}}"],
               "path": ["api", "messages"]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Get Messages",
+          "id": "bd416429-68db-4d64-ac2f-e5c35efe6b7c",
           "request": {
             "method": "GET",
             "header": [
@@ -371,15 +400,18 @@
                 }
               ]
             }
-          }
+          },
+          "response": []
         }
-      ]
+      ],
+      "id": "6608c1bb-6bf8-4843-8769-9dd250e11f08"
     },
     {
       "name": "AI Chat",
       "item": [
         {
           "name": "Send AI Chat",
+          "id": "8826787f-5343-446c-940b-30cf55f0ae32",
           "request": {
             "method": "POST",
             "header": [
@@ -405,15 +437,18 @@
               "host": ["{{base_url}}"],
               "path": ["api", "ai", "chat"]
             }
-          }
+          },
+          "response": []
         }
-      ]
+      ],
+      "id": "5ba0dab8-46a9-4544-bac2-4608a2779663"
     },
     {
       "name": "Profile",
       "item": [
         {
           "name": "Update Profile",
+          "id": "e6dcf12b-ff79-4bed-9fa3-ef1a2f63b568",
           "request": {
             "method": "PUT",
             "header": [
@@ -439,10 +474,12 @@
               "host": ["{{base_url}}"],
               "path": ["api", "profile", "update"]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Change Password",
+          "id": "29e14ef3-74c9-4ed1-8eb4-2911ec22cc36",
           "request": {
             "method": "POST",
             "header": [
@@ -468,15 +505,18 @@
               "host": ["{{base_url}}"],
               "path": ["api", "profile", "change-password"]
             }
-          }
+          },
+          "response": []
         }
-      ]
+      ],
+      "id": "bd2bc872-dd6e-4e58-aa70-da59faa77137"
     },
     {
       "name": "Users",
       "item": [
         {
           "name": "Search Users",
+          "id": "1be78250-59fd-454a-b7df-86270fe4f410",
           "request": {
             "method": "GET",
             "header": [
@@ -500,10 +540,12 @@
                 }
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Get User Profile",
+          "id": "d54e4711-def6-4acf-8339-ebf1ae7ac6fa",
           "request": {
             "method": "GET",
             "header": [
@@ -521,15 +563,18 @@
               "host": ["{{base_url}}"],
               "path": ["api", "users", "user002"]
             }
-          }
+          },
+          "response": []
         }
-      ]
+      ],
+      "id": "3cda46ac-ebdd-4de9-a2a3-b2e229d17583"
     },
     {
       "name": "Admin",
       "item": [
         {
           "name": "Get Stats",
+          "id": "d8e4d6c2-24c3-4502-9c6d-6db7499176f8",
           "request": {
             "method": "GET",
             "header": [
@@ -547,10 +592,12 @@
               "host": ["{{base_url}}"],
               "path": ["api", "admin", "stats"]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Get All Users",
+          "id": "a966a3f1-f476-477a-8e27-ef81ff89d84d",
           "request": {
             "method": "GET",
             "header": [
@@ -568,10 +615,12 @@
               "host": ["{{base_url}}"],
               "path": ["api", "admin", "users"]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Ban User",
+          "id": "3160c712-c786-47fd-a937-eaede2b9fc55",
           "request": {
             "method": "POST",
             "header": [
@@ -597,26 +646,29 @@
               "host": ["{{base_url}}"],
               "path": ["api", "admin", "users", "user002", "ban"]
             }
-          }
+          },
+          "response": []
         }
-      ]
+      ],
+      "id": "39a8f151-5b69-4009-8855-8194afdfb616"
     }
   ],
   "variable": [
     {
+      "id": "37afcbed-efbd-44f4-9cab-b769aafbbcba",
       "key": "base_url",
-      "value": "http://localhost:1630",
-      "type": "string"
+      "value": "http://localhost:1630"
     },
     {
+      "id": "b473ad3d-dae0-49d5-80eb-402002269020",
       "key": "api_key",
-      "value": "secretbet",
+      "value": "dev-test-key-12345",
       "type": "string"
     },
     {
+      "id": "d70f84ca-fc9d-40df-80fe-109c61d98412",
       "key": "user_id",
-      "value": "user001",
-      "type": "string"
+      "value": "user001"
     }
   ]
 }

@@ -3,11 +3,12 @@
     "id": "05d6139f-262d-485a-81a2-3b5b516df81c"
   },
   "entities": {
-    "collections": [
-      "..\\docs\\ChitChat_API_Simple.postman_collection.json",
-      "..\\docs\\other\\ChitChat_API_Collection.postman_collection.json"
+    "collections": ["..\\docs\\ChitChat_API_Simple.postman_collection.json"],
+    "environments": [
+      "..\\docs\\environments\\local.postman_environment.json",
+      "..\\docs\\environments\\staging.postman_environment.json",
+      "..\\docs\\environments\\production.postman_environment.json"
     ],
-    "environments": [],
     "specs": [],
     "flows": [],
     "globals": []
