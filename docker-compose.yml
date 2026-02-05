@@ -43,7 +43,7 @@ services:
       NEXT_PUBLIC_SERVER_URL: http://localhost:1630
 
       # Admin
-      ADMIN_EMAILS: admin@example.com
+      ADMIN_EMAILS: nzxtvinix@gmail.com
 
       # Passkey
       ALLOWED_PASSKEY_DOMAINS: localhost
