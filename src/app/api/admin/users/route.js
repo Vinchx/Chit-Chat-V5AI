@@ -31,10 +31,56 @@ export async function GET(request) {
             .sort({ createdAt: -1 })
             .toArray();
 
+        // Get collections for statistics
+        const friendshipsCollection = db.collection("friendships");
+        const messagesCollection = db.collection("messages");
+        const roomsCollection = db.collection("rooms");
+
+        // Calculate statistics for each user
+        const usersWithStats = await Promise.all(
+            users.map(async (user) => {
+                try {
+                    // Count friends (accepted friendships where user is either sender or receiver)
+                    const friendCount = await friendshipsCollection.countDocuments({
+                        $or: [
+                            { senderId: user._id, status: "accepted" },
+                            { receiverId: user._id, status: "accepted" }
+                        ]
+                    });
+
+                    // Count messages sent by this user
+                    const messageCount = await messagesCollection.countDocuments({
+                        senderId: user._id
+                    });
+
+                    // Count groups (rooms) where user is a member
+                    const groupCount = await roomsCollection.countDocuments({
+                        members: user._id
+                    });
+
+                    return {
+                        ...user,
+                        friendCount,
+                        messageCount,
+                        groupCount
+                    };
+                } catch (error) {
+                    console.error(`Error calculating stats for user ${user._id}:`, error);
+                    // Return user with 0 counts if error occurs
+                    return {
+                        ...user,
+                        friendCount: 0,
+                        messageCount: 0,
+                        groupCount: 0
+                    };
+                }
+            })
+        );
+
         return Response.json({
             success: true,
-            users: users,
-            count: users.length
+            users: usersWithStats,
+            count: usersWithStats.length
         });
 
     } catch (error) {

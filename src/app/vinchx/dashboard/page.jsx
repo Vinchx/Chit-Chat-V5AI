@@ -7,12 +7,16 @@ import Image from "next/image";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { clearAdminToken } from "@/lib/admin-session";
 import { clearAllCookies } from "@/lib/cookie-utils";
+import { toast } from "sonner";
 
 export default function AdminDashboard() {
   const router = useRouter();
   const { isAdminAuthed, isLoading, session } = useAdminAuth();
   const [stats, setStats] = useState(null);
   const [showLogoutMenu, setShowLogoutMenu] = useState(false);
+  const [dateFilter, setDateFilter] = useState({ startDate: "", endDate: "" });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
 
   // Fetch admin stats when component mounts and auth is confirmed
   React.useEffect(() => {
@@ -21,14 +25,59 @@ export default function AdminDashboard() {
     }
   }, [isAdminAuthed]); // Only depend on isAdminAuthed
 
-  const fetchAdminStats = async () => {
+  const fetchAdminStats = async (startDate = "", endDate = "", page = 1) => {
     try {
-      const response = await fetch("/api/admin/stats");
+      const params = new URLSearchParams();
+      if (startDate && endDate) {
+        params.append("startDate", startDate);
+        params.append("endDate", endDate);
+      }
+      params.append("page", page);
+      params.append("limit", itemsPerPage);
+
+      const url = `/api/admin/stats?${params.toString()}`;
+      const response = await fetch(url);
       const data = await response.json();
       setStats(data);
+
+      // Show toast if filtering and no results found
+      if (
+        startDate &&
+        endDate &&
+        (!data.recentUsers || data.recentUsers.length === 0)
+      ) {
+        toast.info("Tidak ada user yang daftar pada rentang tanggal tersebut", {
+          description: `${new Date(startDate).toLocaleDateString()} - ${new Date(endDate).toLocaleDateString()}`,
+        });
+      }
     } catch (error) {
       console.error("Failed to fetch stats:", error);
+      toast.error("Gagal memuat data statistik");
     }
+  };
+
+  const handleDateFilter = () => {
+    if (dateFilter.startDate && dateFilter.endDate) {
+      setCurrentPage(1);
+      fetchAdminStats(dateFilter.startDate, dateFilter.endDate, 1);
+    }
+  };
+
+  const handleResetFilter = () => {
+    setDateFilter({ startDate: "", endDate: "" });
+    setCurrentPage(1);
+    fetchAdminStats("", "", 1);
+  };
+
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+    fetchAdminStats(dateFilter.startDate, dateFilter.endDate, newPage);
+  };
+
+  const handleLimitChange = (newLimit) => {
+    setItemsPerPage(newLimit);
+    setCurrentPage(1);
+    fetchAdminStats(dateFilter.startDate, dateFilter.endDate, 1);
   };
 
   if (isLoading) {
@@ -254,8 +303,52 @@ export default function AdminDashboard() {
           <h2 className="text-2xl font-bold text-white mb-4">
             Recent Activity
           </h2>
+
+          {/* Date Filter */}
+          <div className="mb-4 flex flex-wrap gap-3 items-end">
+            <div className="flex-1 min-w-[200px]">
+              <label className="block text-gray-400 text-sm mb-2">
+                Start Date
+              </label>
+              <input
+                type="date"
+                value={dateFilter.startDate}
+                onChange={(e) =>
+                  setDateFilter({ ...dateFilter, startDate: e.target.value })
+                }
+                className="w-full px-4 py-2 bg-gray-700/50 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
+              />
+            </div>
+            <div className="flex-1 min-w-[200px]">
+              <label className="block text-gray-400 text-sm mb-2">
+                End Date
+              </label>
+              <input
+                type="date"
+                value={dateFilter.endDate}
+                onChange={(e) =>
+                  setDateFilter({ ...dateFilter, endDate: e.target.value })
+                }
+                className="w-full px-4 py-2 bg-gray-700/50 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
+              />
+            </div>
+            <button
+              onClick={handleDateFilter}
+              disabled={!dateFilter.startDate || !dateFilter.endDate}
+              className="px-6 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
+            >
+              Filter
+            </button>
+            <button
+              onClick={handleResetFilter}
+              className="px-6 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-medium transition-colors"
+            >
+              Reset
+            </button>
+          </div>
+
           <div className="space-y-3">
-            {stats?.recentUsers?.slice(0, 5).map((user, index) => {
+            {stats?.recentUsers?.map((user, index) => {
               // Helper to normalize avatar path
               const normalizeAvatar = (avatar) => {
                 return avatar ? avatar.replace(/\\/g, "/") : null;
@@ -298,6 +391,62 @@ export default function AdminDashboard() {
               );
             })}
           </div>
+
+          {/* Pagination Controls */}
+          {stats?.pagination && stats.pagination.totalItems > 0 && (
+            <div className="mt-4 flex items-center justify-between border-t border-gray-700 pt-4">
+              <div className="flex items-center gap-4">
+                <div className="text-gray-400 text-sm">
+                  Showing{" "}
+                  {(stats.pagination.currentPage - 1) *
+                    stats.pagination.itemsPerPage +
+                    1}{" "}
+                  to{" "}
+                  {Math.min(
+                    stats.pagination.currentPage *
+                      stats.pagination.itemsPerPage,
+                    stats.pagination.totalItems,
+                  )}{" "}
+                  of {stats.pagination.totalItems} users
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-gray-400 text-sm">
+                    Items per page:
+                  </label>
+                  <select
+                    value={itemsPerPage}
+                    onChange={(e) => handleLimitChange(Number(e.target.value))}
+                    className="px-3 py-1 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none text-sm"
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:cursor-not-allowed text-white rounded-lg transition-colors disabled:text-gray-600"
+                >
+                  ← Previous
+                </button>
+                <div className="px-4 py-2 bg-gray-700/50 text-white rounded-lg">
+                  Page {stats.pagination.currentPage} of{" "}
+                  {stats.pagination.totalPages}
+                </div>
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === stats.pagination.totalPages}
+                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:cursor-not-allowed text-white rounded-lg transition-colors disabled:text-gray-600"
+                >
+                  Next →
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

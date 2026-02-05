@@ -31,11 +31,9 @@ export async function GET(request) {
         // Get stats
         const totalUsers = await User.countDocuments();
 
-        // Active users today
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        // Active users (currently online)
         const activeToday = await User.countDocuments({
-            lastActive: { $gte: today }
+            isOnline: true
         });
 
         // Total messages
@@ -46,10 +44,41 @@ export async function GET(request) {
         const Room = mongoose.models.Room || mongoose.model('Room', new mongoose.Schema({}, { strict: false }));
         const totalRooms = await Room.countDocuments();
 
-        // Recent users
-        const recentUsers = await User.find()
+        // Recent users - with optional date range filter and pagination
+        const { searchParams } = new URL(request.url);
+        const startDate = searchParams.get('startDate');
+        const endDate = searchParams.get('endDate');
+        const page = parseInt(searchParams.get('page')) || 1;
+        const limit = parseInt(searchParams.get('limit')) || 5;
+
+        // Build date filter query
+        let dateQuery = {};
+        if (startDate && endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+
+            // Set start to beginning of day (00:00:00.000)
+            start.setHours(0, 0, 0, 0);
+
+            // Set end to end of day (23:59:59.999)
+            end.setHours(23, 59, 59, 999);
+
+            dateQuery = {
+                createdAt: {
+                    $gte: start,
+                    $lte: end
+                }
+            };
+        }
+
+        // Get total count for pagination
+        const totalRecentUsers = await User.countDocuments(dateQuery);
+        const totalPages = Math.ceil(totalRecentUsers / limit);
+
+        const recentUsers = await User.find(dateQuery)
             .sort({ createdAt: -1 })
-            .limit(10)
+            .skip((page - 1) * limit)
+            .limit(limit)
             .select('username email displayName createdAt avatar')
             .lean();
 
@@ -59,6 +88,12 @@ export async function GET(request) {
             totalMessages,
             totalRooms,
             recentUsers,
+            pagination: {
+                currentPage: page,
+                totalPages,
+                totalItems: totalRecentUsers,
+                itemsPerPage: limit
+            }
         });
 
     } catch (error) {
